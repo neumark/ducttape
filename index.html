@@ -3,27 +3,136 @@
 <head>
   <meta http-equiv="content-type" content="text/html;charset=UTF-8" />
   <title>Ducttape</title>
+  <link href="bootstrap/css/bootstrap.css" rel="stylesheet">
+  <style>
+    body {
+        padding-top: 40px;
+    }
+    div.parseerror {
+        background-attachment: scroll;
+        background-clip: border-box;
+        /*background-color: transparent;*/
+        background-image: -webkit-gradient(linear, 0% 0%, 0% 100%, from(rgb(255, 237, 236)), to(rgb(255, 154, 149)));
+        background-origin: padding-box;
+        border-bottom-left-radius: 0px;
+        border-bottom-right-radius: 2px;
+        border-top-left-radius: 0px;
+        border-top-right-radius: 2px;
+        bottom: 0px;
+        color: #862322;
+        display: block;
+        font-family: 'Helvetica Neue', 'Lucida Grande', 'Lucida Sans Unicode', Helvetica, Arial, sans-serif;
+        font-size: 10px;
+        height: 50px;
+        /*left: 726px;*/
+        line-height: 40px;
+        overflow-x: hidden;
+        overflow-y: hidden;
+        padding-bottom: 0px;
+        padding-left: 15px;
+        padding-right: 0px;
+        padding-top: 0px;
+        /*position: absolute;*/
+        /*right: 0px;*/
+        text-transform: uppercase;
+        /*top: 0px;*/
+        /*width: 804px;*/
+    }
+  </style>
 </head>
 <body>
-<div id="editor" style="height: 500px; width: 500px">some text</div>
+
+    <div class="navbar navbar-fixed-top">
+      <div class="navbar-inner">
+        <div class="container">
+          <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </a>
+          <a class="brand" href="#">Project name</a>
+          <div class="nav-collapse">
+            <ul class="nav">
+              <li class="active"><a href="#">Home</a></li>
+              <li><a href="#about">About</a></li>
+              <li><a href="#contact">Contact</a></li>
+            </ul>
+          </div><!--/.nav-collapse -->
+        </div>
+      </div>
+    </div>
+
+    <div class="container">
+
+      <h1>Bootstrap starter template</h1>
+      <p>Use this document as a way to quick start any new project.<br> All you get is this message and a barebones HTML document.</p>
+            <div id="editor" style="height: 80px; width: 500px;">alert "asdf"</div>
+            <div id="js" style="height: 200px"></div>
+            <a id="run" class="btn btn-success" href="#">Run</a>
+            <div id="error" class="parseerror" style="display:none;"></div>
+    </div> <!-- /container -->
+
 <script src="jquery/jquery-1.7.1.js" type="text/javascript" charset="utf-8"></script>
+<script src="cs/coffee-script.js"></script>
 <script src="ace/ace-uncompressed.js" type="text/javascript" charset="utf-8"></script>
 <script src="ace/keybinding-vim-uncompressed.js" type="text/javascript" charset="utf-8"></script>
 <script src="ace/mode-coffee-uncompressed.js" type="text/javascript" charset="utf-8"></script>
-<script src="ace/theme-chrome-uncompressed.js" type="text/javascript" charset="utf-8"></script>
-<script>
-var editor
-$(function() {
-	editor = ace.edit("editor");
-	editor.setTheme("ace/theme/chrome");
-	editor.getSession().setMode(new (require("ace/mode/coffee").Mode)());
-        editor.getSession().setTabSize(4);
-        editor.getSession().setUseSoftTabs(true);
-        //$('#editor')document.getElementById('editor').style.fontSize='12px';
-        editor.getSession().setUseWrapMode(false);
-        editor.setHighlightActiveLine(true);
-        editor.setShowPrintMargin(false);
-});
+<script type="text/coffeescript">
+editor = 0
+js_source = 0
+compile = (source) ->
+  try
+    ret = CoffeeScript.compile source, bare: on
+    js: ret
+  catch error
+    error
+
+update = () ->
+    c = compile(editor.getSession().getValue())
+    if c.js?
+        js_source = c.js
+        $("#run").show()
+        $("#error").hide()
+    else
+        js_source = ""
+        $("#run").hide()
+        $("#error").text(c.message).show()
+
+execute = () ->
+    if js_source.length > 0
+        console.dir eval js_source
+        editor.getSession().setValue("")
+        update()
+
+$ () ->
+    editor = ace.edit "editor"
+    editor.getSession().setMode(new (require("ace/mode/coffee").Mode)())
+    editor.setKeyboardHandler(require("ace/keyboard/keybinding/vim").Vim)
+    editor.getSession().setTabSize(4)
+    editor.getSession().setUseSoftTabs(true)
+    editor.getSession().setUseWrapMode(false)
+    editor.setHighlightActiveLine(true)
+    editor.setShowPrintMargin(false)
+    editor.renderer.setShowGutter(false)
+    editor.renderer.setHScrollBarAlwaysVisible(false)
+    editor.getSession().on "change", update
+    editor.setKeyboardHandler handleKeyboard: () ->
+        if (arguments[3] == 13 and arguments.length > 4 and arguments[4].shiftKey == true)
+            execute()
+            
+        
 </script>
+<script src="bootstrap/js/bootstrap-transition.js"></script>
+<script src="bootstrap/js/bootstrap-alert.js"></script>
+<script src="bootstrap/js/bootstrap-modal.js"></script>
+<script src="bootstrap/js/bootstrap-dropdown.js"></script>
+<script src="bootstrap/js/bootstrap-scrollspy.js"></script>
+<script src="bootstrap/js/bootstrap-tab.js"></script>
+<script src="bootstrap/js/bootstrap-tooltip.js"></script>
+<script src="bootstrap/js/bootstrap-popover.js"></script>
+<script src="bootstrap/js/bootstrap-button.js"></script>
+<script src="bootstrap/js/bootstrap-collapse.js"></script>
+<script src="bootstrap/js/bootstrap-carousel.js"></script>
+<script src="bootstrap/js/bootstrap-typeahead.js"></script>
 </body>
 </html>
