@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="content-type" content="text/html;charset=UTF-8" />
+  <title>Ducttape</title>
+</head>
+<body>
+<div id="editor" style="height: 500px; width: 500px">some text</div>
+<script src="jquery/jquery-1.7.1.js" type="text/javascript" charset="utf-8"></script>
+<script src="ace/ace-uncompressed.js" type="text/javascript" charset="utf-8"></script>
+<script src="ace/keybinding-vim-uncompressed.js" type="text/javascript" charset="utf-8"></script>
+<script src="ace/mode-coffee-uncompressed.js" type="text/javascript" charset="utf-8"></script>
+<script src="ace/theme-chrome-uncompressed.js" type="text/javascript" charset="utf-8"></script>
+<script>
+var editor
+$(function() {
+	editor = ace.edit("editor");
+	editor.setTheme("ace/theme/chrome");
+	editor.getSession().setMode(new (require("ace/mode/coffee").Mode)());
+        editor.getSession().setTabSize(4);
+        editor.getSession().setUseSoftTabs(true);
+        //$('#editor')document.getElementById('editor').style.fontSize='12px';
+        editor.getSession().setUseWrapMode(false);
+        editor.setHighlightActiveLine(true);
+        editor.setShowPrintMargin(false);
+});
+</script>
+</body>
+</html>
