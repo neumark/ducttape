@@ -4,11 +4,35 @@
   <meta http-equiv="content-type" content="text/html;charset=UTF-8" />
   <title>Ducttape</title>
   <link href="bootstrap/css/bootstrap.css" rel="stylesheet">
+  <link href="bootstrap/css/bootstrap-responsive.css" rel="stylesheet">
   <style>
     body {
-        padding-top: 40px;
+        padding-top: 60px;
     }
-    div.parseerror {
+
+    div.eval_result {
+        padding-left:16px;
+        padding-bottom: 8px;
+    }
+    pre.executed {
+        display:block;
+    }
+
+    div#editor_wrapper {
+        padding: 4px;
+        border: 1px solid #CCC;
+        -webkit-border-radius: 3px;
+        -moz-border-radius: 3px;
+        border-radius: 3px;
+        -webkit-transition: border linear 0.2;
+        border-color: rgba(82, 168, 236, 0.8);
+        -webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 8px rgba(82, 168, 236, 0.6);
+        -moz-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 8px rgba(82, 168, 236, 0.6);
+        box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 8px rgba(82, 168, 236, 0.6);
+        outline: 0;
+        outline: thin dotted 9;
+    }
+    div#parseerror {
         background-attachment: scroll;
         background-clip: border-box;
         /*background-color: transparent;*/
@@ -50,12 +74,11 @@
             <span class="icon-bar"></span>
             <span class="icon-bar"></span>
           </a>
-          <a class="brand" href="#">Project name</a>
+          <a class="brand" href="#">DuctTape</a>
           <div class="nav-collapse">
             <ul class="nav">
-              <li class="active"><a href="#">Home</a></li>
-              <li><a href="#about">About</a></li>
-              <li><a href="#contact">Contact</a></li>
+              <li class="active"><a id="menuhelp" href="#">Help</a></li>
+              <!--<li><a id="menuabout" href="#">About</a></li>-->
             </ul>
           </div><!--/.nav-collapse -->
         </div>
@@ -64,64 +87,22 @@
 
     <div class="container">
 
-      <h1>Bootstrap starter template</h1>
-      <p>Use this document as a way to quick start any new project.<br> All you get is this message and a barebones HTML document.</p>
-            <div id="editor" style="height: 80px; width: 500px;">alert "asdf"</div>
-            <div id="js" style="height: 200px"></div>
-            <a id="run" class="btn btn-success" href="#">Run</a>
-            <div id="error" class="parseerror" style="display:none;"></div>
+            <div id="interactions"></div>
+            <div style="height:40px" id="editor_wrapper">
+                <div id="editor" style="height: 36px; width: 600px;">alert "asdf"</div>
+            </div>
+            <div id="ok">
+                <a class="btn btn-small btn-info" href="#"><i class="icon-info-sign icon-white"></i> View Generated JS </a>
+            </div>
+            <div id="parseerror" style="display:none;"></div>
     </div> <!-- /container -->
 
 <script src="jquery/jquery-1.7.1.js" type="text/javascript" charset="utf-8"></script>
-<script src="cs/coffee-script.js"></script>
 <script src="ace/ace-uncompressed.js" type="text/javascript" charset="utf-8"></script>
 <script src="ace/keybinding-vim-uncompressed.js" type="text/javascript" charset="utf-8"></script>
 <script src="ace/mode-coffee-uncompressed.js" type="text/javascript" charset="utf-8"></script>
-<script type="text/coffeescript">
-editor = 0
-js_source = 0
-compile = (source) ->
-  try
-    ret = CoffeeScript.compile source, bare: on
-    js: ret
-  catch error
-    error
-
-update = () ->
-    c = compile(editor.getSession().getValue())
-    if c.js?
-        js_source = c.js
-        $("#run").show()
-        $("#error").hide()
-    else
-        js_source = ""
-        $("#run").hide()
-        $("#error").text(c.message).show()
-
-execute = () ->
-    if js_source.length > 0
-        console.dir eval js_source
-        editor.getSession().setValue("")
-        update()
-
-$ () ->
-    editor = ace.edit "editor"
-    editor.getSession().setMode(new (require("ace/mode/coffee").Mode)())
-    editor.setKeyboardHandler(require("ace/keyboard/keybinding/vim").Vim)
-    editor.getSession().setTabSize(4)
-    editor.getSession().setUseSoftTabs(true)
-    editor.getSession().setUseWrapMode(false)
-    editor.setHighlightActiveLine(true)
-    editor.setShowPrintMargin(false)
-    editor.renderer.setShowGutter(false)
-    editor.renderer.setHScrollBarAlwaysVisible(false)
-    editor.getSession().on "change", update
-    editor.setKeyboardHandler handleKeyboard: () ->
-        if (arguments[3] == 13 and arguments.length > 4 and arguments[4].shiftKey == true)
-            execute()
-            
-        
-</script>
+<script src="cs/coffee-script.js"></script>
+<script src="cs/ducttape.js"></script>
 <script src="bootstrap/js/bootstrap-transition.js"></script>
 <script src="bootstrap/js/bootstrap-alert.js"></script>
 <script src="bootstrap/js/bootstrap-modal.js"></script>
