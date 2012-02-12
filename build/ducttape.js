@@ -1,16 +1,15 @@
 (function() {
   /* 
       TODO: disable ACE keyboard shortcuts
-      add prompt + navigate object graph using with(obj) {expr} in eval
   */  var DuctTape, capture_event;
-  var __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
+  var __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; }, __hasProp = Object.prototype.hasOwnProperty;
   capture_event = function(ev) {
     ev.preventDefault();
     return ev.stopPropagation();
   };
   DuctTape = (function() {
     function DuctTape() {
-      this.session = {
+      this.format_command = __bind(this.format_command, this);      this.session = {
         history: [],
         last_exception: null,
         last_result: null,
@@ -20,9 +19,9 @@
         }
       };
       this.editor = 0;
+      this.editor_div = document.getElementById("editor");
       this.coffee_source = "";
       this.js_source = "";
-      this.eval_context = {};
       this.init_ace();
       this.init_ui();
       this.reset_editor_contents();
@@ -101,11 +100,77 @@
       return $("<div class=\"eval_result\"><span class=\"label label-warning\"> <strong>Exception</strong> (" + ((_ref = ex.type) != null ? _ref : "") + ") </span>&nbsp;<strong>" + ((_ref2 = ex.message) != null ? _ref2 : "") + "</strong></div>");
     };
     DuctTape.prototype.format_retval = function(val) {
+      var wrap;
+      wrap = function(x) {
+        return $("<div class=\"eval_result\">" + x + "</div>");
+      };
       if (val instanceof HTMLElement) {
         return val;
       } else {
-        return $("<div class=\"eval_result\">" + val + "</div>");
+        switch (typeof val) {
+          case "string":
+            return wrap("\"" + val + "\"");
+          case "object":
+            if (val.toString !== Object.prototype.toString) {
+              return wrap(val.toString());
+            } else {
+              return this.format_object(val);
+            }
+            break;
+          default:
+            return wrap(val);
+        }
       }
+    };
+    DuctTape.prototype.format_object = function(obj) {
+      var get_node_data, object_viewer;
+      get_node_data = function(nodeid) {
+        var data, key, node, value;
+        data = {
+          data: "Object",
+          state: "open",
+          children: []
+        };
+        node = obj;
+        if (nodeid !== -1) {
+          debugger;
+          data.state = "closed";
+        }
+        data.children = (function() {
+          var _results;
+          _results = [];
+          for (key in node) {
+            if (!__hasProp.call(node, key)) continue;
+            value = node[key];
+            _results.push({
+              data: key,
+              state: "closed"
+            });
+          }
+          return _results;
+        })();
+        console.dir(data);
+        return data;
+      };
+      object_viewer = $("<div class='eval_result'></div>");
+      object_viewer.jstree({
+        json_data: {
+          data: function(nodeid, cb) {
+            return cb(get_node_data(nodeid));
+          }
+        },
+        plugins: ["themes", "json_data", "crrm"]
+      });
+      return object_viewer;
+    };
+    DuctTape.prototype.format_command = function() {
+      var div_inner, div_outer, lines;
+      lines = $('div.ace_content', this.editor_div).find('div.ace_line').clone();
+      div_inner = $("<div class='highlighted_expr ace_editor ace_text-layer'></div>");
+      div_inner.append(lines);
+      div_outer = $("<div class='" + (this.editor.getTheme().cssClass) + " alert alert-info'></div>");
+      div_outer.append(div_inner);
+      return div_outer;
     };
     DuctTape.prototype.clear_src_buffers = function() {
       this.js_source = "";
@@ -125,7 +190,7 @@
       }, 200);
     };
     DuctTape.prototype.execute = function(coffee_stmt, js_stmt) {
-      var code, evalexpr, result;
+      var evalexpr, result;
       evalexpr = js_stmt != null ? js_stmt : this.compile(coffee_stmt);
       result = null;
       try {
@@ -133,9 +198,7 @@
       } catch (error) {
         return result = this.format_ex(error);
       } finally {
-        code = $("<pre class=\"executed\"></pre>");
-        code.text(coffee_stmt);
-        $('#interactions').append(code);
+        $('#interactions').append(this.format_command());
         $('#interactions').append(result);
       }
     };

@@ -1,6 +1,5 @@
 ### 
     TODO: disable ACE keyboard shortcuts
-    add prompt + navigate object graph using with(obj) {expr} in eval
 ### 
 
 capture_event = (ev) ->
@@ -18,9 +17,9 @@ class DuctTape
             config:
                 initial_buffer: "\u0111"
         @editor = 0
+        @editor_div = document.getElementById "editor"
         @coffee_source = ""
         @js_source = ""
-        @eval_context = {}
         # Init interface
         @init_ace()
         @init_ui()
@@ -83,10 +82,51 @@ class DuctTape
     format_ex: (ex) ->
         $("<div class=\"eval_result\"><span class=\"label label-warning\"> <strong>Exception</strong> (#{ ex.type ? ""}) </span>&nbsp;<strong>#{ ex.message ? ""}</strong></div>")
     format_retval: (val) ->
+        wrap = (x) ->
+            $("<div class=\"eval_result\">#{ x }</div>")
         if val instanceof HTMLElement
             val
         else
-            $("<div class=\"eval_result\">#{ val }</div>")
+            switch (typeof val)
+                when "string" then wrap "\"#{ val }\""
+                when "object" 
+                    if val.toString != Object.prototype.toString
+                        wrap val.toString()
+                    else
+                        @format_object val
+                else wrap val
+    format_object: (obj) ->
+        # TODO: handle Array, Date, Regexp and a couple other buitin objects
+        get_node_data = (nodeid) ->
+            data =
+                data: "Object",
+                state: "open",
+                children: []
+            node = obj
+            if nodeid != -1
+                debugger
+                data.state = "closed"
+            data.children = for own key, value of node
+                {
+                    data: key,
+                    state: "closed",
+                }
+            console.dir data
+            data
+                
+        object_viewer = $("<div class='eval_result'></div>")
+        object_viewer.jstree 
+            json_data:
+                data: (nodeid, cb) -> cb get_node_data nodeid
+            plugins : [ "themes", "json_data", "crrm" ]
+        object_viewer
+    format_command: =>
+        lines = $('div.ace_content', @editor_div).find('div.ace_line').clone()
+        div_inner = $ "<div class='highlighted_expr ace_editor ace_text-layer'></div>" 
+        div_inner.append(lines)
+        div_outer = $ "<div class='#{ @editor.getTheme().cssClass } alert alert-info'></div>"
+        div_outer.append(div_inner)
+        div_outer
 
     clear_src_buffers: () ->
         @js_source = ""
@@ -110,15 +150,13 @@ class DuctTape
         catch error
             result = @format_ex error
         finally
-            code = $ "<pre class=\"executed\"></pre>"
-            code.text coffee_stmt
-            $('#interactions').append code
+            $('#interactions').append @format_command()
             $('#interactions').append result
 
     run: (expr) ->
         @execute(expr)
         @scroll_to_bottom()
 
-$ () ->
+$ ->
     window["\u0111"] = new DuctTape()
 
