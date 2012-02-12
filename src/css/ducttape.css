@@ -28,6 +28,15 @@
         box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 8px rgba(82, 168, 236, 0.6);
         outline: 0;
         outline: thin dotted 9;
+        height: 40px;
+        width: 600px;
+    }
+    div#editor {
+        width: 600px;
+        height: 40px;
+    }
+    div#ok{
+        width: 610px;
     }
     div#parseerror {
         background-attachment: scroll;
@@ -45,6 +54,7 @@
         font-family: 'Helvetica Neue', 'Lucida Grande', 'Lucida Sans Unicode', Helvetica, Arial, sans-serif;
         font-size: 10px;
         height: 50px;
+        width: 600px;
         /*left: 726px;*/
         line-height: 40px;
         overflow-x: hidden;

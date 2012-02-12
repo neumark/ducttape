@@ -41,7 +41,7 @@ define [], ->
             objectViewer: (obj) ->
                 # TODO: handle Array, Date, Regexp and a couple other builtin objects
                 # If dt.ov is overwritten, ov.cache will not be used...
-                refname = (dt 'config').global_ref + "ov.cache[#{exports.objectViewer.cache.length}]"
+                refname = "(#{ (dt 'config').global_ref } 'internals').pkgmgr.getFun('builtin', 'ov').body.cache[#{exports.objectViewer.cache.length}]"
                 exports.objectViewer.cache.push(obj)
                 mk_node = (key, value, visible = true) ->
                     value_str = null

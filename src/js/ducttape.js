@@ -2,7 +2,7 @@
   var __slice = Array.prototype.slice;
   define(['cmd', 'keybindings', 'ui', 'pkgmgr', 'objectviewer'], function(Cmd, KeyBindings, UI, PkgMgr, objectviewer) {
     return function(config) {
-      var badCommand, dt, ov, specials, _ref, _ref2;
+      var badCommand, dt, ov, specials, _ref, _ref2, _ref3;
       if (config == null) {
         config = {};
       }
@@ -21,8 +21,13 @@
       } else {
         config.initial_buffer = config.global_ref;
       };
+            if ((_ref3 = config.showGeneratedJS) != null) {
+        _ref3;
+      } else {
+        config.showGeneratedJS = false;
+      };
       dt = function() {
-        return specials.internals.exec.apply(specials, arguments);
+        return specials.internals.exec.apply(this, arguments);
       };
       specials = {
         config: config,
@@ -38,7 +43,7 @@
           if ((command in specials) && (args.length === 0)) {
             return specials[command];
           } else {
-            fn = internals.cmd.get(command);
+            fn = specials.internals.cmd.get(command);
             return (fn != null ? fn : badCommand(command)).apply(dt, args);
           }
         } else {
@@ -70,6 +75,13 @@
         description: 'Returns last evaluated command and the result'
       }, function() {
         return specials.session.history[specials.session.history.length - 1];
+      });
+      specials.internals.pkgmgr.addFun("builtin", {
+        name: 'clear',
+        description: 'Clears former interactions'
+      }, function() {
+        $('#interactions').children().remove();
+        return "ok";
       });
       specials.internals.pkgmgr.addFun("builtin", {
         name: 'compile',
@@ -115,10 +127,47 @@
           {
             name: 'value',
             description: 'A JavaScript value to be displayed as a string or DOM element'
+          }, {
+            name: 'container',
+            "default": null,
+            description: 'A DOM container to use for rendering object tree (if necessary).'
           }
         ],
         description: 'In objectviewer.coffee'
       }, ov.showValue);
+      specials.internals.pkgmgr.addFun("builtin", {
+        name: 'run',
+        args: [
+          {
+            name: 'expression',
+            description: 'A CoffeeScript expression to be evaluated.'
+          }, {
+            name: 'container',
+            "default": false,
+            description: 'Set to true to show only the result of the expression.'
+          }
+        ],
+        description: 'Run a coffeescript expression.'
+      }, specials.internals.ui.run);
+      specials.internals.pkgmgr.addFun("builtin", {
+        name: 'history',
+        description: 'Lists previous expressions'
+      }, function() {
+        var c, h, _fn, _i, _len, _ref4;
+        c = $('<div class="eval_result"></div>');
+        _ref4 = specials.session.history;
+        _fn = function(h) {
+          return c.append($("<span><a style='display:block;' href='#'>" + h.coffee + "</a></span>").find('a').click(function(ev) {
+            specials.internals.ui.captureEvent(ev);
+            return dt.run(h.coffee);
+          }));
+        };
+        for (_i = 0, _len = _ref4.length; _i < _len; _i++) {
+          h = _ref4[_i];
+          _fn(h);
+        }
+        return c;
+      });
       $(function() {
         return specials.internals.ui.init();
       });
@@ -127,7 +176,11 @@
           return "No such command: '" + name + "'";
         };
       };
-      return window[config.global_ref] = dt;
+      window[config.global_ref] = dt;
+      if ((config.init != null) && (typeof config.init === "function")) {
+        config.init(dt);
+      }
+      return dt;
     };
   });
 }).call(this);

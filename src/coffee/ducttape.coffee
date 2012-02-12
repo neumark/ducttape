@@ -5,9 +5,10 @@ define ['cmd', 'keybindings', 'ui', 'pkgmgr', 'objectviewer'], (Cmd, KeyBindings
         config ?= {}
         config.global_ref ?= "\u0111"
         config.initial_buffer ?= config.global_ref
+        config.showGeneratedJS ?= false
 
         # main DuctTape function
-        dt = -> specials.internals.exec.apply specials, arguments
+        dt = -> specials.internals.exec.apply @, arguments
 
         # special variables, accessible through dt()
         specials =
@@ -22,7 +23,7 @@ define ['cmd', 'keybindings', 'ui', 'pkgmgr', 'objectviewer'], (Cmd, KeyBindings
                 if (command of specials) and (args.length == 0)
                     specials[command]
                 else
-                    fn = internals.cmd.get command
+                    fn = specials.internals.cmd.get command
                     (fn ? badCommand(command)).apply dt, args
             else
                 "DuctTape pre 0.001; Welcome!"
@@ -34,7 +35,6 @@ define ['cmd', 'keybindings', 'ui', 'pkgmgr', 'objectviewer'], (Cmd, KeyBindings
         specials.internals.ui = new (UI(dt))()
 
         ov = objectviewer(dt)
-
 
         # define and populate the 'builtin' package:
         specials.internals.pkgmgr.def "builtin", {
@@ -51,6 +51,12 @@ define ['cmd', 'keybindings', 'ui', 'pkgmgr', 'objectviewer'], (Cmd, KeyBindings
                 name: 'last'
                 description: 'Returns last evaluated command and the result'
             }, -> specials.session.history[specials.session.history.length - 1]
+        specials.internals.pkgmgr.addFun "builtin", {
+                name: 'clear'
+                description: 'Clears former interactions'
+            }, ->
+                $('#interactions').children().remove()
+                "ok"
         specials.internals.pkgmgr.addFun "builtin", {
                 name: 'compile',
                 args: [{name: 'src', description: 'CoffeeScript source'} ],
@@ -74,10 +80,32 @@ define ['cmd', 'keybindings', 'ui', 'pkgmgr', 'objectviewer'], (Cmd, KeyBindings
 
         specials.internals.pkgmgr.addFun "builtin", {
                 name: 'show',
-                args: [{name: 'value', description: 'A JavaScript value to be displayed as a string or DOM element'}],
-                # TODO: argument 2!
+                args: [
+                    {name: 'value', description: 'A JavaScript value to be displayed as a string or DOM element'}
+                    {name: 'container', default: null, description: 'A DOM container to use for rendering object tree (if necessary).'}
+                ],
                 description: 'In objectviewer.coffee'
             }, ov.showValue
+        specials.internals.pkgmgr.addFun "builtin", {
+                name: 'run',
+                args: [
+                    {name: 'expression', description: 'A CoffeeScript expression to be evaluated.'}
+                    {name: 'container', default: false, description: 'Set to true to show only the result of the expression.'}
+                ],
+                description: 'Run a coffeescript expression.'
+            }, specials.internals.ui.run
+        specials.internals.pkgmgr.addFun "builtin", {
+                name: 'history',
+                description: 'Lists previous expressions'
+            }, ->
+                c = $('<div class="eval_result"></div>')
+                for h in specials.session.history
+                    do (h) ->
+                        c.append $("<span><a style='display:block;' href='#'>#{ h.coffee }</a></span>").find('a').click (ev) ->
+                            specials.internals.ui.captureEvent ev
+                            dt.run h.coffee
+                c
+
 
         # initialize UI when DOM is ready:
         $ -> specials.internals.ui.init()
@@ -87,3 +115,6 @@ define ['cmd', 'keybindings', 'ui', 'pkgmgr', 'objectviewer'], (Cmd, KeyBindings
 
         # Registers global reference
         window[config.global_ref] = dt
+        
+        if config.init? and (typeof config.init == "function") then config.init(dt)
+        dt

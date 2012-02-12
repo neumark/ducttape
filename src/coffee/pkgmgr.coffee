@@ -9,6 +9,7 @@ define [], ->
                     body: body
                     args: descriptor.args ? []
                     description: (descriptor.description ? "No description provided")
+                @funs[descriptor.name].body.descriptor = descriptor
                 if export_fun == true then dt[descriptor.name] = @funs[descriptor.name].body
             getFun: (name) ->
                 if not @funs[name]? then throw new Error "UndefinedFunction"

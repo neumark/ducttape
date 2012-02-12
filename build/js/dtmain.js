@@ -82,24 +82,49 @@
   */  var __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
   define('ui',[], function() {
     return function(dt) {
-      var UI;
-      UI = (function() {
-        UI.prototype.captureEvent = function(ev) {
-          ev.preventDefault();
-          return ev.stopPropagation();
+      var HistoryBrowser, UI, config, session;
+      config = dt('config');
+      session = dt('session');
+      HistoryBrowser = (function() {
+        function HistoryBrowser(ui) {
+          this.ui = ui;
+          this.editBuffer = this.ui.editor.getSession().getValue();
+          this.pos = null;
+        }
+        HistoryBrowser.prototype.back = function() {
+          if (!(this.pos != null)) {
+            this.pos = session.history.length;
+          }
+          if (this.pos > 0) {
+            this.pos--;
+          }
+          return this.ui.resetEditorContents(session.history[this.pos].coffee);
         };
+        return HistoryBrowser;
+      })();
+      UI = (function() {
         function UI(editor_div_id) {
           this.editor_div_id = editor_div_id != null ? editor_div_id : "editor";
+          this.run = __bind(this.run, this);
           this.format_command = __bind(this.format_command, this);
+          this.update = __bind(this.update, this);
+          this.updateTimeout = __bind(this.updateTimeout, this);
           this.editor = null;
           this.editor_div = document.getElementById(this.editor_div_id);
           this.coffee_source = "";
           this.js_source = "";
+          this.timeoutHandle = null;
+          this.UPDATE_DELAY = 300;
+          this.historyBrowser = null;
         }
+        UI.prototype.captureEvent = function(ev) {
+          ev.preventDefault();
+          return ev.stopPropagation();
+        };
         UI.prototype.init = function() {
           this.init_ace();
           this.init_ui();
-          return this.reset_editor_contents();
+          return this.resetEditorContents();
         };
         UI.prototype.init_ace = function() {
           var bind, trigger;
@@ -112,11 +137,9 @@
           this.editor.setShowPrintMargin(false);
           this.editor.renderer.setShowGutter(false);
           this.editor.renderer.setHScrollBarAlwaysVisible(false);
-          this.editor.getSession().on("change", __bind(function(ev) {
-            return this.update(ev);
-          }, this));
-          bind = (dt('session')).keybindings.bind;
-          trigger = (dt('session')).keybindings.trigger;
+          this.editor.getSession().on("change", this.updateTimeout);
+          bind = session.keybindings.bind;
+          trigger = session.keybindings.trigger;
           this.editor.setKeyboardHandler({
             handleKeyboard: __bind(function(_1, _2, _3, _4, ev) {
               if ((ev != null) && trigger(ev)) {
@@ -125,19 +148,22 @@
             }, this)
           });
           bind({
+            description: 'Execute contents of buffer.',
             keyCode: 13,
             shiftKey: false,
             action: __bind(function() {
               if (this.js_source.length > 0) {
+                this.update();
                 this.execute(this.coffee_source, this.js_source);
                 this.clear_src_buffers();
-                this.reset_editor_contents();
-                this.scroll_to_bottom();
+                this.resetEditorContents();
+                this.scrollToBottom();
               }
               return true;
             }, this)
           });
-          return bind({
+          bind({
+            description: 'Insert DuctTape symbol (\u0111).',
             keyCode: 68,
             altKey: true,
             action: __bind(function() {
@@ -145,28 +171,81 @@
               return true;
             }, this)
           });
+          bind({
+            description: 'Toggle generated javascript window.',
+            keyCode: 113,
+            action: __bind(function() {
+              if (config.showGeneratedJS) {
+                $('#jsSource').hide();
+              } else {
+                this.updateGeneratedJS();
+                $('#jsSource').show();
+                this.scrollToBottom();
+              }
+              config.showGeneratedJS = !config.showGeneratedJS;
+              return true;
+            }, this)
+          });
+          bind({
+            description: 'Browse command history (previous).',
+            keyCode: 38,
+            action: __bind(function() {
+              var x, y, _ref, _ref2;
+              _ref = this.editor.getCursorPosition(), x = _ref.column, y = _ref.row;
+              if ((x === 0) && (y === 0)) {
+                                if ((_ref2 = this.historyBrowser) != null) {
+                  _ref2;
+                } else {
+                  this.historyBrowser = new HistoryBrowser(this);
+                };
+                this.historyBrowser.back();
+                return true;
+              } else {
+                return false;
+              }
+            }, this)
+          });
+          return bind({
+            description: 'Browse command history (next).',
+            keyCode: 40,
+            action: __bind(function() {}, this)
+          });
         };
         UI.prototype.init_ui = function() {
-          $('#editor_wrapper').height($('#editor').height());
-          $('#editor_wrapper').width($('#editor').width());
-          $('#parseerror').width($('#editor').width());
           return $('#menuhelp').click(__bind(function(ev) {
             captureEvent(ev);
             this.run('help');
             return false;
           }, this));
         };
-        UI.prototype.update = function(ev) {
+        UI.prototype.updateGeneratedJS = function() {
+          return $('#jsSource pre').text(this.js_source);
+        };
+        UI.prototype.updateTimeout = function() {
+          if (this.timeoutHandle != null) {
+            window.clearTimeout(this.timeoutHandle);
+          }
+          return this.timeoutHandle = setTimeout(this.update, this.UPDATE_DELAY);
+        };
+        UI.prototype.update = function() {
           var _ref;
+          if (this.timeoutHandle != null) {
+            window.clearTimeout(this.timeoutHandle);
+          }
+          this.timeoutHandle = null;
           this.coffee_source = this.editor.getSession().getValue().trim();
           try {
             this.js_source = (_ref = (dt('internals')).pkgmgr.apply('builtin', 'compile', null, this.coffee_source)) != null ? _ref.trim() : void 0;
             $("#ok").show();
-            return $("#parseerror").hide();
+            $("#parseerror").hide();
+            if (config.showGeneratedJS) {
+              return this.updateGeneratedJS();
+            }
           } catch (error) {
             this.js_source = "";
             $("#ok").hide();
-            return $("#parseerror").show().text(error.message);
+            $("#parseerror").show().text(error.message);
+            return this.scrollToBottom();
           }
         };
         UI.prototype.clear_src_buffers = function() {
@@ -177,17 +256,22 @@
           var currentValue;
           currentValue = this.editor.getSession().getValue();
           this.editor.getSession().setValue(currentValue === (dt('config')).initial_buffer ? text : currentValue + text);
-          return this.scroll_to_bottom();
+          return this.scrollToBottom();
         };
-        UI.prototype.reset_editor_contents = function() {
+        UI.prototype.resetEditorContents = function(newContents) {
+          var lines;
+          if (newContents == null) {
+            newContents = config.initial_buffer;
+          }
+          lines = newContents.split('\n');
           this.editor.gotoLine(0);
-          this.editor.getSession().setValue((dt('config')).initial_buffer);
+          this.editor.getSession().setValue(newContents);
           return this.editor.moveCursorToPosition({
-            column: 1,
-            row: 0
+            column: lines[lines.length - 1].length,
+            row: lines.length - 1
           });
         };
-        UI.prototype.scroll_to_bottom = function() {
+        UI.prototype.scrollToBottom = function() {
           return $("html, body").animate({
             scrollTop: $(document).height()
           }, 200);
@@ -196,8 +280,11 @@
           var _ref, _ref2;
           return $("<div class=\"eval_result\"><span class=\"label label-warning\"> <strong>Exception</strong> (" + ((_ref = ex != null ? ex.type : void 0) != null ? _ref : "") + ") </span>&nbsp;<strong>" + ((_ref2 = ex != null ? ex.message : void 0) != null ? _ref2 : "") + "</strong>" + ((ex != null ? ex.stack : void 0) != null ? '<pre>' + ex.stack + '</pre>' : '') + "</div>");
         };
-        UI.prototype.execute = function(coffee_stmt, js_stmt) {
+        UI.prototype.execute = function(coffee_stmt, js_stmt, silent) {
           var evalexpr, exception, rendered, result;
+          if (silent == null) {
+            silent = false;
+          }
           evalexpr = js_stmt != null ? js_stmt : (dt('internals')).pkgmgr.apply('builtin', 'compile', null, coffee_stmt);
           exception = null;
           result = null;
@@ -218,7 +305,9 @@
               coffee: coffee_stmt,
               value: exception != null ? exception : result
             });
-            $('#interactions').append(this.format_command());
+            if (silent === false) {
+              $('#interactions').append(this.format_command);
+            }
             $('#interactions').append(rendered);
           }
         };
@@ -231,9 +320,18 @@
           div_outer.append(div_inner);
           return div_outer;
         };
-        UI.prototype.run = function(expr) {
-          this.execute(expr);
-          return this.scroll_to_bottom();
+        UI.prototype.run = function(expr, silent) {
+          var div;
+          if (silent == null) {
+            silent = false;
+          }
+          if (silent === false) {
+            div = $("<div class='alert alert-info'></div>");
+            div.text(expr);
+            $("#interactions").append(div);
+          }
+          this.execute(expr, null, true);
+          return this.scrollToBottom();
         };
         return UI;
       })();
@@ -266,6 +364,7 @@
             args: (_ref = descriptor.args) != null ? _ref : [],
             description: (_ref2 = descriptor.description) != null ? _ref2 : "No description provided"
           };
+          this.funs[descriptor.name].body.descriptor = descriptor;
           if (export_fun === true) {
             return dt[descriptor.name] = this.funs[descriptor.name].body;
           }
@@ -406,7 +505,7 @@
         },
         objectViewer: function(obj) {
           var get_children, get_node_data, mk_keylist, mk_node, object_viewer, refname;
-          refname = (dt('config')).global_ref + ("ov.cache[" + exports.objectViewer.cache.length + "]");
+          refname = "(" + (dt('config')).global_ref + " 'internals').pkgmgr.getFun('builtin', 'ov').body.cache[" + exports.objectViewer.cache.length + "]";
           exports.objectViewer.cache.push(obj);
           mk_node = function(key, value, visible) {
             var ret, value_str;
@@ -538,7 +637,7 @@
   var __slice = Array.prototype.slice;
   define('ducttape',['cmd', 'keybindings', 'ui', 'pkgmgr', 'objectviewer'], function(Cmd, KeyBindings, UI, PkgMgr, objectviewer) {
     return function(config) {
-      var badCommand, dt, ov, specials, _ref, _ref2;
+      var badCommand, dt, ov, specials, _ref, _ref2, _ref3;
       if (config == null) {
         config = {};
       }
@@ -557,8 +656,13 @@
       } else {
         config.initial_buffer = config.global_ref;
       };
+            if ((_ref3 = config.showGeneratedJS) != null) {
+        _ref3;
+      } else {
+        config.showGeneratedJS = false;
+      };
       dt = function() {
-        return specials.internals.exec.apply(specials, arguments);
+        return specials.internals.exec.apply(this, arguments);
       };
       specials = {
         config: config,
@@ -574,7 +678,7 @@
           if ((command in specials) && (args.length === 0)) {
             return specials[command];
           } else {
-            fn = internals.cmd.get(command);
+            fn = specials.internals.cmd.get(command);
             return (fn != null ? fn : badCommand(command)).apply(dt, args);
           }
         } else {
@@ -606,6 +710,13 @@
         description: 'Returns last evaluated command and the result'
       }, function() {
         return specials.session.history[specials.session.history.length - 1];
+      });
+      specials.internals.pkgmgr.addFun("builtin", {
+        name: 'clear',
+        description: 'Clears former interactions'
+      }, function() {
+        $('#interactions').children().remove();
+        return "ok";
       });
       specials.internals.pkgmgr.addFun("builtin", {
         name: 'compile',
@@ -651,10 +762,47 @@
           {
             name: 'value',
             description: 'A JavaScript value to be displayed as a string or DOM element'
+          }, {
+            name: 'container',
+            "default": null,
+            description: 'A DOM container to use for rendering object tree (if necessary).'
           }
         ],
         description: 'In objectviewer.coffee'
       }, ov.showValue);
+      specials.internals.pkgmgr.addFun("builtin", {
+        name: 'run',
+        args: [
+          {
+            name: 'expression',
+            description: 'A CoffeeScript expression to be evaluated.'
+          }, {
+            name: 'container',
+            "default": false,
+            description: 'Set to true to show only the result of the expression.'
+          }
+        ],
+        description: 'Run a coffeescript expression.'
+      }, specials.internals.ui.run);
+      specials.internals.pkgmgr.addFun("builtin", {
+        name: 'history',
+        description: 'Lists previous expressions'
+      }, function() {
+        var c, h, _fn, _i, _len, _ref4;
+        c = $('<div class="eval_result"></div>');
+        _ref4 = specials.session.history;
+        _fn = function(h) {
+          return c.append($("<span><a style='display:block;' href='#'>" + h.coffee + "</a></span>").find('a').click(function(ev) {
+            specials.internals.ui.captureEvent(ev);
+            return dt.run(h.coffee);
+          }));
+        };
+        for (_i = 0, _len = _ref4.length; _i < _len; _i++) {
+          h = _ref4[_i];
+          _fn(h);
+        }
+        return c;
+      });
       $(function() {
         return specials.internals.ui.init();
       });
@@ -663,7 +811,11 @@
           return "No such command: '" + name + "'";
         };
       };
-      return window[config.global_ref] = dt;
+      window[config.global_ref] = dt;
+      if ((config.init != null) && (typeof config.init === "function")) {
+        config.init(dt);
+      }
+      return dt;
     };
   });
 }).call(this);

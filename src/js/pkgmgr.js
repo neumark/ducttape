@@ -22,6 +22,7 @@
             args: (_ref = descriptor.args) != null ? _ref : [],
             description: (_ref2 = descriptor.description) != null ? _ref2 : "No description provided"
           };
+          this.funs[descriptor.name].body.descriptor = descriptor;
           if (export_fun === true) {
             return dt[descriptor.name] = this.funs[descriptor.name].body;
           }

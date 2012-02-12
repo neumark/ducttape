@@ -78,7 +78,7 @@
         },
         objectViewer: function(obj) {
           var get_children, get_node_data, mk_keylist, mk_node, object_viewer, refname;
-          refname = (dt('config')).global_ref + ("ov.cache[" + exports.objectViewer.cache.length + "]");
+          refname = "(" + (dt('config')).global_ref + " 'internals').pkgmgr.getFun('builtin', 'ov').body.cache[" + exports.objectViewer.cache.length + "]";
           exports.objectViewer.cache.push(obj);
           mk_node = function(key, value, visible) {
             var ret, value_str;
