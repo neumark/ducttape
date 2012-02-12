@@ -73,3 +73,7 @@
         font-style: italic;
     }
 
+    jstree-icon {
+        background-image: none;
+    }
+

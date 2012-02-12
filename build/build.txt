@@ -2,7 +2,9 @@
 js/dtmain.js
 ----------------
 js/cmd.js
-js/ducttape.js
-js/objectviewer.js
+js/keybindings.js
 js/ui.js
+js/pkgmgr.js
+js/objectviewer.js
+js/ducttape.js
 js/dtmain.js

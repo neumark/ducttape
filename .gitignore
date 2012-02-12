@@ -2,5 +2,6 @@
 *~
 *.swp
 build/coffee
+build/build.txt
 build/js/*
 !build/js/dtmain.js
