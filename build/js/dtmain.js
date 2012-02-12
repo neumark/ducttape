@@ -42,7 +42,16 @@
     dtFun.session = {
       history: [],
       config: {
-        initial_buffer: "\u0111"
+        initial_buffer: "\u0111",
+        keybindings: [
+          {
+            keyCode: 13,
+            shiftKey: false
+          }, {
+            keyCode: 68,
+            altKey: true
+          }
+        ]
       }
     };
     dtFun.lib = {

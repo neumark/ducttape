@@ -1,0 +1,6 @@
+# Use wildcards as well
+*~
+*.swp
+build/coffee
+build/js/*
+!build/js/dtmain.js
