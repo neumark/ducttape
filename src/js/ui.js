@@ -4,7 +4,7 @@
   */  var __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
   define(['ducttape', 'objectviewer'], function(dt, ov) {
     var UI, capture_event;
-    capture_event = function(ev) {
+    dt.lib.capture_event = capture_event = function(ev) {
       ev.preventDefault();
       return ev.stopPropagation();
     };
@@ -84,6 +84,12 @@
         this.js_source = "";
         return this.coffee_source = "";
       };
+      UI.prototype.insertText = function(text) {
+        var currentValue;
+        currentValue = this.editor.getSession().getValue();
+        this.editor.getSession().setValue(currentValue === dt.session.config.initial_buffer ? text : currentValue + text);
+        return this.scroll_to_bottom();
+      };
       UI.prototype.reset_editor_contents = function() {
         this.editor.gotoLine(0);
         this.editor.getSession().setValue(dt.session.config.initial_buffer);
@@ -99,7 +105,7 @@
       };
       UI.prototype.formatEx = function(ex) {
         var _ref, _ref2;
-        return $("<div class=\"eval_result\"><span class=\"label label-warning\"> <strong>Exception</strong> (" + ((_ref = ex.type) != null ? _ref : "") + ") </span>&nbsp;<strong>" + ((_ref2 = ex.message) != null ? _ref2 : "") + "</strong></div>");
+        return $("<div class=\"eval_result\"><span class=\"label label-warning\"> <strong>Exception</strong> (" + ((_ref = ex != null ? ex.type : void 0) != null ? _ref : "") + ") </span>&nbsp;<strong>" + ((_ref2 = ex != null ? ex.message : void 0) != null ? _ref2 : "") + "</strong></div>");
       };
       UI.prototype.execute = function(coffee_stmt, js_stmt) {
         var evalexpr, exception, excpetion, rendered, result;
@@ -113,11 +119,7 @@
         } finally {
           rendered = null;
           try {
-            if (result != null) {
-              rendered = ov.showValue(result);
-            } else {
-              rendered = this.formatEx(exception);
-            }
+            rendered = exception != null ? this.formatEx(exception) : ov.showValue(result);
           } catch (renderErr) {
             exception = renderErr;
             rendered = $('<div><h3>Error displaying value</h3></div>').append(this.formatEx(exception));

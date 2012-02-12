@@ -59,6 +59,9 @@
     span.objectViewer_key {
         color: blue;
     }
+    span.objectViewer_hiddenkey {
+        color: #839FC4;
+    }
     span.objectViewer_value {
         color: #888;
         font-style: italic;

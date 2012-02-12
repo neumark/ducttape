@@ -64,7 +64,12 @@
 }).call(this);
 
 (function() {
-  var __hasProp = Object.prototype.hasOwnProperty;
+  var __hasProp = Object.prototype.hasOwnProperty, __indexOf = Array.prototype.indexOf || function(item) {
+    for (var i = 0, l = this.length; i < l; i++) {
+      if (this[i] === item) return i;
+    }
+    return -1;
+  };
   define('objectviewer',['ducttape'], function(dt) {
     var exports, objectViewer_MAXSTRLEN;
     objectViewer_MAXSTRLEN = 40;
@@ -74,7 +79,7 @@
       },
       showValue: function(val, container) {
         container = container != null ? container : $("<div class=\"eval_result\"></div>");
-        if ((val.jquery != null) || (val instanceof HTMLElement)) {
+        if (((val != null ? val.jquery : void 0) != null) || (val instanceof HTMLElement)) {
           container.append(val);
         } else {
           try {
@@ -125,16 +130,25 @@
         }
       },
       objectType: function(obj) {
-        var _ref, _ref2;
-        return (_ref = obj != null ? (_ref2 = obj.constructor) != null ? _ref2.name : void 0 : void 0) != null ? _ref : 'Unknown';
+        var n, _ref, _ref2;
+        n = (_ref = obj != null ? (_ref2 = obj.constructor) != null ? _ref2.name : void 0 : void 0) != null ? _ref : 'Unknown';
+        if ((n === "") && (obj != null ? obj.constructor : void 0) === $) {
+          n = "jQuery";
+        }
+        return n;
       },
       hasChildren: function(obj) {
         return obj != null;
       },
       objectViewer: function(obj) {
-        var get_children, get_node_data, mk_node, object_viewer;
-        mk_node = function(key, value) {
+        var get_children, get_node_data, mk_keylist, mk_node, object_viewer, refname;
+        refname = "\u0111.lib.ov.cache[" + dt.lib.ov.cache.length + "]";
+        dt.lib.ov.cache.push(obj);
+        mk_node = function(key, value, visible) {
           var ret, value_str;
+          if (visible == null) {
+            visible = true;
+          }
           value_str = null;
           try {
             value_str = exports.stringValue(value);
@@ -146,9 +160,10 @@
           }
           ret = {
             data: {
-              title: "<span class='objectViewer_key'>" + key + "</span>: <span class='objectViewer_value'>" + value_str + "</span>",
+              title: "<span class='objectViewer_" + (visible === true ? "" : "hidden") + "key'>" + key + "</span>: <span class='objectViewer_value'>" + value_str + "</span>",
               attr: {
-                object_key: key
+                object_key: key,
+                "class": 'objectViewer_item'
               }
             }
           };
@@ -159,7 +174,7 @@
           return ret;
         };
         get_children = function(parent) {
-          var key, kl, _i, _len, _results;
+          var key, kl, visible, _i, _len, _results;
           kl = null;
           try {
             kl = Object.getOwnPropertyNames(parent);
@@ -180,15 +195,31 @@
           if ((parent != null) && (parent['__proto__'] != null)) {
             kl.push('__proto__');
           }
+          visible = Object.keys(parent);
           _results = [];
           for (_i = 0, _len = kl.length; _i < _len; _i++) {
             key = kl[_i];
-            _results.push(mk_node(key, parent[key]));
+            _results.push(mk_node(key, parent[key], __indexOf.call(visible, key) >= 0));
           }
           return _results;
         };
+        mk_keylist = function(domnode) {
+          var i;
+          return ((function() {
+            var _i, _len, _ref, _results;
+            _ref = domnode.parents('li').children('a');
+            _results = [];
+            for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+              i = _ref[_i];
+              if ($(i).attr('object_key') !== void 0) {
+                _results.push($(i).attr('object_key'));
+              }
+            }
+            return _results;
+          })()).reverse();
+        };
         get_node_data = function(nodeid) {
-          var i, k, keylist, node, nodedata;
+          var k, keylist, node, nodedata;
           nodedata = null;
           if (nodeid === -1) {
             nodedata = mk_node('Object', obj);
@@ -196,19 +227,7 @@
             delete nodedata.data.attr.object_key;
             nodedata.children = get_children(obj);
           } else {
-            keylist = ((function() {
-              var _i, _len, _ref, _results;
-              _ref = nodeid.parents('li').children('a');
-              _results = [];
-              for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-                i = _ref[_i];
-                if ($(i).attr('object_key') !== void 0) {
-                  _results.push($(i).attr('object_key'));
-                }
-              }
-              return _results;
-            })()).reverse();
-            keylist.push(nodeid.find('a').attr('object_key'));
+            keylist = mk_keylist(nodeid.children('a').first());
             node = obj;
             node = ((function() {
               var _i, _len, _results;
@@ -237,10 +256,16 @@
           },
           plugins: ["themes", "json_data", "crrm"]
         });
+        object_viewer.on('click', 'a.objectViewer_item', function(ev) {
+          var kl;
+          kl = mk_keylist($(ev.currentTarget));
+          return dt.ui.insertText(kl.length === 0 ? refname : "" + refname + "['" + (kl.join("']['")) + "']");
+        });
         return object_viewer;
       }
     };
     dt.lib.ov = exports.objectViewer;
+    dt.lib.ov.cache = [];
     return exports;
   });
 }).call(this);
@@ -251,7 +276,7 @@
   */  var __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
   define('ui',['ducttape', 'objectviewer'], function(dt, ov) {
     var UI, capture_event;
-    capture_event = function(ev) {
+    dt.lib.capture_event = capture_event = function(ev) {
       ev.preventDefault();
       return ev.stopPropagation();
     };
@@ -331,6 +356,12 @@
         this.js_source = "";
         return this.coffee_source = "";
       };
+      UI.prototype.insertText = function(text) {
+        var currentValue;
+        currentValue = this.editor.getSession().getValue();
+        this.editor.getSession().setValue(currentValue === dt.session.config.initial_buffer ? text : currentValue + text);
+        return this.scroll_to_bottom();
+      };
       UI.prototype.reset_editor_contents = function() {
         this.editor.gotoLine(0);
         this.editor.getSession().setValue(dt.session.config.initial_buffer);
@@ -346,7 +377,7 @@
       };
       UI.prototype.formatEx = function(ex) {
         var _ref, _ref2;
-        return $("<div class=\"eval_result\"><span class=\"label label-warning\"> <strong>Exception</strong> (" + ((_ref = ex.type) != null ? _ref : "") + ") </span>&nbsp;<strong>" + ((_ref2 = ex.message) != null ? _ref2 : "") + "</strong></div>");
+        return $("<div class=\"eval_result\"><span class=\"label label-warning\"> <strong>Exception</strong> (" + ((_ref = ex != null ? ex.type : void 0) != null ? _ref : "") + ") </span>&nbsp;<strong>" + ((_ref2 = ex != null ? ex.message : void 0) != null ? _ref2 : "") + "</strong></div>");
       };
       UI.prototype.execute = function(coffee_stmt, js_stmt) {
         var evalexpr, exception, excpetion, rendered, result;
@@ -360,11 +391,7 @@
         } finally {
           rendered = null;
           try {
-            if (result != null) {
-              rendered = ov.showValue(result);
-            } else {
-              rendered = this.formatEx(exception);
-            }
+            rendered = exception != null ? this.formatEx(exception) : ov.showValue(result);
           } catch (renderErr) {
             exception = renderErr;
             rendered = $('<div><h3>Error displaying value</h3></div>').append(this.formatEx(exception));

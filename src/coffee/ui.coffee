@@ -3,7 +3,7 @@
 ### 
 
 define ['ducttape', 'objectviewer'], (dt, ov) ->
-    capture_event = (ev) ->
+    dt.lib.capture_event = capture_event = (ev) ->
         ev.preventDefault()
         ev.stopPropagation()
 
@@ -65,6 +65,11 @@ define ['ducttape', 'objectviewer'], (dt, ov) ->
         clear_src_buffers: () ->
             @js_source = ""
             @coffee_source = ""
+        insertText: (text) ->
+            currentValue = @editor.getSession().getValue()
+            @editor.getSession().setValue(
+                if currentValue == dt.session.config.initial_buffer then text else currentValue + text)
+            @scroll_to_bottom()
         reset_editor_contents: () ->
             @editor.gotoLine 0
             @editor.getSession().setValue dt.session.config.initial_buffer
@@ -74,7 +79,7 @@ define ['ducttape', 'objectviewer'], (dt, ov) ->
         scroll_to_bottom: () ->
             $("html, body").animate({ scrollTop: $(document).height() }, 200)
         formatEx: (ex) ->
-            $("<div class=\"eval_result\"><span class=\"label label-warning\"> <strong>Exception</strong> (#{ ex.type ? ""}) </span>&nbsp;<strong>#{ ex.message ? ""}</strong></div>")
+            $("<div class=\"eval_result\"><span class=\"label label-warning\"> <strong>Exception</strong> (#{ ex?.type ? ""}) </span>&nbsp;<strong>#{ ex?.message ? ""}</strong></div>")
         execute: (coffee_stmt, js_stmt) ->
             evalexpr = js_stmt ? dt.lib.compile(coffee_stmt)
             excpetion = null
@@ -86,8 +91,7 @@ define ['ducttape', 'objectviewer'], (dt, ov) ->
             finally
                 rendered = null
                 try
-                    if result? then rendered = ov.showValue result
-                    else rendered = @formatEx exception
+                    rendered = if exception? then @formatEx exception else ov.showValue result
                 catch renderErr
                     exception = renderErr
                     rendered = $('<div><h3>Error displaying value</h3></div>').append @formatEx exception
