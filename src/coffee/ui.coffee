@@ -15,7 +15,15 @@ define [], () ->
                 if not @pos? then @pos = session.history.length
                 if @pos > 0 then @pos--
                 @ui.resetEditorContents session.history[@pos].coffee
-                
+            forward: ->
+                @pos++
+                if @pos >= session.history.length 
+                    @ui.resetEditorContents @editBuffer
+                    false
+                else 
+                    @ui.resetEditorContents session.history[@pos].coffee
+                    true
+               
         class UI
             constructor: (@editor_div_id = "editor") ->
                 # register this object with DuctTape
@@ -57,6 +65,7 @@ define [], () ->
                     shiftKey: false
                     action: => 
                         if @js_source.length > 0
+                            @historyBrowser = null
                             @update()
                             @execute @coffee_source, @js_source
                             @clear_src_buffers()
@@ -89,8 +98,7 @@ define [], () ->
                     description: 'Browse command history (previous).'
                     keyCode: 38 # UP key
                     action: =>
-                        {column: x, row: y} = @editor.getCursorPosition()
-                        if (x == 0) and (y == 0)
+                        if @editor.getCursorPosition().row == 0
                             @historyBrowser ?=  new HistoryBrowser(@)
                             @historyBrowser.back()
                             true
@@ -101,6 +109,13 @@ define [], () ->
                     description: 'Browse command history (next).'
                     keyCode: 40 # DOWN key
                     action: => 
+                        if @historyBrowser? and @editor.getCursorPosition().row == (@editor.getSession().getValue().split('\n').length - 1)
+                            if not @historyBrowser.forward() 
+                                @historyBrowser = null
+                                console.log "historyBrowser dtor"
+                            true
+                        else
+                            false
 
             init_ui: () ->
                 $('#menuhelp').click (ev) =>

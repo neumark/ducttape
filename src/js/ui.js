@@ -20,7 +20,19 @@
           if (this.pos > 0) {
             this.pos--;
           }
+          console.log(this.pos);
           return this.ui.resetEditorContents(session.history[this.pos].coffee);
+        };
+        HistoryBrowser.prototype.forward = function() {
+          this.pos++;
+          if (this.pos >= session.history.length) {
+            this.ui.resetEditorContents(this.editBuffer);
+            return false;
+          } else {
+            this.ui.resetEditorContents(session.history[this.pos].coffee);
+            console.log(this.pos);
+            return true;
+          }
         };
         return HistoryBrowser;
       })();
@@ -75,6 +87,7 @@
             shiftKey: false,
             action: __bind(function() {
               if (this.js_source.length > 0) {
+                this.historyBrowser = null;
                 this.update();
                 this.execute(this.coffee_source, this.js_source);
                 this.clear_src_buffers();
@@ -112,11 +125,10 @@
             description: 'Browse command history (previous).',
             keyCode: 38,
             action: __bind(function() {
-              var x, y, _ref, _ref2;
-              _ref = this.editor.getCursorPosition(), x = _ref.column, y = _ref.row;
-              if ((x === 0) && (y === 0)) {
-                                if ((_ref2 = this.historyBrowser) != null) {
-                  _ref2;
+              var _ref;
+              if (this.editor.getCursorPosition().row === 0) {
+                                if ((_ref = this.historyBrowser) != null) {
+                  _ref;
                 } else {
                   this.historyBrowser = new HistoryBrowser(this);
                 };
@@ -130,7 +142,17 @@
           return bind({
             description: 'Browse command history (next).',
             keyCode: 40,
-            action: __bind(function() {}, this)
+            action: __bind(function() {
+              if ((this.historyBrowser != null) && this.editor.getCursorPosition().row === (this.editor.getSession().getValue().split('\n').length - 1)) {
+                if (!this.historyBrowser.forward()) {
+                  this.historyBrowser = null;
+                  console.log("historyBrowser dtor");
+                }
+                return true;
+              } else {
+                return false;
+              }
+            }, this)
           });
         };
         UI.prototype.init_ui = function() {
