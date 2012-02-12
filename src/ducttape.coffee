@@ -97,29 +97,44 @@ class DuctTape
                 else wrap val
     format_object: (obj) ->
         # TODO: handle Array, Date, Regexp and a couple other buitin objects
+        mk_node = (key, value) ->
+            data:
+                title: key,
+                attr:
+                    object_key: key, 
+            state: "closed",
+            children: []
+
+        get_children = (parent) ->
+            kl = (key for own key of parent) 
+            if parent? and '__proto__' of parent
+                kl.push('__proto__')
+            (mk_node(key, parent[key]) for key in kl)
+
         get_node_data = (nodeid) ->
-            data =
-                data: "Object",
+            if nodeid == -1
+                data:
+                    title: "Object",
                 state: "open",
-                children: []
-            node = obj
-            if nodeid != -1
-                debugger
-                data.state = "closed"
-            data.children = for own key, value of node
-                {
-                    data: key,
-                    state: "closed",
-                }
-            console.dir data
-            data
-                
+                children: get_children(obj)
+            else
+                keylist = ($(i).attr('object_key') for i in nodeid.parents('li') when ($(i).attr('object_key') != undefined))
+                keylist.push(nodeid.find('a').attr('object_key'))
+                node = obj
+                node = ((node = node[k]) for k in keylist)[keylist.length - 1]
+                nodedata = mk_node (keylist[keylist.length - 1]), node
+                nodedata.children = get_children node
+
         object_viewer = $("<div class='eval_result'></div>")
         object_viewer.jstree 
             json_data:
-                data: (nodeid, cb) -> cb get_node_data nodeid
+                data: (nodeid, cb) -> 
+                    nodedata = get_node_data nodeid
+                    console.dir nodedata
+                    cb nodedata
             plugins : [ "themes", "json_data", "crrm" ]
         object_viewer
+
     format_command: =>
         lines = $('div.ace_content', @editor_div).find('div.ace_line').clone()
         div_inner = $ "<div class='highlighted_expr ace_editor ace_text-layer'></div>" 

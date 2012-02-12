@@ -123,40 +123,86 @@
       }
     };
     DuctTape.prototype.format_object = function(obj) {
-      var get_node_data, object_viewer;
-      get_node_data = function(nodeid) {
-        var data, key, node, value;
-        data = {
-          data: "Object",
-          state: "open",
+      var get_children, get_node_data, mk_node, object_viewer;
+      mk_node = function(key, value) {
+        return {
+          data: {
+            title: key,
+            attr: {
+              object_key: key
+            }
+          },
+          state: "closed",
           children: []
         };
-        node = obj;
-        if (nodeid !== -1) {
-          debugger;
-          data.state = "closed";
-        }
-        data.children = (function() {
+      };
+      get_children = function(parent) {
+        var key, kl, _i, _len, _results;
+        kl = (function() {
           var _results;
           _results = [];
-          for (key in node) {
-            if (!__hasProp.call(node, key)) continue;
-            value = node[key];
-            _results.push({
-              data: key,
-              state: "closed"
-            });
+          for (key in parent) {
+            if (!__hasProp.call(parent, key)) continue;
+            _results.push(key);
           }
           return _results;
         })();
-        console.dir(data);
-        return data;
+        if ((parent != null) && '__proto__' in parent) {
+          kl.push('__proto__');
+        }
+        _results = [];
+        for (_i = 0, _len = kl.length; _i < _len; _i++) {
+          key = kl[_i];
+          _results.push(mk_node(key, parent[key]));
+        }
+        return _results;
+      };
+      get_node_data = function(nodeid) {
+        var i, k, keylist, node, nodedata;
+        if (nodeid === -1) {
+          return {
+            data: {
+              title: "Object"
+            },
+            state: "open",
+            children: get_children(obj)
+          };
+        } else {
+          keylist = (function() {
+            var _i, _len, _ref, _results;
+            _ref = nodeid.parents('li');
+            _results = [];
+            for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+              i = _ref[_i];
+              if ($(i).attr('object_key') !== void 0) {
+                _results.push($(i).attr('object_key'));
+              }
+            }
+            return _results;
+          })();
+          keylist.push(nodeid.find('a').attr('object_key'));
+          node = obj;
+          node = ((function() {
+            var _i, _len, _results;
+            _results = [];
+            for (_i = 0, _len = keylist.length; _i < _len; _i++) {
+              k = keylist[_i];
+              _results.push((node = node[k]));
+            }
+            return _results;
+          })())[keylist.length - 1];
+          nodedata = mk_node(keylist[keylist.length - 1], node);
+          return nodedata.children = get_children(node);
+        }
       };
       object_viewer = $("<div class='eval_result'></div>");
       object_viewer.jstree({
         json_data: {
           data: function(nodeid, cb) {
-            return cb(get_node_data(nodeid));
+            var nodedata;
+            nodedata = get_node_data(nodeid);
+            console.dir(nodedata);
+            return cb(nodedata);
           }
         },
         plugins: ["themes", "json_data", "crrm"]
