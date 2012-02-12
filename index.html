@@ -2,76 +2,13 @@
 <html>
 <head>
   <meta http-equiv="content-type" content="text/html;charset=UTF-8" />
-  <title>Ducttape</title>
+  <title>DuctTape</title>
   <link href="deps/bootstrap/css/bootstrap.css" rel="stylesheet">
   <link href="deps/bootstrap/css/bootstrap-responsive.css" rel="stylesheet">
   <link href="deps/jquery/jquery.treeview.css" rel="stylesheet">
-  <style>
-    body {
-        padding-top: 60px;
-    }
-
-    div.highlighted_expr {
-        position: relative;
-        border: none !important;
-    }
-
-    div.eval_result {
-        padding-left:16px;
-        padding-bottom: 18px;
-    }
-    pre.executed {
-        display:block;
-    }
-
-    div#editor_wrapper {
-        padding: 4px;
-        border: 1px solid #CCC;
-        -webkit-border-radius: 3px;
-        -moz-border-radius: 3px;
-        border-radius: 3px;
-        -webkit-transition: border linear 0.2;
-        border-color: rgba(82, 168, 236, 0.8);
-        -webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 8px rgba(82, 168, 236, 0.6);
-        -moz-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 8px rgba(82, 168, 236, 0.6);
-        box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 8px rgba(82, 168, 236, 0.6);
-        outline: 0;
-        outline: thin dotted 9;
-    }
-    div#parseerror {
-        background-attachment: scroll;
-        background-clip: border-box;
-        /*background-color: transparent;*/
-        background-image: -webkit-gradient(linear, 0% 0%, 0% 100%, from(rgb(255, 237, 236)), to(rgb(255, 154, 149)));
-        background-origin: padding-box;
-        border-bottom-left-radius: 0px;
-        border-bottom-right-radius: 2px;
-        border-top-left-radius: 0px;
-        border-top-right-radius: 2px;
-        bottom: 0px;
-        color: #862322;
-        display: block;
-        font-family: 'Helvetica Neue', 'Lucida Grande', 'Lucida Sans Unicode', Helvetica, Arial, sans-serif;
-        font-size: 10px;
-        height: 50px;
-        /*left: 726px;*/
-        line-height: 40px;
-        overflow-x: hidden;
-        overflow-y: hidden;
-        padding-bottom: 0px;
-        padding-left: 15px;
-        padding-right: 0px;
-        padding-top: 0px;
-        /*position: absolute;*/
-        /*right: 0px;*/
-        text-transform: uppercase;
-        /*top: 0px;*/
-        /*width: 804px;*/
-    }
-  </style>
+  <link href="build/css/ducttape.css" rel="stylesheet">
 </head>
 <body>
-
     <div class="navbar navbar-fixed-top">
       <div class="navbar-inner">
         <div class="container">
@@ -84,7 +21,6 @@
           <div class="nav-collapse">
             <ul class="nav">
               <li class="active"><a id="menuhelp" href="#">Help</a></li>
-              <!--<li><a id="menuabout" href="#">About</a></li>-->
             </ul>
           </div><!--/.nav-collapse -->
         </div>
@@ -103,9 +39,8 @@
 <script src="deps/jquery/jquery-1.7.1.js" type="text/javascript" charset="utf-8"></script>
 <script type="text/javascript" src="deps/jquery/jstree/jquery.jstree.js"></script>
 <!-- ace-related scripts -->
-<script src="deps/ace/ace-uncompressed.js" type="text/javascript" charset="utf-8"></script>
-<script src="deps/ace/keybinding-vim-uncompressed.js" type="text/javascript" charset="utf-8"></script>
-<script src="deps/ace/mode-coffee-uncompressed.js" type="text/javascript" charset="utf-8"></script>
+<script src="deps/ace/ace-uncompressed-noconflict.js" type="text/javascript" charset="utf-8"></script>
+<script src="deps/ace/mode-coffee-uncompressed-noconflict.js" type="text/javascript" charset="utf-8"></script>
 <!-- coffeescript compiler -->
 <script src="deps/cs/coffee-script.js"></script>
 <!-- bootstrap includes -->
@@ -121,7 +56,6 @@
 <script src="deps/bootstrap/js/bootstrap-collapse.js"></script>
 <script src="deps/bootstrap/js/bootstrap-carousel.js"></script>
 <script src="deps/bootstrap/js/bootstrap-typeahead.js"></script>
-<!-- and last but not least, ducttape -->
-<script src="build/ducttape.js"></script>
+<script data-main="build/js/dtmain" src="deps/requirejs/require.js"></script>
 </body>
 </html>
