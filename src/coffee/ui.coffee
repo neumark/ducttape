@@ -1,11 +1,13 @@
 ### 
     TODO: disable ACE keyboard shortcuts
+    add the following: 
+        lib.commandLinkStr
 ### 
 
-define [], () ->
+define [], ->
     (dt) ->
-        config = (dt 'config')
-        session = (dt 'session')
+        config = (dt 'v config')
+        session = (dt 'v session')
 
         class HistoryBrowser
             constructor: (@ui) ->
@@ -34,13 +36,11 @@ define [], () ->
                 @timeoutHandle = null
                 @UPDATE_DELAY = 300 # in miliseconds
                 @historyBrowser = null
-            captureEvent: (ev) ->
-                ev.preventDefault()
-                ev.stopPropagation()
-            init: () ->
+            init: (runAfterInit) =>
                 @init_ace()
                 @init_ui()
                 @resetEditorContents()
+                if runAfterInit? then runAfterInit(dt)
             init_ace: () ->
                 @editor = ace.edit @editor_div_id
                 @editor.getSession().setMode(new (ace.require("ace/mode/coffee").Mode)())
@@ -55,7 +55,7 @@ define [], () ->
                 bind = session.keybindings.bind
                 trigger = session.keybindings.trigger
                 @editor.setKeyboardHandler handleKeyboard: (_1, _2, _3, _4, ev) =>
-                    if ev? and trigger(ev) then @captureEvent(ev)
+                    if ev? and trigger(ev) then lib.captureEvent(ev)
                     #else  regular key pressed, see if we are editing history
 
                 # install default keybindings
@@ -119,8 +119,8 @@ define [], () ->
 
             init_ui: () ->
                 $('#menuhelp').click (ev) =>
-                    captureEvent ev
-                    @run 'help'
+                    lib.captureEvent ev
+                    lib.run 'help'
                     false
             updateGeneratedJS: ->
                 $('#jsSource pre').text(@js_source)
@@ -148,12 +148,12 @@ define [], () ->
             clear_src_buffers: () ->
                 @js_source = ""
                 @coffee_source = ""
-            insertText: (text) ->
+            insertText: (text) =>
                 currentValue = @editor.getSession().getValue()
                 @editor.getSession().setValue(
                     if currentValue == (dt 'config').initial_buffer then text else currentValue + text)
                 @scrollToBottom()
-            resetEditorContents: (newContents = config.initial_buffer) ->
+            resetEditorContents: (newContents = config.initial_buffer) =>
                 lines = newContents.split('\n')
                 @editor.gotoLine 0
                 @editor.getSession().setValue newContents
@@ -165,7 +165,7 @@ define [], () ->
             formatEx: (ex) ->
                 $("<div class=\"eval_result\"><span class=\"label label-warning\"> <strong>Exception</strong> (#{ ex?.type ? ""}) </span>&nbsp;<strong>#{ ex?.message ? ""}</strong>#{ if ex?.stack? then '<pre>'+ex.stack+'</pre>' else '' }</div>")
             execute: (coffee_stmt, js_stmt, silent = false) ->
-                evalexpr = js_stmt ? (dt 'internals').pkgmgr.apply('builtin', 'compile', null, coffee_stmt)
+                evalexpr = js_stmt ? (dt 'v internals').corelib.compile coffee_stmt
                 exception = null
                 result = null
                 try 
@@ -175,7 +175,7 @@ define [], () ->
                 finally
                     rendered = null
                     try
-                        rendered = if exception? then @formatEx exception else (dt 'internals').pkgmgr.apply('builtin', 'show', null, result)
+                        rendered = if exception? then @formatEx exception else (dt 'o objectViewer:show') result
                     catch renderErr
                         exception = renderErr
                         rendered = $('<div><h3>Error displaying value</h3></div>').append @formatEx exception
@@ -192,13 +192,42 @@ define [], () ->
                 div_outer = $ "<div class='#{ @editor.getTheme().cssClass } alert alert-info'></div>"
                 div_outer.append(div_inner)
                 div_outer
+
+        ui = new UI() #return the UI class
+        lib = # contains regular JS functions
+            captureEvent: (ev) ->
+                ev.preventDefault()
+                ev.stopPropagation()
             run: (expr, silent = false) =>
                 # TODO syntax highlighting in run
                 if silent is off 
                     div =  $ "<div class='alert alert-info'></div>"
                     div.text expr
                     $("#interactions").append div
-                @execute(expr, null, true)
-                @scrollToBottom()
+                ui.execute(expr, null, true)
+                ui.scrollToBottom()
 
-        UI #return the UI class
+        pkg =
+            name: 'ui'
+            attr:
+                description: 'The User Interface package of DuctTape. The lib object contains the API of the DuctTape GUI.'
+                author: 'Peter Neumark'
+                url: 'https://github.com/neumark/ducttape'
+                version: '1.0'
+            value:
+                init:
+                    attr:
+                        description: 'Initialializes the DuctTape user interface.'
+                    value: ui.init
+                insertText:
+                    attr:
+                        description: 'Inserts text in the the edit buffer.'
+                    value: ui.insertText
+                setText:
+                    attr:
+                        description: 'Replaces the current edit buffer with the provided text'
+                    value: ui.resetEditorContents
+                lib:
+                    attr:
+                        description: 'A library of useful functions for programming the DuctTape UI.'
+                    value: lib

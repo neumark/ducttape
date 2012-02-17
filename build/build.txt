@@ -6,5 +6,8 @@ js/keybindings.js
 js/ui.js
 js/pkgmgr.js
 js/objectviewer.js
+js/corelib.js
+js/shellutils.js
+js/help.js
 js/ducttape.js
 js/dtmain.js

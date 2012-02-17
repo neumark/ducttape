@@ -1,81 +1,84 @@
 (function() {
-  var __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; }, __slice = Array.prototype.slice;
+  /*
+      PkgMgr is organized around the concept of Objects With Metadata (OWM).
+      See corelib for details.
+  
+      Packages are OWM's, as are the objects contained within.
+      Deeper in the object hierarchy there can be "plain old objects" as well.
+  */  var __hasProp = Object.prototype.hasOwnProperty, __extends = function(child, parent) {
+    for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; }
+    function ctor() { this.constructor = child; }
+    ctor.prototype = parent.prototype;
+    child.prototype = new ctor;
+    child.__super__ = parent.prototype;
+    return child;
+  }, __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; }, __slice = Array.prototype.slice;
   define([], function() {
     return function(dt) {
-      var Pkg, PkgMgr;
+      var OWM, Pkg, PkgMgr;
+      OWM = (dt('v internals')).corelib.OWM;
       Pkg = (function() {
-        function Pkg(name, attributes) {
-          this.name = name;
-          this.attributes = attributes;
-          this.funs = {};
+        __extends(Pkg, OWM);
+        function Pkg(pkgdata) {
+          var key, obj, _len, _ref;
+          this.pkgdata = pkgdata;
+          if (!this.pkgdata.hasAttributes(["author", "description", "url"])) {
+            throw new Error("InvalidPackageSpecification");
+          }
+          _ref = this.pkgdata.value;
+          for (obj = 0, _len = _ref.length; obj < _len; obj++) {
+            key = _ref[obj];
+            this.save(new OWM(key, obj));
+          }
         }
-        Pkg.prototype.addFun = function(descriptor, body, export_fun) {
-          var _ref, _ref2;
-          if (export_fun == null) {
-            export_fun = true;
+        Pkg.prototype.save = function(owm) {
+          if (!owm.hasAttributes(["description"])) {
+            throw new Error("InvalidObjectSpecification");
           }
-          if (!((descriptor != null ? descriptor.name : void 0) != null)) {
-            throw new Error("InvalidFunctionDescriptor");
-          }
-          this.funs[descriptor.name] = {
-            body: body,
-            args: (_ref = descriptor.args) != null ? _ref : [],
-            description: (_ref2 = descriptor.description) != null ? _ref2 : "No description provided"
-          };
-          this.funs[descriptor.name].body.descriptor = descriptor;
-          if (export_fun === true) {
-            return dt[descriptor.name] = this.funs[descriptor.name].body;
+          this.pkgdata.content[owm.name] = owm;
+          if (owm.attr.export_fun === true) {
+            dt[owm.name] = this.pkgdata[owm.name].value;
+            return dt[owm.name]['\u0111id'] = this.pkgdata.name + ':' + owm.name;
           }
         };
-        Pkg.prototype.getFun = function(name) {
-          if (!(this.funs[name] != null)) {
-            throw new Error("UndefinedFunction");
-          }
-          return this.funs[name];
+        Pkg.prototype.load = function(name) {
+          return this.pkgdata[name];
         };
         return Pkg;
       })();
       return PkgMgr = (function() {
-        function PkgMgr(dt, store) {
-          this.dt = dt;
+        function PkgMgr(store) {
           this.store = store != null ? store : {};
-          this.apply = __bind(this.apply, this);
-          this.getFun = __bind(this.getFun, this);
-          this.addFun = __bind(this.addFun, this);
+          this.load = __bind(this.load, this);
+          this.save = __bind(this.save, this);
         }
-        PkgMgr.prototype.pkgNameGuard = function(pkgName, fn) {
+        PkgMgr.prototype.definePackage = function(pkgSpec) {
+          var pkg;
+          pkg = new OWM(pkgSpec);
+          if (this.store[pkg.name] != null) {
+            throw new Error("PkgExists");
+          }
+          this.store[pkg.name] = pkg;
+          return true;
+        };
+        PkgMgr.prototype.save = function() {
+          var args, pkg;
+          pkg = arguments[0], args = 2 <= arguments.length ? __slice.call(arguments, 1) : [];
+          return this.pkgDefinedGuard(pkg, function() {
+            this.store[pkg].save(new OWM(args));
+            return true;
+          });
+        };
+        PkgMgr.prototype.load = function(pkg, name) {
+          return this.pkgDefinedGuard(pkg, function() {
+            return this.store[pkg].load(name);
+          });
+        };
+        PkgMgr.prototype.pkgDefinedGuard = function(pkgName, fn) {
           if (!(this.store[pkgName] != null)) {
             throw new Error("UndefinedPackage");
           }
           return fn.call(this);
-        };
-        PkgMgr.prototype.def = function(name, descr) {
-          if (descr == null) {
-            descr = {};
-          }
-          this.store[name] = new Pkg(name, descr);
-          return true;
-        };
-        PkgMgr.prototype.addFun = function() {
-          var args, pkg;
-          pkg = arguments[0], args = 2 <= arguments.length ? __slice.call(arguments, 1) : [];
-          return this.pkgNameGuard(pkg, function() {
-            this.store[pkg].addFun.apply(this.store[pkg], args);
-            return true;
-          });
-        };
-        PkgMgr.prototype.getFun = function(pkg, funName) {
-          return this.pkgNameGuard(pkg, function() {
-            return this.store[pkg].getFun(funName);
-          });
-        };
-        PkgMgr.prototype.apply = function() {
-          var args, funName, pkg, that;
-          pkg = arguments[0], funName = arguments[1], that = arguments[2], args = 4 <= arguments.length ? __slice.call(arguments, 3) : [];
-          if (that == null) {
-            that = this;
-          }
-          return this.getFun(pkg, funName).body.apply(that, args);
         };
         return PkgMgr;
       })();

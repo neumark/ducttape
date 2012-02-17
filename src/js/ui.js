@@ -1,12 +1,14 @@
 (function() {
   /* 
       TODO: disable ACE keyboard shortcuts
+      add the following: 
+          lib.commandLinkStr
   */  var __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
   define([], function() {
     return function(dt) {
-      var HistoryBrowser, UI, config, session;
-      config = dt('config');
-      session = dt('session');
+      var HistoryBrowser, UI, config, lib, pkg, session, ui;
+      config = dt('v config');
+      session = dt('v session');
       HistoryBrowser = (function() {
         function HistoryBrowser(ui) {
           this.ui = ui;
@@ -20,7 +22,6 @@
           if (this.pos > 0) {
             this.pos--;
           }
-          console.log(this.pos);
           return this.ui.resetEditorContents(session.history[this.pos].coffee);
         };
         HistoryBrowser.prototype.forward = function() {
@@ -30,7 +31,6 @@
             return false;
           } else {
             this.ui.resetEditorContents(session.history[this.pos].coffee);
-            console.log(this.pos);
             return true;
           }
         };
@@ -39,10 +39,12 @@
       UI = (function() {
         function UI(editor_div_id) {
           this.editor_div_id = editor_div_id != null ? editor_div_id : "editor";
-          this.run = __bind(this.run, this);
           this.format_command = __bind(this.format_command, this);
+          this.resetEditorContents = __bind(this.resetEditorContents, this);
+          this.insertText = __bind(this.insertText, this);
           this.update = __bind(this.update, this);
           this.updateTimeout = __bind(this.updateTimeout, this);
+          this.init = __bind(this.init, this);
           this.editor = null;
           this.editor_div = document.getElementById(this.editor_div_id);
           this.coffee_source = "";
@@ -51,14 +53,13 @@
           this.UPDATE_DELAY = 300;
           this.historyBrowser = null;
         }
-        UI.prototype.captureEvent = function(ev) {
-          ev.preventDefault();
-          return ev.stopPropagation();
-        };
-        UI.prototype.init = function() {
+        UI.prototype.init = function(runAfterInit) {
           this.init_ace();
           this.init_ui();
-          return this.resetEditorContents();
+          this.resetEditorContents();
+          if (runAfterInit != null) {
+            return runAfterInit(dt);
+          }
         };
         UI.prototype.init_ace = function() {
           var bind, trigger;
@@ -77,7 +78,7 @@
           this.editor.setKeyboardHandler({
             handleKeyboard: __bind(function(_1, _2, _3, _4, ev) {
               if ((ev != null) && trigger(ev)) {
-                return this.captureEvent(ev);
+                return lib.captureEvent(ev);
               }
             }, this)
           });
@@ -157,8 +158,8 @@
         };
         UI.prototype.init_ui = function() {
           return $('#menuhelp').click(__bind(function(ev) {
-            captureEvent(ev);
-            this.run('help');
+            lib.captureEvent(ev);
+            lib.run('help');
             return false;
           }, this));
         };
@@ -229,7 +230,7 @@
           if (silent == null) {
             silent = false;
           }
-          evalexpr = js_stmt != null ? js_stmt : (dt('internals')).pkgmgr.apply('builtin', 'compile', null, coffee_stmt);
+          evalexpr = js_stmt != null ? js_stmt : (dt('v internals')).corelib.compile(coffee_stmt);
           exception = null;
           result = null;
           try {
@@ -239,7 +240,7 @@
           } finally {
             rendered = null;
             try {
-              rendered = exception != null ? this.formatEx(exception) : (dt('internals')).pkgmgr.apply('builtin', 'show', null, result);
+              rendered = exception != null ? this.formatEx(exception) : (dt('o objectViewer:show'))(result);
             } catch (renderErr) {
               exception = renderErr;
               rendered = $('<div><h3>Error displaying value</h3></div>').append(this.formatEx(exception));
@@ -264,7 +265,15 @@
           div_outer.append(div_inner);
           return div_outer;
         };
-        UI.prototype.run = function(expr, silent) {
+        return UI;
+      })();
+      ui = new UI();
+      lib = {
+        captureEvent: function(ev) {
+          ev.preventDefault();
+          return ev.stopPropagation();
+        },
+        run: __bind(function(expr, silent) {
           var div;
           if (silent == null) {
             silent = false;
@@ -274,12 +283,45 @@
             div.text(expr);
             $("#interactions").append(div);
           }
-          this.execute(expr, null, true);
-          return this.scrollToBottom();
-        };
-        return UI;
-      })();
-      return UI;
+          ui.execute(expr, null, true);
+          return ui.scrollToBottom();
+        }, this)
+      };
+      return pkg = {
+        name: 'ui',
+        attr: {
+          description: 'The User Interface package of DuctTape. The lib object contains the API of the DuctTape GUI.',
+          author: 'Peter Neumark',
+          url: 'https://github.com/neumark/ducttape',
+          version: '1.0'
+        },
+        value: {
+          init: {
+            attr: {
+              description: 'Initialializes the DuctTape user interface.'
+            },
+            value: ui.init
+          },
+          insertText: {
+            attr: {
+              description: 'Inserts text in the the edit buffer.'
+            },
+            value: ui.insertText
+          },
+          setText: {
+            attr: {
+              description: 'Replaces the current edit buffer with the provided text'
+            },
+            value: ui.resetEditorContents
+          },
+          lib: {
+            attr: {
+              description: 'A library of useful functions for programming the DuctTape UI.'
+            },
+            value: lib
+          }
+        }
+      };
     };
   });
 }).call(this);

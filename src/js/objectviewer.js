@@ -7,9 +7,9 @@
   };
   define([], function() {
     return function(dt) {
-      var exports, objectViewer_MAXSTRLEN;
+      var objectViewer_MAXSTRLEN, ov, pkg;
       objectViewer_MAXSTRLEN = 40;
-      exports = {
+      ov = {
         htmlEncode: function(str) {
           return jQuery('<div />').text(str).html();
         },
@@ -19,10 +19,10 @@
             container.append(val);
           } else {
             try {
-              container.text(exports.stringValue(val));
+              container.text(ov.stringValue(val));
             } catch (e) {
               if ((e.message != null) && (e.message === "complexTypeError")) {
-                container.append(exports.objectViewer(val));
+                container.append(ov.objectViewer(val));
               } else {
                 throw e;
               }
@@ -48,7 +48,7 @@
                     _results = [];
                     for (_i = 0, _len = val.length; _i < _len; _i++) {
                       i = val[_i];
-                      _results.push(exports.stringValue(i));
+                      _results.push(ov.stringValue(i));
                     }
                     return _results;
                   })()).join(", ") + "]";
@@ -78,8 +78,8 @@
         },
         objectViewer: function(obj) {
           var get_children, get_node_data, mk_keylist, mk_node, object_viewer, refname;
-          refname = "(" + (dt('config')).global_ref + " 'internals').pkgmgr.getFun('builtin', 'ov').body.cache[" + exports.objectViewer.cache.length + "]";
-          exports.objectViewer.cache.push(obj);
+          refname = "(" + (dt('config')).global_ref + " 'internals').pkgmgr.getFun('builtin', 'ov').body.cache[" + ov.objectViewer.cache.length + "]";
+          ov.objectViewer.cache.push(obj);
           mk_node = function(key, value, visible) {
             var ret, value_str;
             if (visible == null) {
@@ -87,9 +87,9 @@
             }
             value_str = null;
             try {
-              value_str = exports.stringValue(value);
+              value_str = ov.stringValue(value);
             } catch (e) {
-              value_str = "Object of type " + (exports.objectType(value));
+              value_str = "Object of type " + (ov.objectType(value));
             }
             if (value_str.length > objectViewer_MAXSTRLEN) {
               value_str = value_str.substr(0, objectViewer_MAXSTRLEN) + "...";
@@ -103,7 +103,7 @@
                 }
               }
             };
-            if (exports.hasChildren(value)) {
+            if (ov.hasChildren(value)) {
               ret.state = "closed";
               ret.children = [];
             }
@@ -200,8 +200,32 @@
           return object_viewer;
         }
       };
-      exports.objectViewer.cache = [];
-      return exports;
+      ov.objectViewer.cache = [];
+      return pkg = {
+        name: 'objectViewer',
+        attr: {
+          description: 'A collection of functions for displaying JavaScript values.',
+          author: 'Peter Neumark',
+          url: 'https://github.com/neumark/ducttape',
+          version: '1.0'
+        },
+        value: {
+          ov: {
+            attr: {
+              description: 'Object Viewer',
+              make_public: true
+            },
+            value: ov.objectViewer
+          },
+          show: {
+            attr: {
+              description: 'Show a JavaScript value, regardless of type.',
+              make_public: true
+            },
+            value: ov.showValue
+          }
+        }
+      };
     };
   });
 }).call(this);

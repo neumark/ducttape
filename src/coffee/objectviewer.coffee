@@ -2,7 +2,7 @@ define [], ->
     (dt) ->
         # format is a set of functions which can be used to format values
         objectViewer_MAXSTRLEN = 40
-        exports = 
+        ov = 
             htmlEncode: (str) -> jQuery('<div />').text(str).html()
             showValue: (val, container) ->
                 container = container ? $("<div class=\"eval_result\"></div>")
@@ -10,9 +10,9 @@ define [], ->
                     container.append(val)
                 else
                     try
-                        container.text exports.stringValue val 
+                        container.text ov.stringValue val 
                     catch e
-                        if e.message? and (e.message == "complexTypeError") then container.append exports.objectViewer val
+                        if e.message? and (e.message == "complexTypeError") then container.append ov.objectViewer val
                         else throw e
                 return container
             stringValue: (val) ->
@@ -23,7 +23,7 @@ define [], ->
                     when "object" 
                         if val?
                             if val.constructor == Array.prototype.constructor
-                                "[" + (exports.stringValue i for i in val).join(", ") + "]"
+                                "[" + (ov.stringValue i for i in val).join(", ") + "]"
                             else if val.toString != Object.prototype.toString
                                 val.toString()
                             else
@@ -41,14 +41,14 @@ define [], ->
             objectViewer: (obj) ->
                 # TODO: handle Array, Date, Regexp and a couple other builtin objects
                 # If dt.ov is overwritten, ov.cache will not be used...
-                refname = "(#{ (dt 'config').global_ref } 'internals').pkgmgr.getFun('builtin', 'ov').body.cache[#{exports.objectViewer.cache.length}]"
-                exports.objectViewer.cache.push(obj)
+                refname = "(#{ (dt 'config').global_ref } 'internals').pkgmgr.getFun('builtin', 'ov').body.cache[#{ov.objectViewer.cache.length}]"
+                ov.objectViewer.cache.push(obj)
                 mk_node = (key, value, visible = true) ->
                     value_str = null
                     try
-                        value_str = exports.stringValue value
+                        value_str = ov.stringValue value
                     catch e
-                        value_str = "Object of type #{ exports.objectType value }"
+                        value_str = "Object of type #{ ov.objectType value }"
                     if value_str.length > objectViewer_MAXSTRLEN then value_str = value_str.substr(0, objectViewer_MAXSTRLEN) + "..."
                     ret = 
                         data:
@@ -56,7 +56,7 @@ define [], ->
                             attr:
                                 object_key: key
                                 class: 'objectViewer_item'
-                    if exports.hasChildren value
+                    if ov.hasChildren value
                         ret.state = "closed"
                         ret.children = []
                     ret
@@ -104,5 +104,27 @@ define [], ->
                         if kl.length == 0 then refname else "#{ refname }['#{ kl.join("']['") }']")
                 object_viewer
 
-        exports.objectViewer.cache = []
-        exports        
+        ov.objectViewer.cache = []
+        
+        pkg = 
+            name: 'objectViewer'
+            attr:
+                description: 'A collection of functions for displaying JavaScript values.'
+                author: 'Peter Neumark'
+                url: 'https://github.com/neumark/ducttape'
+                version: '1.0'
+            value:
+                ov:
+                    attr:
+                        description: 'Object Viewer'
+                        make_public: true
+                    value: ov.objectViewer
+                show:
+                    attr:
+                        description: 'Show a JavaScript value, regardless of type.'
+                        make_public: true
+                    value: ov.showValue
+
+
+
+

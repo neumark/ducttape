@@ -1,36 +1,45 @@
+###
+    PkgMgr is organized around the concept of Objects With Metadata (OWM).
+    See corelib for details.
+
+    Packages are OWM's, as are the objects contained within.
+    Deeper in the object hierarchy there can be "plain old objects" as well.
+###
 define [], ->
     (dt) ->
-        class Pkg
-            constructor: (@name, @attributes) ->
-                @funs = {}
-            addFun: (descriptor, body, export_fun = true) ->
-                if not descriptor?.name? then throw new Error "InvalidFunctionDescriptor"
-                @funs[descriptor.name] = 
-                    body: body
-                    args: descriptor.args ? []
-                    description: (descriptor.description ? "No description provided")
-                @funs[descriptor.name].body.descriptor = descriptor
-                if export_fun == true then dt[descriptor.name] = @funs[descriptor.name].body
-            getFun: (name) ->
-                if not @funs[name]? then throw new Error "UndefinedFunction"
-                return @funs[name]
+        OWM = (dt 'v internals').corelib.OWM
+        class Pkg extends OWM
+            constructor: (@pkgdata) ->
+                if not @pkgdata.hasAttributes ["author", "description", "url"]
+                    throw new Error "InvalidPackageSpecification"
+                for own key, obj in @pkgdata.value
+                    @save new OWM key, obj
+            save: (owm) ->
+                if not owm.hasAttributes ["description"]
+                    throw new Error "InvalidObjectSpecification"
+                @pkgdata.content[owm.name] = owm
+                if owm.attr.export_fun is on 
+                    dt[owm.name] = @pkgdata[owm.name].value
+                    # add an identifier to the obj so help() and other conveniences work:
+                    dt[owm.name]['\u0111id'] = @pkgdata.name + ':' + owm.name
+            load: (name) ->
+                @pkgdata[name]
 
         class PkgMgr
-            constructor: (@dt, @store = {}) ->
-            pkgNameGuard: (pkgName, fn) ->
+            constructor: (@store = {}) ->
+            definePackage: (pkgSpec) ->
+                pkg = new OWM pkgSpec
+                if @store[pkg.name]? then throw new Error "PkgExists"
+                @store[pkg.name] = pkg
+                true
+            save: (pkg, args...) =>
+                @pkgDefinedGuard pkg, ->
+                    @store[pkg].save new OWM args
+                    true
+            load: (pkg, name) =>
+                @pkgDefinedGuard pkg, ->
+                    @store[pkg].load(name)
+            pkgDefinedGuard: (pkgName, fn) ->
                 if not @store[pkgName]? then throw new Error "UndefinedPackage"
                 fn.call @
-            def: (name, descr = {}) ->
-                @store[name] = new Pkg name, descr
-                true
-            addFun: (pkg, args...) =>
-                @pkgNameGuard pkg, ->
-                    @store[pkg].addFun.apply @store[pkg], args
-                    true
-            getFun: (pkg, funName) =>
-                @pkgNameGuard pkg, ->
-                    @store[pkg].getFun(funName)
-            apply: (pkg, funName, that = @, args...) =>
-                @getFun(pkg, funName).body.apply that, args
-
 

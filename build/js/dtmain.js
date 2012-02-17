@@ -1,25 +1,59 @@
 
 (function() {
+  var __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; }, __slice = Array.prototype.slice;
   define('cmd',[], function() {
-    var Cmd;
-    return Cmd = (function() {
-      function Cmd(cmdStore) {
-        var _ref;
-        this.cmdStore = cmdStore;
-                if ((_ref = this.cmdStore) != null) {
-          _ref;
-        } else {
-          this.cmdStore = {};
+    return function(dtObj) {
+      var Cmd, badCommand;
+      badCommand = function(name) {
+        return function() {
+          return "No such command: " + name;
         };
-      }
-      Cmd.prototype.add = function(cmd, fn) {
-        return this.cmdStore[cmd] = fn;
       };
-      Cmd.prototype.get = function(cmd) {
-        return this.cmdStore[cmd];
-      };
-      return Cmd;
-    })();
+      return Cmd = (function() {
+        function Cmd() {
+          this.exec = __bind(this.exec, this);          this.cmdStore = {
+            v: {
+              attr: {
+                description: "Get a DuctTape system variable."
+              },
+              value: function(varName) {
+                if (varName in dtObj) {
+                  return dtObj[varName];
+                } else {
+                  throw new Error("No such system variable: " + varName);
+                }
+              }
+            },
+            o: {
+              attr: {
+                description: "Get a DuctTape object from the package manager."
+              },
+              value: function(fullName) {
+                var obj, pkg, _ref;
+                _ref = fullName.split(':'), pkg = _ref[0], obj = _ref[1];
+                return dtObj.internals.pkgmgr.load(pkg(obj));
+              }
+            }
+          };
+        }
+        Cmd.prototype.exec = function() {
+          var args, command, fn, tmp, _ref;
+          command = arguments[0], args = 2 <= arguments.length ? __slice.call(arguments, 1) : [];
+          if (command != null) {
+            if (args.length === 0) {
+              tmp = command.split(' ');
+              command = tmp[0];
+              args = tmp.slice(1);
+            }
+            fn = (_ref = this.cmdStore[command]) != null ? _ref.value : void 0;
+            return (fn != null ? fn : badCommand(command)).apply(this, args);
+          } else {
+            return "DuctTape pre 0.001; Welcome!\n(TODO: redirect to help.)";
+          }
+        };
+        return Cmd;
+      })();
+    };
   });
 }).call(this);
 
@@ -79,12 +113,14 @@
 (function() {
   /* 
       TODO: disable ACE keyboard shortcuts
+      add the following: 
+          lib.commandLinkStr
   */  var __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
   define('ui',[], function() {
     return function(dt) {
-      var HistoryBrowser, UI, config, session;
-      config = dt('config');
-      session = dt('session');
+      var HistoryBrowser, UI, config, lib, pkg, session, ui;
+      config = dt('v config');
+      session = dt('v session');
       HistoryBrowser = (function() {
         function HistoryBrowser(ui) {
           this.ui = ui;
@@ -98,7 +134,6 @@
           if (this.pos > 0) {
             this.pos--;
           }
-          console.log(this.pos);
           return this.ui.resetEditorContents(session.history[this.pos].coffee);
         };
         HistoryBrowser.prototype.forward = function() {
@@ -108,7 +143,6 @@
             return false;
           } else {
             this.ui.resetEditorContents(session.history[this.pos].coffee);
-            console.log(this.pos);
             return true;
           }
         };
@@ -117,10 +151,12 @@
       UI = (function() {
         function UI(editor_div_id) {
           this.editor_div_id = editor_div_id != null ? editor_div_id : "editor";
-          this.run = __bind(this.run, this);
           this.format_command = __bind(this.format_command, this);
+          this.resetEditorContents = __bind(this.resetEditorContents, this);
+          this.insertText = __bind(this.insertText, this);
           this.update = __bind(this.update, this);
           this.updateTimeout = __bind(this.updateTimeout, this);
+          this.init = __bind(this.init, this);
           this.editor = null;
           this.editor_div = document.getElementById(this.editor_div_id);
           this.coffee_source = "";
@@ -129,14 +165,13 @@
           this.UPDATE_DELAY = 300;
           this.historyBrowser = null;
         }
-        UI.prototype.captureEvent = function(ev) {
-          ev.preventDefault();
-          return ev.stopPropagation();
-        };
-        UI.prototype.init = function() {
+        UI.prototype.init = function(runAfterInit) {
           this.init_ace();
           this.init_ui();
-          return this.resetEditorContents();
+          this.resetEditorContents();
+          if (runAfterInit != null) {
+            return runAfterInit(dt);
+          }
         };
         UI.prototype.init_ace = function() {
           var bind, trigger;
@@ -155,7 +190,7 @@
           this.editor.setKeyboardHandler({
             handleKeyboard: __bind(function(_1, _2, _3, _4, ev) {
               if ((ev != null) && trigger(ev)) {
-                return this.captureEvent(ev);
+                return lib.captureEvent(ev);
               }
             }, this)
           });
@@ -235,8 +270,8 @@
         };
         UI.prototype.init_ui = function() {
           return $('#menuhelp').click(__bind(function(ev) {
-            captureEvent(ev);
-            this.run('help');
+            lib.captureEvent(ev);
+            lib.run('help');
             return false;
           }, this));
         };
@@ -307,7 +342,7 @@
           if (silent == null) {
             silent = false;
           }
-          evalexpr = js_stmt != null ? js_stmt : (dt('internals')).pkgmgr.apply('builtin', 'compile', null, coffee_stmt);
+          evalexpr = js_stmt != null ? js_stmt : (dt('v internals')).corelib.compile(coffee_stmt);
           exception = null;
           result = null;
           try {
@@ -317,7 +352,7 @@
           } finally {
             rendered = null;
             try {
-              rendered = exception != null ? this.formatEx(exception) : (dt('internals')).pkgmgr.apply('builtin', 'show', null, result);
+              rendered = exception != null ? this.formatEx(exception) : (dt('o objectViewer:show'))(result);
             } catch (renderErr) {
               exception = renderErr;
               rendered = $('<div><h3>Error displaying value</h3></div>').append(this.formatEx(exception));
@@ -342,7 +377,15 @@
           div_outer.append(div_inner);
           return div_outer;
         };
-        UI.prototype.run = function(expr, silent) {
+        return UI;
+      })();
+      ui = new UI();
+      lib = {
+        captureEvent: function(ev) {
+          ev.preventDefault();
+          return ev.stopPropagation();
+        },
+        run: __bind(function(expr, silent) {
           var div;
           if (silent == null) {
             silent = false;
@@ -352,94 +395,130 @@
             div.text(expr);
             $("#interactions").append(div);
           }
-          this.execute(expr, null, true);
-          return this.scrollToBottom();
-        };
-        return UI;
-      })();
-      return UI;
+          ui.execute(expr, null, true);
+          return ui.scrollToBottom();
+        }, this)
+      };
+      return pkg = {
+        name: 'ui',
+        attr: {
+          description: 'The User Interface package of DuctTape. The lib object contains the API of the DuctTape GUI.',
+          author: 'Peter Neumark',
+          url: 'https://github.com/neumark/ducttape',
+          version: '1.0'
+        },
+        value: {
+          init: {
+            attr: {
+              description: 'Initialializes the DuctTape user interface.'
+            },
+            value: ui.init
+          },
+          insertText: {
+            attr: {
+              description: 'Inserts text in the the edit buffer.'
+            },
+            value: ui.insertText
+          },
+          setText: {
+            attr: {
+              description: 'Replaces the current edit buffer with the provided text'
+            },
+            value: ui.resetEditorContents
+          },
+          lib: {
+            attr: {
+              description: 'A library of useful functions for programming the DuctTape UI.'
+            },
+            value: lib
+          }
+        }
+      };
     };
   });
 }).call(this);
 
 (function() {
-  var __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; }, __slice = Array.prototype.slice;
+  /*
+      PkgMgr is organized around the concept of Objects With Metadata (OWM).
+      See corelib for details.
+  
+      Packages are OWM's, as are the objects contained within.
+      Deeper in the object hierarchy there can be "plain old objects" as well.
+  */  var __hasProp = Object.prototype.hasOwnProperty, __extends = function(child, parent) {
+    for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; }
+    function ctor() { this.constructor = child; }
+    ctor.prototype = parent.prototype;
+    child.prototype = new ctor;
+    child.__super__ = parent.prototype;
+    return child;
+  }, __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; }, __slice = Array.prototype.slice;
   define('pkgmgr',[], function() {
     return function(dt) {
-      var Pkg, PkgMgr;
+      var OWM, Pkg, PkgMgr;
+      OWM = (dt('v internals')).corelib.OWM;
       Pkg = (function() {
-        function Pkg(name, attributes) {
-          this.name = name;
-          this.attributes = attributes;
-          this.funs = {};
+        __extends(Pkg, OWM);
+        function Pkg(pkgdata) {
+          var key, obj, _len, _ref;
+          this.pkgdata = pkgdata;
+          if (!this.pkgdata.hasAttributes(["author", "description", "url"])) {
+            throw new Error("InvalidPackageSpecification");
+          }
+          _ref = this.pkgdata.value;
+          for (obj = 0, _len = _ref.length; obj < _len; obj++) {
+            key = _ref[obj];
+            this.save(new OWM(key, obj));
+          }
         }
-        Pkg.prototype.addFun = function(descriptor, body, export_fun) {
-          var _ref, _ref2;
-          if (export_fun == null) {
-            export_fun = true;
+        Pkg.prototype.save = function(owm) {
+          if (!owm.hasAttributes(["description"])) {
+            throw new Error("InvalidObjectSpecification");
           }
-          if (!((descriptor != null ? descriptor.name : void 0) != null)) {
-            throw new Error("InvalidFunctionDescriptor");
-          }
-          this.funs[descriptor.name] = {
-            body: body,
-            args: (_ref = descriptor.args) != null ? _ref : [],
-            description: (_ref2 = descriptor.description) != null ? _ref2 : "No description provided"
-          };
-          this.funs[descriptor.name].body.descriptor = descriptor;
-          if (export_fun === true) {
-            return dt[descriptor.name] = this.funs[descriptor.name].body;
+          this.pkgdata.content[owm.name] = owm;
+          if (owm.attr.export_fun === true) {
+            dt[owm.name] = this.pkgdata[owm.name].value;
+            return dt[owm.name]['\u0111id'] = this.pkgdata.name + ':' + owm.name;
           }
         };
-        Pkg.prototype.getFun = function(name) {
-          if (!(this.funs[name] != null)) {
-            throw new Error("UndefinedFunction");
-          }
-          return this.funs[name];
+        Pkg.prototype.load = function(name) {
+          return this.pkgdata[name];
         };
         return Pkg;
       })();
       return PkgMgr = (function() {
-        function PkgMgr(dt, store) {
-          this.dt = dt;
+        function PkgMgr(store) {
           this.store = store != null ? store : {};
-          this.apply = __bind(this.apply, this);
-          this.getFun = __bind(this.getFun, this);
-          this.addFun = __bind(this.addFun, this);
+          this.load = __bind(this.load, this);
+          this.save = __bind(this.save, this);
         }
-        PkgMgr.prototype.pkgNameGuard = function(pkgName, fn) {
+        PkgMgr.prototype.definePackage = function(pkgSpec) {
+          var pkg;
+          pkg = new OWM(pkgSpec);
+          if (this.store[pkg.name] != null) {
+            throw new Error("PkgExists");
+          }
+          this.store[pkg.name] = pkg;
+          return true;
+        };
+        PkgMgr.prototype.save = function() {
+          var args, pkg;
+          pkg = arguments[0], args = 2 <= arguments.length ? __slice.call(arguments, 1) : [];
+          return this.pkgDefinedGuard(pkg, function() {
+            this.store[pkg].save(new OWM(args));
+            return true;
+          });
+        };
+        PkgMgr.prototype.load = function(pkg, name) {
+          return this.pkgDefinedGuard(pkg, function() {
+            return this.store[pkg].load(name);
+          });
+        };
+        PkgMgr.prototype.pkgDefinedGuard = function(pkgName, fn) {
           if (!(this.store[pkgName] != null)) {
             throw new Error("UndefinedPackage");
           }
           return fn.call(this);
-        };
-        PkgMgr.prototype.def = function(name, descr) {
-          if (descr == null) {
-            descr = {};
-          }
-          this.store[name] = new Pkg(name, descr);
-          return true;
-        };
-        PkgMgr.prototype.addFun = function() {
-          var args, pkg;
-          pkg = arguments[0], args = 2 <= arguments.length ? __slice.call(arguments, 1) : [];
-          return this.pkgNameGuard(pkg, function() {
-            this.store[pkg].addFun.apply(this.store[pkg], args);
-            return true;
-          });
-        };
-        PkgMgr.prototype.getFun = function(pkg, funName) {
-          return this.pkgNameGuard(pkg, function() {
-            return this.store[pkg].getFun(funName);
-          });
-        };
-        PkgMgr.prototype.apply = function() {
-          var args, funName, pkg, that;
-          pkg = arguments[0], funName = arguments[1], that = arguments[2], args = 4 <= arguments.length ? __slice.call(arguments, 3) : [];
-          if (that == null) {
-            that = this;
-          }
-          return this.getFun(pkg, funName).body.apply(that, args);
         };
         return PkgMgr;
       })();
@@ -456,9 +535,9 @@
   };
   define('objectviewer',[], function() {
     return function(dt) {
-      var exports, objectViewer_MAXSTRLEN;
+      var objectViewer_MAXSTRLEN, ov, pkg;
       objectViewer_MAXSTRLEN = 40;
-      exports = {
+      ov = {
         htmlEncode: function(str) {
           return jQuery('<div />').text(str).html();
         },
@@ -468,10 +547,10 @@
             container.append(val);
           } else {
             try {
-              container.text(exports.stringValue(val));
+              container.text(ov.stringValue(val));
             } catch (e) {
               if ((e.message != null) && (e.message === "complexTypeError")) {
-                container.append(exports.objectViewer(val));
+                container.append(ov.objectViewer(val));
               } else {
                 throw e;
               }
@@ -497,7 +576,7 @@
                     _results = [];
                     for (_i = 0, _len = val.length; _i < _len; _i++) {
                       i = val[_i];
-                      _results.push(exports.stringValue(i));
+                      _results.push(ov.stringValue(i));
                     }
                     return _results;
                   })()).join(", ") + "]";
@@ -527,8 +606,8 @@
         },
         objectViewer: function(obj) {
           var get_children, get_node_data, mk_keylist, mk_node, object_viewer, refname;
-          refname = "(" + (dt('config')).global_ref + " 'internals').pkgmgr.getFun('builtin', 'ov').body.cache[" + exports.objectViewer.cache.length + "]";
-          exports.objectViewer.cache.push(obj);
+          refname = "(" + (dt('config')).global_ref + " 'internals').pkgmgr.getFun('builtin', 'ov').body.cache[" + ov.objectViewer.cache.length + "]";
+          ov.objectViewer.cache.push(obj);
           mk_node = function(key, value, visible) {
             var ret, value_str;
             if (visible == null) {
@@ -536,9 +615,9 @@
             }
             value_str = null;
             try {
-              value_str = exports.stringValue(value);
+              value_str = ov.stringValue(value);
             } catch (e) {
-              value_str = "Object of type " + (exports.objectType(value));
+              value_str = "Object of type " + (ov.objectType(value));
             }
             if (value_str.length > objectViewer_MAXSTRLEN) {
               value_str = value_str.substr(0, objectViewer_MAXSTRLEN) + "...";
@@ -552,7 +631,7 @@
                 }
               }
             };
-            if (exports.hasChildren(value)) {
+            if (ov.hasChildren(value)) {
               ret.state = "closed";
               ret.children = [];
             }
@@ -649,107 +728,82 @@
           return object_viewer;
         }
       };
-      exports.objectViewer.cache = [];
-      return exports;
+      ov.objectViewer.cache = [];
+      return pkg = {
+        name: 'objectViewer',
+        attr: {
+          description: 'A collection of functions for displaying JavaScript values.',
+          author: 'Peter Neumark',
+          url: 'https://github.com/neumark/ducttape',
+          version: '1.0'
+        },
+        value: {
+          ov: {
+            attr: {
+              description: 'Object Viewer',
+              make_public: true
+            },
+            value: ov.objectViewer
+          },
+          show: {
+            attr: {
+              description: 'Show a JavaScript value, regardless of type.',
+              make_public: true
+            },
+            value: ov.showValue
+          }
+        }
+      };
     };
   });
 }).call(this);
 
 (function() {
   var __slice = Array.prototype.slice;
-  define('ducttape',['cmd', 'keybindings', 'ui', 'pkgmgr', 'objectviewer'], function(Cmd, KeyBindings, UI, PkgMgr, objectviewer) {
-    return function(config) {
-      var badCommand, dt, ov, specials, _ref, _ref2, _ref3;
-      if (config == null) {
-        config = {};
-      }
-            if (config != null) {
-        config;
-      } else {
-        config = {};
-      };
-            if ((_ref = config.global_ref) != null) {
-        _ref;
-      } else {
-        config.global_ref = "\u0111";
-      };
-            if ((_ref2 = config.initial_buffer) != null) {
-        _ref2;
-      } else {
-        config.initial_buffer = config.global_ref;
-      };
-            if ((_ref3 = config.showGeneratedJS) != null) {
-        _ref3;
-      } else {
-        config.showGeneratedJS = false;
-      };
-      dt = function() {
-        return specials.internals.exec.apply(this, arguments);
-      };
-      specials = {
-        config: config,
-        internals: {},
-        session: {
-          history: []
+  define('corelib',[], function() {
+    var OWM;
+    return {
+      OWM: OWM = (function() {
+        OWM.prototype.doc = "An OWM has 3 parts:\n- name              string\n- attributes        object (dictionary)\n- object itself     any truthy javascript value";
+        function OWM() {
+          var owm, _ref;
+          owm = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
+          _ref = (function() {
+            var _ref, _ref2, _ref3, _ref4, _ref5;
+            switch (owm != null ? owm.length : void 0) {
+              case 1:
+                return [(_ref = owm[0]) != null ? _ref.name : void 0, (_ref2 = owm[0]) != null ? _ref2.attr : void 0, (_ref3 = owm[0]) != null ? _ref3.value : void 0];
+              case 2:
+                return [owm != null ? owm[0] : void 0, owm != null ? (_ref4 = owm[1]) != null ? _ref4.attr : void 0 : void 0, owm != null ? (_ref5 = owm[1]) != null ? _ref5.value : void 0 : void 0];
+              case 3:
+                return owm;
+              default:
+                return [];
+            }
+          })(), this.name = _ref[0], this.attr = _ref[1], this.value = _ref[2];
+          if ((!(this.name != null)) || (!(this.attr != null)) || (!this.value)) {
+            throw new Error("Bad OWM format");
+          }
         }
-      };
-      specials.internals.exec = function() {
-        var args, command, fn;
-        command = arguments[0], args = 2 <= arguments.length ? __slice.call(arguments, 1) : [];
-        if (command != null) {
-          if ((command in specials) && (args.length === 0)) {
-            return specials[command];
-          } else {
-            fn = specials.internals.cmd.get(command);
-            return (fn != null ? fn : badCommand(command)).apply(dt, args);
-          }
-        } else {
-          return "DuctTape pre 0.001; Welcome!";
-        }
-      };
-      specials.internals.cmd = new Cmd();
-      specials.session.keybindings = new KeyBindings();
-      specials.internals.pkgmgr = new (PkgMgr(dt))();
-      specials.internals.ui = new (UI(dt))();
-      ov = objectviewer(dt);
-      specials.internals.pkgmgr.def("builtin", {
-        description: "Contains stuff packaged with DuctTape.",
-        author: "Peter Neumark",
-        website: "http://peterneumark.com"
-      });
-      specials.internals.pkgmgr.addFun("builtin", {
-        name: 'captureEvent',
-        description: 'Prevents event bubbling',
-        args: [
-          {
-            name: 'ev',
-            description: 'JS event'
-          }
-        ]
-      }, specials.internals.ui.captureEvent, false);
-      specials.internals.pkgmgr.addFun("builtin", {
-        name: 'last',
-        description: 'Returns last evaluated command and the result'
-      }, function() {
-        return specials.session.history[specials.session.history.length - 1];
-      });
-      specials.internals.pkgmgr.addFun("builtin", {
-        name: 'clear',
-        description: 'Clears former interactions'
-      }, function() {
-        $('#interactions').children().remove();
-        return "ok";
-      });
-      specials.internals.pkgmgr.addFun("builtin", {
-        name: 'compile',
-        args: [
-          {
-            name: 'src',
-            description: 'CoffeeScript source'
-          }
-        ],
-        description: 'Compiles CoffeeScript code to JavaScript.'
-      }, function(src) {
+        OWM.prototype.hasAttributes = function(attrList) {
+          var f, missing;
+          missing = (function() {
+            var _i, _len, _ref, _results;
+            _ref = this.attrList;
+            _results = [];
+            for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+              f = _ref[_i];
+              if (!(this.attr[f] != null)) {
+                _results.push(f);
+              }
+            }
+            return _results;
+          }).call(this);
+          return missing.length === 0;
+        };
+        return OWM;
+      })(),
+      compile: function(src) {
         if (src.length === 0) {
           return src;
         } else {
@@ -757,87 +811,175 @@
             'bare': true
           });
         }
-      });
-      specials.internals.pkgmgr.addFun("builtin", {
-        name: 'stringValue',
-        args: [
-          {
-            name: 'value',
-            description: 'A JavaScript value to be converted to a string (if possible)'
-          }
-        ],
-        description: 'Returns a string representation of the argument or throws and exception if not possible'
-      }, ov.stringValue);
-      specials.internals.pkgmgr.addFun("builtin", {
-        name: 'ov',
-        args: [
-          {
-            name: 'object',
-            description: 'A JavaScript object to be displayed in a DOM element'
-          }
-        ],
-        description: 'In objectviewer.coffee'
-      }, ov.objectViewer);
-      specials.internals.pkgmgr.addFun("builtin", {
-        name: 'show',
-        args: [
-          {
-            name: 'value',
-            description: 'A JavaScript value to be displayed as a string or DOM element'
-          }, {
-            name: 'container',
-            "default": null,
-            description: 'A DOM container to use for rendering object tree (if necessary).'
-          }
-        ],
-        description: 'In objectviewer.coffee'
-      }, ov.showValue);
-      specials.internals.pkgmgr.addFun("builtin", {
-        name: 'run',
-        args: [
-          {
-            name: 'expression',
-            description: 'A CoffeeScript expression to be evaluated.'
-          }, {
-            name: 'container',
-            "default": false,
-            description: 'Set to true to show only the result of the expression.'
-          }
-        ],
-        description: 'Run a coffeescript expression.'
-      }, specials.internals.ui.run);
-      specials.internals.pkgmgr.addFun("builtin", {
-        name: 'history',
-        description: 'Lists previous expressions'
-      }, function() {
-        var c, h, _fn, _i, _len, _ref4;
-        c = $('<div class="eval_result"></div>');
-        _ref4 = specials.session.history;
-        _fn = function(h) {
-          return c.append($("<span><a style='display:block;' href='#'>" + h.coffee + "</a></span>").find('a').click(function(ev) {
-            specials.internals.ui.captureEvent(ev);
-            return dt.run(h.coffee);
-          }));
-        };
-        for (_i = 0, _len = _ref4.length; _i < _len; _i++) {
-          h = _ref4[_i];
-          _fn(h);
-        }
-        return c;
-      });
-      $(function() {
-        return specials.internals.ui.init();
-      });
-      badCommand = function(name) {
-        return function() {
-          return "No such command: '" + name + "'";
-        };
-      };
-      window[config.global_ref] = dt;
-      if ((config.init != null) && (typeof config.init === "function")) {
-        config.init(dt);
       }
-      return dt;
+    };
+  });
+}).call(this);
+
+(function() {
+  define('shellutils',[], function() {
+    return function(dt) {
+      var pkg;
+      return pkg = {
+        name: 'shellUtils',
+        attr: {
+          description: 'Utilities functions to make DuctTape more shell-like.',
+          author: 'Peter Neumark',
+          url: 'https://github.com/neumark/ducttape',
+          version: '1.0'
+        },
+        value: {
+          last: {
+            attr: {
+              description: 'Displays the last executed command and result.',
+              make_public: true
+            },
+            value: function() {
+              var h;
+              h = (dt('v session')).history;
+              if (h.length > 0) {
+                return h[h.length - 1];
+              } else {
+                return "This is the first command.";
+              }
+            }
+          },
+          clear: {
+            attr: {
+              description: 'Clears prior interactions from the display.',
+              make_public: true
+            },
+            value: function() {
+              $('#interactions').children().remove();
+              return null;
+            }
+          },
+          history: {
+            attr: {
+              description: 'Prints history of formerly executed commands.',
+              make_public: true
+            },
+            value: function() {
+              var c, h, uiLib, _fn, _i, _len, _ref;
+              uiLib = dt('o ui:lib');
+              c = $('<div class="eval_result"></div>');
+              _ref = (dt('v session')).history;
+              _fn = function(h) {
+                return c.append($("<span><a style='display:block;' href='#'>" + h.coffee + "</a></span>").find('a').click(function(ev) {
+                  uiLib.captureEvent(ev);
+                  return uiLib.run(h.coffee);
+                }));
+              };
+              for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+                h = _ref[_i];
+                _fn(h);
+              }
+              return c;
+            }
+          }
+        }
+      };
+    };
+  });
+}).call(this);
+
+(function() {
+  var __slice = Array.prototype.slice;
+  define('help',[], function() {
+    return function(dt) {
+      var pkg;
+      return pkg = {
+        name: 'help',
+        attr: {
+          description: {
+            type: "html",
+            data: "Contains the DuctTape help system. Use this package to add documentation for your own packages.<br />\nThe most important item in this package is the " + ((dt('o ui:lib')).commandLinkStr('help')) + " command."
+          },
+          author: 'Peter Neumark',
+          url: 'https://github.com/neumark/ducttape',
+          version: '1.0'
+        },
+        value: {
+          help: {
+            attr: {
+              description: 'Function implementing the help command.',
+              make_public: true
+            },
+            value: function() {
+              var section;
+              section = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
+              return pkg.content.helpStore.content.main;
+            }
+          },
+          helpStore: {
+            attr: {
+              description: 'Help contents stored in this object. Should be JSON.stringify-able.'
+            },
+            value: {
+              main: "Main help section. To be updated."
+            }
+          }
+        }
+      };
+    };
+  });
+}).call(this);
+
+(function() {
+  define('ducttape',['cmd', 'keybindings', 'ui', 'pkgmgr', 'objectviewer', 'corelib', 'shellutils', 'help'], function(Cmd, KeyBindings, ui, PkgMgr, objectviewer, corelib, shellUtils, help) {
+    return function(config) {
+      var DuctTape, dt, dtobj;
+      DuctTape = (function() {
+        function DuctTape(config) {
+          var _base, _base2, _base3, _ref, _ref2, _ref3, _ref4;
+          this.config = config != null ? config : {};
+                    if ((_ref = this.config) != null) {
+            _ref;
+          } else {
+            this.config = {};
+          };
+                    if ((_ref2 = (_base = this.config).global_ref) != null) {
+            _ref2;
+          } else {
+            _base.global_ref = "\u0111";
+          };
+                    if ((_ref3 = (_base2 = this.config).initial_buffer) != null) {
+            _ref3;
+          } else {
+            _base2.initial_buffer = config.global_ref;
+          };
+                    if ((_ref4 = (_base3 = this.config).showGeneratedJS) != null) {
+            _ref4;
+          } else {
+            _base3.showGeneratedJS = false;
+          };
+          this.internals = {
+            cmd: new (Cmd(this))(),
+            corelib: corelib
+          };
+          this.session = {
+            history: [],
+            keybindings: new KeyBindings()
+          };
+        }
+        return DuctTape;
+      })();
+      dtobj = new DuctTape(config);
+      dt = dtobj.exec = function() {
+        return dtobj.internals.cmd.exec.apply(dtobj.cmd, arguments);
+      };
+      dt.toHTML = function() {
+        return $("<span>TODO: run help function</span>");
+      };
+      dtobj.internals.pkgmgr = new (PkgMgr(dt))();
+      dtobj.internals.pkgmgr.definePackage(objectviewer(dt));
+      dtobj.internals.pkgmgr.definePackage(ui(dt));
+      dtobj.internals.pkgmgr.definePackage(shellUtils(dt));
+      dtobj.internals.pkgmgr.definePackage(help(dt));
+      $(function() {
+        return (dt('o ui:init'))(dtObj.config.init);
+      });
+      return window[config.global_ref] = dt;
     };
   });
 }).call(this);
