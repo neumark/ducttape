@@ -28,9 +28,9 @@
                 description: "Get a DuctTape object from the package manager."
               },
               value: function(fullName) {
-                var obj, pkg, _ref;
-                _ref = fullName.split(':'), pkg = _ref[0], obj = _ref[1];
-                return dtObj.internals.pkgmgr.load(pkg(obj));
+                var tmp;
+                tmp = fullName.split(':');
+                return dtObj.internals.pkgmgr.load(tmp[0], tmp[1]);
               }
             }
           };

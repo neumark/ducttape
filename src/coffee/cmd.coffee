@@ -18,8 +18,8 @@ define [], ->
                         attr:
                             description: "Get a DuctTape object from the package manager."
                         value: (fullName) ->
-                            [pkg, obj] = fullName.split ':'
-                            dtObj.internals.pkgmgr.load pkg obj
+                            tmp = fullName.split ':'
+                            dtObj.internals.pkgmgr.load tmp[0], tmp[1]
             exec: (command, args...) =>
                 if command?
                     if args.length == 0

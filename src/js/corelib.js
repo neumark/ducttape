@@ -1,22 +1,27 @@
 (function() {
   var __slice = Array.prototype.slice;
   define([], function() {
-    var OWM;
+    var VWM;
     return {
-      OWM: OWM = (function() {
-        OWM.prototype.doc = "An OWM has 3 parts:\n- name              string\n- attributes        object (dictionary)\n- object itself     any truthy javascript value";
-        function OWM() {
-          var owm, _ref;
-          owm = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
+      VWM: VWM = (function() {
+        VWM.prototype.doc = "A VWM has 3 parts:\n- name              unique id (within namespace) - string\n- attr              attributes - object (dictionary)\n- value             the actual value - any truthy javascript value";
+        function VWM() {
+          var vwm, _ref;
+          vwm = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
           _ref = (function() {
-            var _ref, _ref2, _ref3, _ref4, _ref5;
-            switch (owm != null ? owm.length : void 0) {
+            var _ref, _ref2, _ref3, _ref4, _ref5, _ref6;
+            switch (vwm != null ? vwm.length : void 0) {
               case 1:
-                return [(_ref = owm[0]) != null ? _ref.name : void 0, (_ref2 = owm[0]) != null ? _ref2.attr : void 0, (_ref3 = owm[0]) != null ? _ref3.value : void 0];
+                if ((((_ref = vwm[0]) != null ? _ref.length : void 0) != null) === 3) {
+                  return vwm[0];
+                } else {
+                  return [(_ref2 = vwm[0]) != null ? _ref2.name : void 0, (_ref3 = vwm[0]) != null ? _ref3.attr : void 0, (_ref4 = vwm[0]) != null ? _ref4.value : void 0];
+                }
+                break;
               case 2:
-                return [owm != null ? owm[0] : void 0, owm != null ? (_ref4 = owm[1]) != null ? _ref4.attr : void 0 : void 0, owm != null ? (_ref5 = owm[1]) != null ? _ref5.value : void 0 : void 0];
+                return [vwm != null ? vwm[0] : void 0, vwm != null ? (_ref5 = vwm[1]) != null ? _ref5.attr : void 0 : void 0, vwm != null ? (_ref6 = vwm[1]) != null ? _ref6.value : void 0 : void 0];
               case 3:
-                return owm;
+                return vwm;
               default:
                 return [];
             }
@@ -25,14 +30,13 @@
             throw new Error("Bad OWM format");
           }
         }
-        OWM.prototype.hasAttributes = function(attrList) {
+        VWM.prototype.hasAttributes = function(attrList) {
           var f, missing;
           missing = (function() {
-            var _i, _len, _ref, _results;
-            _ref = this.attrList;
+            var _i, _len, _results;
             _results = [];
-            for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-              f = _ref[_i];
+            for (_i = 0, _len = attrList.length; _i < _len; _i++) {
+              f = attrList[_i];
               if (!(this.attr[f] != null)) {
                 _results.push(f);
               }
@@ -41,7 +45,7 @@
           }).call(this);
           return missing.length === 0;
         };
-        return OWM;
+        return VWM;
       })(),
       compile: function(src) {
         if (src.length === 0) {

@@ -11,21 +11,21 @@ define [], ->
                 last:
                     attr:
                         description: 'Displays the last executed command and result.'
-                        make_public: true
+                        makePublic: true
                     value: ->
                         h = (dt 'v session').history
                         if h.length > 0 then h[h.length - 1] else "This is the first command."
                 clear:
                     attr:
                         description: 'Clears prior interactions from the display.'
-                        make_public: true
+                        makePublic: true
                     value: ->
                         $('#interactions').children().remove()
                         null
                 history:
                     attr:
                         description: 'Prints history of formerly executed commands.'
-                        make_public: true
+                        makePublic: true
                     value: ->
                         uiLib = (dt 'o ui:lib')
                         c = $('<div class="eval_result"></div>')

@@ -8,7 +8,7 @@
         attr: {
           description: {
             type: "html",
-            data: "Contains the DuctTape help system. Use this package to add documentation for your own packages.<br />\nThe most important item in this package is the " + ((dt('o ui:lib')).commandLinkStr('help')) + " command."
+            data: "Contains the DuctTape help system. Use this package to add documentation for your own packages.<br />\nThe most important item in this package is the help command."
           },
           author: 'Peter Neumark',
           url: 'https://github.com/neumark/ducttape',
@@ -18,12 +18,12 @@
           help: {
             attr: {
               description: 'Function implementing the help command.',
-              make_public: true
+              makePublic: true
             },
             value: function() {
               var section;
               section = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
-              return pkg.content.helpStore.content.main;
+              return pkg.value.helpStore.value.main;
             }
           },
           helpStore: {

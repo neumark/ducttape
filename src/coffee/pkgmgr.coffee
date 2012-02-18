@@ -1,40 +1,42 @@
 ###
-    PkgMgr is organized around the concept of Objects With Metadata (OWM).
+    PkgMgr is organized around the concept of Values With Metadata (VWM).
     See corelib for details.
 
-    Packages are OWM's, as are the objects contained within.
+    Packages are VWM's, as are the objects contained within.
     Deeper in the object hierarchy there can be "plain old objects" as well.
 ###
 define [], ->
     (dt) ->
-        OWM = (dt 'v internals').corelib.OWM
-        class Pkg extends OWM
-            constructor: (@pkgdata) ->
-                if not @pkgdata.hasAttributes ["author", "description", "url"]
+        VWM = (dt 'v internals').corelib.VWM
+
+        class Pkg extends VWM
+            constructor: (pkgSpec) ->
+                super pkgSpec
+                if not @hasAttributes ["author", "description", "url"]
                     throw new Error "InvalidPackageSpecification"
-                for own key, obj in @pkgdata.value
-                    @save new OWM key, obj
-            save: (owm) ->
-                if not owm.hasAttributes ["description"]
+                for own key, obj of @value
+                    @save new VWM key, obj
+            save: (vwm) ->
+                if not vwm.hasAttributes ["description"]
                     throw new Error "InvalidObjectSpecification"
-                @pkgdata.content[owm.name] = owm
-                if owm.attr.export_fun is on 
-                    dt[owm.name] = @pkgdata[owm.name].value
+                @value[vwm.name] = vwm
+                if vwm.attr.makePublic is on 
+                    dt[vwm.name] = @value[vwm.name].value
                     # add an identifier to the obj so help() and other conveniences work:
-                    dt[owm.name]['\u0111id'] = @pkgdata.name + ':' + owm.name
+                    dt[vwm.name]['\u0111id'] = @name + ':' + vwm.name
             load: (name) ->
-                @pkgdata[name]
+                @value[name]
 
         class PkgMgr
             constructor: (@store = {}) ->
             definePackage: (pkgSpec) ->
-                pkg = new OWM pkgSpec
+                pkg = new Pkg pkgSpec
                 if @store[pkg.name]? then throw new Error "PkgExists"
                 @store[pkg.name] = pkg
                 true
             save: (pkg, args...) =>
                 @pkgDefinedGuard pkg, ->
-                    @store[pkg].save new OWM args
+                    @store[pkg].save new VWM args
                     true
             load: (pkg, name) =>
                 @pkgDefinedGuard pkg, ->

@@ -7,7 +7,7 @@ define [], ->
                     type: "html"
                     data: """
                           Contains the DuctTape help system. Use this package to add documentation for your own packages.<br />
-                          The most important item in this package is the #{ (dt 'o ui:lib').commandLinkStr 'help' } command.
+                          The most important item in this package is the help command.
                           """
                 author: 'Peter Neumark'
                 url: 'https://github.com/neumark/ducttape'
@@ -16,10 +16,10 @@ define [], ->
                 help:
                     attr:
                         description: 'Function implementing the help command.'
-                        make_public: true
+                        makePublic: true
                     value: (section...) ->
                         #if section.length == 0 then section.push('main')
-                        pkg.content.helpStore.content.main
+                        pkg.value.helpStore.value.main
                 helpStore:
                     attr:
                         description: 'Help contents stored in this object. Should be JSON.stringify-able.'

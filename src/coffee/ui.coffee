@@ -112,7 +112,6 @@ define [], ->
                         if @historyBrowser? and @editor.getCursorPosition().row == (@editor.getSession().getValue().split('\n').length - 1)
                             if not @historyBrowser.forward() 
                                 @historyBrowser = null
-                                console.log "historyBrowser dtor"
                             true
                         else
                             false
@@ -136,7 +135,7 @@ define [], ->
                 @timeoutHandle = null
                 @coffee_source = @editor.getSession().getValue().trim()
                 try 
-                    @js_source = (dt 'internals').pkgmgr.apply('builtin', 'compile', null, @coffee_source)?.trim()
+                    @js_source = ((dt 'v internals').corelib.compile @coffee_source)?.trim()
                     $("#ok").show()
                     $("#parseerror").hide()
                     if config.showGeneratedJS then @updateGeneratedJS()
@@ -175,11 +174,11 @@ define [], ->
                 finally
                     rendered = null
                     try
-                        rendered = if exception? then @formatEx exception else (dt 'o objectViewer:show') result
+                        rendered = if exception? then @formatEx exception else (dt 'o objectViewer:show').value result
                     catch renderErr
                         exception = renderErr
                         rendered = $('<div><h3>Error displaying value</h3></div>').append @formatEx exception
-                    (dt 'session').history.push
+                    (dt 'v session').history.push
                         js: js_stmt
                         coffee: coffee_stmt
                         value: exception ? result

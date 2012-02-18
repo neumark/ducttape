@@ -1,9 +1,9 @@
 (function() {
   /*
-      PkgMgr is organized around the concept of Objects With Metadata (OWM).
+      PkgMgr is organized around the concept of Values With Metadata (VWM).
       See corelib for details.
   
-      Packages are OWM's, as are the objects contained within.
+      Packages are VWM's, as are the objects contained within.
       Deeper in the object hierarchy there can be "plain old objects" as well.
   */  var __hasProp = Object.prototype.hasOwnProperty, __extends = function(child, parent) {
     for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; }
@@ -15,34 +15,35 @@
   }, __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; }, __slice = Array.prototype.slice;
   define([], function() {
     return function(dt) {
-      var OWM, Pkg, PkgMgr;
-      OWM = (dt('v internals')).corelib.OWM;
+      var Pkg, PkgMgr, VWM;
+      VWM = (dt('v internals')).corelib.VWM;
       Pkg = (function() {
-        __extends(Pkg, OWM);
-        function Pkg(pkgdata) {
-          var key, obj, _len, _ref;
-          this.pkgdata = pkgdata;
-          if (!this.pkgdata.hasAttributes(["author", "description", "url"])) {
+        __extends(Pkg, VWM);
+        function Pkg(pkgSpec) {
+          var key, obj, _ref;
+          Pkg.__super__.constructor.call(this, pkgSpec);
+          if (!this.hasAttributes(["author", "description", "url"])) {
             throw new Error("InvalidPackageSpecification");
           }
-          _ref = this.pkgdata.value;
-          for (obj = 0, _len = _ref.length; obj < _len; obj++) {
-            key = _ref[obj];
-            this.save(new OWM(key, obj));
+          _ref = this.value;
+          for (key in _ref) {
+            if (!__hasProp.call(_ref, key)) continue;
+            obj = _ref[key];
+            this.save(new VWM(key, obj));
           }
         }
-        Pkg.prototype.save = function(owm) {
-          if (!owm.hasAttributes(["description"])) {
+        Pkg.prototype.save = function(vwm) {
+          if (!vwm.hasAttributes(["description"])) {
             throw new Error("InvalidObjectSpecification");
           }
-          this.pkgdata.content[owm.name] = owm;
-          if (owm.attr.export_fun === true) {
-            dt[owm.name] = this.pkgdata[owm.name].value;
-            return dt[owm.name]['\u0111id'] = this.pkgdata.name + ':' + owm.name;
+          this.value[vwm.name] = vwm;
+          if (vwm.attr.makePublic === true) {
+            dt[vwm.name] = this.value[vwm.name].value;
+            return dt[vwm.name]['\u0111id'] = this.name + ':' + vwm.name;
           }
         };
         Pkg.prototype.load = function(name) {
-          return this.pkgdata[name];
+          return this.value[name];
         };
         return Pkg;
       })();
@@ -54,7 +55,7 @@
         }
         PkgMgr.prototype.definePackage = function(pkgSpec) {
           var pkg;
-          pkg = new OWM(pkgSpec);
+          pkg = new Pkg(pkgSpec);
           if (this.store[pkg.name] != null) {
             throw new Error("PkgExists");
           }
@@ -65,7 +66,7 @@
           var args, pkg;
           pkg = arguments[0], args = 2 <= arguments.length ? __slice.call(arguments, 1) : [];
           return this.pkgDefinedGuard(pkg, function() {
-            this.store[pkg].save(new OWM(args));
+            this.store[pkg].save(new VWM(args));
             return true;
           });
         };

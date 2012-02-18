@@ -1,6 +1,7 @@
 # Use wildcards as well
 *~
 *.swp
+*.swo
 build/coffee
 build/build.txt
 build/js/*

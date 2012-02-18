@@ -147,7 +147,6 @@
               if ((this.historyBrowser != null) && this.editor.getCursorPosition().row === (this.editor.getSession().getValue().split('\n').length - 1)) {
                 if (!this.historyBrowser.forward()) {
                   this.historyBrowser = null;
-                  console.log("historyBrowser dtor");
                 }
                 return true;
               } else {
@@ -180,7 +179,7 @@
           this.timeoutHandle = null;
           this.coffee_source = this.editor.getSession().getValue().trim();
           try {
-            this.js_source = (_ref = (dt('internals')).pkgmgr.apply('builtin', 'compile', null, this.coffee_source)) != null ? _ref.trim() : void 0;
+            this.js_source = (_ref = (dt('v internals')).corelib.compile(this.coffee_source)) != null ? _ref.trim() : void 0;
             $("#ok").show();
             $("#parseerror").hide();
             if (config.showGeneratedJS) {
@@ -240,12 +239,12 @@
           } finally {
             rendered = null;
             try {
-              rendered = exception != null ? this.formatEx(exception) : (dt('o objectViewer:show'))(result);
+              rendered = exception != null ? this.formatEx(exception) : (dt('o objectViewer:show')).value(result);
             } catch (renderErr) {
               exception = renderErr;
               rendered = $('<div><h3>Error displaying value</h3></div>').append(this.formatEx(exception));
             }
-            (dt('session')).history.push({
+            (dt('v session')).history.push({
               js: js_stmt,
               coffee: coffee_stmt,
               value: exception != null ? exception : result

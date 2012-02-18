@@ -14,7 +14,7 @@
           last: {
             attr: {
               description: 'Displays the last executed command and result.',
-              make_public: true
+              makePublic: true
             },
             value: function() {
               var h;
@@ -29,7 +29,7 @@
           clear: {
             attr: {
               description: 'Clears prior interactions from the display.',
-              make_public: true
+              makePublic: true
             },
             value: function() {
               $('#interactions').children().remove();
@@ -39,7 +39,7 @@
           history: {
             attr: {
               description: 'Prints history of formerly executed commands.',
-              make_public: true
+              makePublic: true
             },
             value: function() {
               var c, h, uiLib, _fn, _i, _len, _ref;

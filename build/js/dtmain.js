@@ -29,9 +29,9 @@
                 description: "Get a DuctTape object from the package manager."
               },
               value: function(fullName) {
-                var obj, pkg, _ref;
-                _ref = fullName.split(':'), pkg = _ref[0], obj = _ref[1];
-                return dtObj.internals.pkgmgr.load(pkg(obj));
+                var tmp;
+                tmp = fullName.split(':');
+                return dtObj.internals.pkgmgr.load(tmp[0], tmp[1]);
               }
             }
           };
@@ -259,7 +259,6 @@
               if ((this.historyBrowser != null) && this.editor.getCursorPosition().row === (this.editor.getSession().getValue().split('\n').length - 1)) {
                 if (!this.historyBrowser.forward()) {
                   this.historyBrowser = null;
-                  console.log("historyBrowser dtor");
                 }
                 return true;
               } else {
@@ -292,7 +291,7 @@
           this.timeoutHandle = null;
           this.coffee_source = this.editor.getSession().getValue().trim();
           try {
-            this.js_source = (_ref = (dt('internals')).pkgmgr.apply('builtin', 'compile', null, this.coffee_source)) != null ? _ref.trim() : void 0;
+            this.js_source = (_ref = (dt('v internals')).corelib.compile(this.coffee_source)) != null ? _ref.trim() : void 0;
             $("#ok").show();
             $("#parseerror").hide();
             if (config.showGeneratedJS) {
@@ -352,12 +351,12 @@
           } finally {
             rendered = null;
             try {
-              rendered = exception != null ? this.formatEx(exception) : (dt('o objectViewer:show'))(result);
+              rendered = exception != null ? this.formatEx(exception) : (dt('o objectViewer:show')).value(result);
             } catch (renderErr) {
               exception = renderErr;
               rendered = $('<div><h3>Error displaying value</h3></div>').append(this.formatEx(exception));
             }
-            (dt('session')).history.push({
+            (dt('v session')).history.push({
               js: js_stmt,
               coffee: coffee_stmt,
               value: exception != null ? exception : result
@@ -440,10 +439,10 @@
 
 (function() {
   /*
-      PkgMgr is organized around the concept of Objects With Metadata (OWM).
+      PkgMgr is organized around the concept of Values With Metadata (VWM).
       See corelib for details.
   
-      Packages are OWM's, as are the objects contained within.
+      Packages are VWM's, as are the objects contained within.
       Deeper in the object hierarchy there can be "plain old objects" as well.
   */  var __hasProp = Object.prototype.hasOwnProperty, __extends = function(child, parent) {
     for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; }
@@ -455,34 +454,35 @@
   }, __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; }, __slice = Array.prototype.slice;
   define('pkgmgr',[], function() {
     return function(dt) {
-      var OWM, Pkg, PkgMgr;
-      OWM = (dt('v internals')).corelib.OWM;
+      var Pkg, PkgMgr, VWM;
+      VWM = (dt('v internals')).corelib.VWM;
       Pkg = (function() {
-        __extends(Pkg, OWM);
-        function Pkg(pkgdata) {
-          var key, obj, _len, _ref;
-          this.pkgdata = pkgdata;
-          if (!this.pkgdata.hasAttributes(["author", "description", "url"])) {
+        __extends(Pkg, VWM);
+        function Pkg(pkgSpec) {
+          var key, obj, _ref;
+          Pkg.__super__.constructor.call(this, pkgSpec);
+          if (!this.hasAttributes(["author", "description", "url"])) {
             throw new Error("InvalidPackageSpecification");
           }
-          _ref = this.pkgdata.value;
-          for (obj = 0, _len = _ref.length; obj < _len; obj++) {
-            key = _ref[obj];
-            this.save(new OWM(key, obj));
+          _ref = this.value;
+          for (key in _ref) {
+            if (!__hasProp.call(_ref, key)) continue;
+            obj = _ref[key];
+            this.save(new VWM(key, obj));
           }
         }
-        Pkg.prototype.save = function(owm) {
-          if (!owm.hasAttributes(["description"])) {
+        Pkg.prototype.save = function(vwm) {
+          if (!vwm.hasAttributes(["description"])) {
             throw new Error("InvalidObjectSpecification");
           }
-          this.pkgdata.content[owm.name] = owm;
-          if (owm.attr.export_fun === true) {
-            dt[owm.name] = this.pkgdata[owm.name].value;
-            return dt[owm.name]['\u0111id'] = this.pkgdata.name + ':' + owm.name;
+          this.value[vwm.name] = vwm;
+          if (vwm.attr.makePublic === true) {
+            dt[vwm.name] = this.value[vwm.name].value;
+            return dt[vwm.name]['\u0111id'] = this.name + ':' + vwm.name;
           }
         };
         Pkg.prototype.load = function(name) {
-          return this.pkgdata[name];
+          return this.value[name];
         };
         return Pkg;
       })();
@@ -494,7 +494,7 @@
         }
         PkgMgr.prototype.definePackage = function(pkgSpec) {
           var pkg;
-          pkg = new OWM(pkgSpec);
+          pkg = new Pkg(pkgSpec);
           if (this.store[pkg.name] != null) {
             throw new Error("PkgExists");
           }
@@ -505,7 +505,7 @@
           var args, pkg;
           pkg = arguments[0], args = 2 <= arguments.length ? __slice.call(arguments, 1) : [];
           return this.pkgDefinedGuard(pkg, function() {
-            this.store[pkg].save(new OWM(args));
+            this.store[pkg].save(new VWM(args));
             return true;
           });
         };
@@ -741,14 +741,14 @@
           ov: {
             attr: {
               description: 'Object Viewer',
-              make_public: true
+              makePublic: true
             },
             value: ov.objectViewer
           },
           show: {
             attr: {
               description: 'Show a JavaScript value, regardless of type.',
-              make_public: true
+              makePublic: true
             },
             value: ov.showValue
           }
@@ -761,22 +761,27 @@
 (function() {
   var __slice = Array.prototype.slice;
   define('corelib',[], function() {
-    var OWM;
+    var VWM;
     return {
-      OWM: OWM = (function() {
-        OWM.prototype.doc = "An OWM has 3 parts:\n- name              string\n- attributes        object (dictionary)\n- object itself     any truthy javascript value";
-        function OWM() {
-          var owm, _ref;
-          owm = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
+      VWM: VWM = (function() {
+        VWM.prototype.doc = "A VWM has 3 parts:\n- name              unique id (within namespace) - string\n- attr              attributes - object (dictionary)\n- value             the actual value - any truthy javascript value";
+        function VWM() {
+          var vwm, _ref;
+          vwm = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
           _ref = (function() {
-            var _ref, _ref2, _ref3, _ref4, _ref5;
-            switch (owm != null ? owm.length : void 0) {
+            var _ref, _ref2, _ref3, _ref4, _ref5, _ref6;
+            switch (vwm != null ? vwm.length : void 0) {
               case 1:
-                return [(_ref = owm[0]) != null ? _ref.name : void 0, (_ref2 = owm[0]) != null ? _ref2.attr : void 0, (_ref3 = owm[0]) != null ? _ref3.value : void 0];
+                if ((((_ref = vwm[0]) != null ? _ref.length : void 0) != null) === 3) {
+                  return vwm[0];
+                } else {
+                  return [(_ref2 = vwm[0]) != null ? _ref2.name : void 0, (_ref3 = vwm[0]) != null ? _ref3.attr : void 0, (_ref4 = vwm[0]) != null ? _ref4.value : void 0];
+                }
+                break;
               case 2:
-                return [owm != null ? owm[0] : void 0, owm != null ? (_ref4 = owm[1]) != null ? _ref4.attr : void 0 : void 0, owm != null ? (_ref5 = owm[1]) != null ? _ref5.value : void 0 : void 0];
+                return [vwm != null ? vwm[0] : void 0, vwm != null ? (_ref5 = vwm[1]) != null ? _ref5.attr : void 0 : void 0, vwm != null ? (_ref6 = vwm[1]) != null ? _ref6.value : void 0 : void 0];
               case 3:
-                return owm;
+                return vwm;
               default:
                 return [];
             }
@@ -785,14 +790,13 @@
             throw new Error("Bad OWM format");
           }
         }
-        OWM.prototype.hasAttributes = function(attrList) {
+        VWM.prototype.hasAttributes = function(attrList) {
           var f, missing;
           missing = (function() {
-            var _i, _len, _ref, _results;
-            _ref = this.attrList;
+            var _i, _len, _results;
             _results = [];
-            for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-              f = _ref[_i];
+            for (_i = 0, _len = attrList.length; _i < _len; _i++) {
+              f = attrList[_i];
               if (!(this.attr[f] != null)) {
                 _results.push(f);
               }
@@ -801,7 +805,7 @@
           }).call(this);
           return missing.length === 0;
         };
-        return OWM;
+        return VWM;
       })(),
       compile: function(src) {
         if (src.length === 0) {
@@ -832,7 +836,7 @@
           last: {
             attr: {
               description: 'Displays the last executed command and result.',
-              make_public: true
+              makePublic: true
             },
             value: function() {
               var h;
@@ -847,7 +851,7 @@
           clear: {
             attr: {
               description: 'Clears prior interactions from the display.',
-              make_public: true
+              makePublic: true
             },
             value: function() {
               $('#interactions').children().remove();
@@ -857,7 +861,7 @@
           history: {
             attr: {
               description: 'Prints history of formerly executed commands.',
-              make_public: true
+              makePublic: true
             },
             value: function() {
               var c, h, uiLib, _fn, _i, _len, _ref;
@@ -893,7 +897,7 @@
         attr: {
           description: {
             type: "html",
-            data: "Contains the DuctTape help system. Use this package to add documentation for your own packages.<br />\nThe most important item in this package is the " + ((dt('o ui:lib')).commandLinkStr('help')) + " command."
+            data: "Contains the DuctTape help system. Use this package to add documentation for your own packages.<br />\nThe most important item in this package is the help command."
           },
           author: 'Peter Neumark',
           url: 'https://github.com/neumark/ducttape',
@@ -903,12 +907,12 @@
           help: {
             attr: {
               description: 'Function implementing the help command.',
-              make_public: true
+              makePublic: true
             },
             value: function() {
               var section;
               section = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
-              return pkg.content.helpStore.content.main;
+              return pkg.value.helpStore.value.main;
             }
           },
           helpStore: {
@@ -977,7 +981,7 @@
       dtobj.internals.pkgmgr.definePackage(shellUtils(dt));
       dtobj.internals.pkgmgr.definePackage(help(dt));
       $(function() {
-        return (dt('o ui:init'))(dtObj.config.init);
+        return (dt('o ui:init')).value(dtobj.config.init);
       });
       return window[config.global_ref] = dt;
     };

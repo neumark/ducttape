@@ -213,14 +213,14 @@
           ov: {
             attr: {
               description: 'Object Viewer',
-              make_public: true
+              makePublic: true
             },
             value: ov.objectViewer
           },
           show: {
             attr: {
               description: 'Show a JavaScript value, regardless of type.',
-              make_public: true
+              makePublic: true
             },
             value: ov.showValue
           }

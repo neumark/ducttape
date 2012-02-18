@@ -32,7 +32,7 @@ define ['cmd', 'keybindings', 'ui', 'pkgmgr', 'objectviewer', 'corelib', 'shellu
 
         # initialize UI when DOM is ready:
         $ -> 
-            (dt 'o ui:init') dtObj.config.init
+            (dt 'o ui:init').value dtobj.config.init
 
         # Registers global reference
         window[config.global_ref] = dt

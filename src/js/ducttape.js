@@ -50,7 +50,7 @@
       dtobj.internals.pkgmgr.definePackage(shellUtils(dt));
       dtobj.internals.pkgmgr.definePackage(help(dt));
       $(function() {
-        return (dt('o ui:init'))(dtObj.config.init);
+        return (dt('o ui:init')).value(dtobj.config.init);
       });
       return window[config.global_ref] = dt;
     };
