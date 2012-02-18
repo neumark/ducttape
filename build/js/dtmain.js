@@ -787,7 +787,10 @@
             }
           })(), this.name = _ref[0], this.attr = _ref[1], this.value = _ref[2];
           if ((!(this.name != null)) || (!(this.attr != null)) || (!this.value)) {
-            throw new Error("Bad OWM format");
+            throw new Error("Bad VWM format");
+          }
+          if ((typeof this.attr) !== "object") {
+            throw new Error("VWM attr field must be an object");
           }
         }
         VWM.prototype.hasAttributes = function(attrList) {
@@ -858,6 +861,15 @@
               return null;
             }
           },
+          symbol: {
+            attr: {
+              description: 'Returns global name of DuctTape function.',
+              makePublic: true
+            },
+            value: function() {
+              return (dt('v config')).globalRef + '';
+            }
+          },
           history: {
             attr: {
               description: 'Prints history of formerly executed commands.',
@@ -865,7 +877,7 @@
             },
             value: function() {
               var c, h, uiLib, _fn, _i, _len, _ref;
-              uiLib = dt('o ui:lib');
+              uiLib = (dt('o ui:lib')).value;
               c = $('<div class="eval_result"></div>');
               _ref = (dt('v session')).history;
               _fn = function(h) {
@@ -942,15 +954,15 @@
           } else {
             this.config = {};
           };
-                    if ((_ref2 = (_base = this.config).global_ref) != null) {
+                    if ((_ref2 = (_base = this.config).globalRef) != null) {
             _ref2;
           } else {
-            _base.global_ref = "\u0111";
+            _base.globalRef = "\u0111";
           };
                     if ((_ref3 = (_base2 = this.config).initial_buffer) != null) {
             _ref3;
           } else {
-            _base2.initial_buffer = config.global_ref;
+            _base2.initial_buffer = config.globalRef;
           };
                     if ((_ref4 = (_base3 = this.config).showGeneratedJS) != null) {
             _ref4;
@@ -980,10 +992,11 @@
       dtobj.internals.pkgmgr.definePackage(ui(dt));
       dtobj.internals.pkgmgr.definePackage(shellUtils(dt));
       dtobj.internals.pkgmgr.definePackage(help(dt));
+      window[config.globalRef] = dt;
       $(function() {
         return (dt('o ui:init')).value(dtobj.config.init);
       });
-      return window[config.global_ref] = dt;
+      return dt;
     };
   });
 }).call(this);

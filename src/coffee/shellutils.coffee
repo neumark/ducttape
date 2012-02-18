@@ -22,12 +22,17 @@ define [], ->
                     value: ->
                         $('#interactions').children().remove()
                         null
+                symbol:
+                    attr:
+                        description: 'Returns global name of DuctTape function.'
+                        makePublic: true
+                    value: -> (dt 'v config').globalRef + ''
                 history:
                     attr:
                         description: 'Prints history of formerly executed commands.'
                         makePublic: true
                     value: ->
-                        uiLib = (dt 'o ui:lib')
+                        uiLib = (dt 'o ui:lib').value
                         c = $('<div class="eval_result"></div>')
                         for h in (dt 'v session').history
                             do (h) ->

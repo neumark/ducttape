@@ -36,6 +36,15 @@
               return null;
             }
           },
+          symbol: {
+            attr: {
+              description: 'Returns global name of DuctTape function.',
+              makePublic: true
+            },
+            value: function() {
+              return (dt('v config')).globalRef + '';
+            }
+          },
           history: {
             attr: {
               description: 'Prints history of formerly executed commands.',
@@ -43,7 +52,7 @@
             },
             value: function() {
               var c, h, uiLib, _fn, _i, _len, _ref;
-              uiLib = dt('o ui:lib');
+              uiLib = (dt('o ui:lib')).value;
               c = $('<div class="eval_result"></div>');
               _ref = (dt('v session')).history;
               _fn = function(h) {

@@ -4,8 +4,8 @@ define ['cmd', 'keybindings', 'ui', 'pkgmgr', 'objectviewer', 'corelib', 'shellu
             constructor: (@config = {}) ->
                 # sanitize configuration:
                 @config ?= {}
-                @config.global_ref ?= "\u0111"
-                @config.initial_buffer ?= config.global_ref
+                @config.globalRef ?= "\u0111"
+                @config.initial_buffer ?= config.globalRef
                 @config.showGeneratedJS ?= false
                 # fields:
                 @internals =
@@ -30,9 +30,12 @@ define ['cmd', 'keybindings', 'ui', 'pkgmgr', 'objectviewer', 'corelib', 'shellu
         dtobj.internals.pkgmgr.definePackage(shellUtils(dt))
         dtobj.internals.pkgmgr.definePackage(help(dt))
 
+        # Registers global reference
+        window[config.globalRef] = dt
+
         # initialize UI when DOM is ready:
         $ -> 
             (dt 'o ui:init').value dtobj.config.init
+        
+        dt
 
-        # Registers global reference
-        window[config.global_ref] = dt

@@ -17,7 +17,8 @@ define [], ->
                     when 2 then [vwm?[0], vwm?[1]?.attr, vwm?[1]?.value]
                     when 3 then vwm
                     else []
-                if (not @name?) or (not @attr?) or (not @value) then throw new Error "Bad OWM format"
+                if (not @name?) or (not @attr?) or (not @value) then throw new Error "Bad VWM format"
+                if (typeof @attr) != "object" then throw new Error "VWM attr field must be an object"
             hasAttributes: (attrList) ->
                 missing = (f for f in attrList when (not @attr[f]?))
                 missing.length == 0

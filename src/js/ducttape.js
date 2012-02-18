@@ -11,15 +11,15 @@
           } else {
             this.config = {};
           };
-                    if ((_ref2 = (_base = this.config).global_ref) != null) {
+                    if ((_ref2 = (_base = this.config).globalRef) != null) {
             _ref2;
           } else {
-            _base.global_ref = "\u0111";
+            _base.globalRef = "\u0111";
           };
                     if ((_ref3 = (_base2 = this.config).initial_buffer) != null) {
             _ref3;
           } else {
-            _base2.initial_buffer = config.global_ref;
+            _base2.initial_buffer = config.globalRef;
           };
                     if ((_ref4 = (_base3 = this.config).showGeneratedJS) != null) {
             _ref4;
@@ -49,10 +49,11 @@
       dtobj.internals.pkgmgr.definePackage(ui(dt));
       dtobj.internals.pkgmgr.definePackage(shellUtils(dt));
       dtobj.internals.pkgmgr.definePackage(help(dt));
+      window[config.globalRef] = dt;
       $(function() {
         return (dt('o ui:init')).value(dtobj.config.init);
       });
-      return window[config.global_ref] = dt;
+      return dt;
     };
   });
 }).call(this);

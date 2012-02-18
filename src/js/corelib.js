@@ -27,7 +27,10 @@
             }
           })(), this.name = _ref[0], this.attr = _ref[1], this.value = _ref[2];
           if ((!(this.name != null)) || (!(this.attr != null)) || (!this.value)) {
-            throw new Error("Bad OWM format");
+            throw new Error("Bad VWM format");
+          }
+          if ((typeof this.attr) !== "object") {
+            throw new Error("VWM attr field must be an object");
           }
         }
         VWM.prototype.hasAttributes = function(attrList) {

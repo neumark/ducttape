@@ -12,7 +12,7 @@
     <script type="text/javascript">
         window.ducttape_config = {
             init: function(dt) {
-                dt('o help:help').value('intro');
+                dt('o ui:lib').value.run(dt.symbol() +'.help "intro"');
             }
         };
     </script>
