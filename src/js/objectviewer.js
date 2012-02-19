@@ -14,8 +14,14 @@
           return jQuery('<div />').text(str).html();
         },
         showValue: function(val, container) {
-          container = container != null ? container : $("<div class=\"eval_result\"></div>");
-          if (((val != null ? val.jquery : void 0) != null) || (val instanceof HTMLElement)) {
+                    if (container != null) {
+            container;
+          } else {
+            container = $("<div class=\"eval_result\"></div>");
+          };
+          if (((val != null ? val.toHTML : void 0) != null) && (typeof val.toHTML === "function")) {
+            container.append(val.toHTML());
+          } else if (((val != null ? val.jquery : void 0) != null) || (val instanceof HTMLElement)) {
             container.append(val);
           } else {
             try {
@@ -189,6 +195,9 @@
             },
             core: {
               html_titles: true
+            },
+            themes: {
+              icons: false
             },
             plugins: ["themes", "json_data", "crrm"]
           });

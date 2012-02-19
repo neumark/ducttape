@@ -6,10 +6,10 @@ define [], ->
             htmlEncode: (str) -> jQuery('<div />').text(str).html()
             showValue: (val, container) ->
                 container ?= $("<div class=\"eval_result\"></div>")
-                if val?.jquery? or (val instanceof HTMLElement)
-                    container.append(val)
-                else if val?.toHTML? and (typeof val.toHTML == "function")
+                if val?.toHTML? and (typeof val.toHTML == "function")
                     container.append val.toHTML()
+                else if val?.jquery? or (val instanceof HTMLElement)
+                    container.append(val)
                 else
                     try
                         container.text ov.stringValue val 
@@ -99,6 +99,8 @@ define [], ->
                             cb nodedata
                     core:
                         html_titles: true
+                    themes:
+                        icons: false
                     plugins : [ "themes", "json_data", "crrm" ]
                 object_viewer.on 'click', 'a.objectViewer_item', (ev) -> 
                     kl = mk_keylist $(ev.currentTarget)
