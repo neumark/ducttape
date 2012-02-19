@@ -5,9 +5,11 @@ define [], ->
         ov = 
             htmlEncode: (str) -> jQuery('<div />').text(str).html()
             showValue: (val, container) ->
-                container = container ? $("<div class=\"eval_result\"></div>")
+                container ?= $("<div class=\"eval_result\"></div>")
                 if val?.jquery? or (val instanceof HTMLElement)
                     container.append(val)
+                else if val?.toHTML? and (typeof val.toHTML == "function")
+                    container.append val.toHTML()
                 else
                     try
                         container.text ov.stringValue val 
