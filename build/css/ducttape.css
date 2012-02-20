@@ -1,3 +1,5 @@
+
+    
     body {
         padding-top: 60px;
     }
@@ -75,7 +77,4 @@
     span.objectViewer_value {
         color: #888;
         font-style: italic;
-    }
-    ins.jstree-icon {
-        background-image: none;
     }

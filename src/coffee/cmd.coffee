@@ -1,3 +1,22 @@
+###
+   Copyright 2012 Peter Neumark
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+   cmd.coffee - The DuctTape command interpreter.
+
+###
+
 define [], ->
     (dtObj) ->
 
@@ -21,7 +40,7 @@ define [], ->
                             tmp = fullName.split ':'
                             dtObj.internals.pkgmgr.load tmp[0], tmp[1]
             exec: (command, args...) =>
-                if command?
+                if command? and ("string" == typeof(command))
                     if args.length == 0
                         # In this case, interpret the command variable as also containing a list of args
                         # TODO: perhaps make this a bit more sophisticated:
@@ -31,5 +50,5 @@ define [], ->
                     fn = @cmdStore[command]?.value
                     (fn ? badCommand(command)).apply @, args
                 else
-                    "DuctTape pre 0.001; Welcome!\n(TODO: redirect to help.)"
+                    ret = "Sorry, can't help you with that! No action registered for value '#{ command }'!"
 

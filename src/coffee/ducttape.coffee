@@ -1,3 +1,22 @@
+###
+   Copyright 2012 Peter Neumark
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+   ducttape.coffee - main source file, defines the ducttape function.
+
+###
+
 define ['cmd', 'keybindings', 'ui', 'pkgmgr', 'objectviewer', 'corelib', 'shellutils', 'help'], (Cmd, KeyBindings, ui, PkgMgr, objectviewer, corelib, shellUtils, help) ->
     (config) ->
         class DuctTape
@@ -5,7 +24,7 @@ define ['cmd', 'keybindings', 'ui', 'pkgmgr', 'objectviewer', 'corelib', 'shellu
                 # sanitize configuration:
                 @config ?= {}
                 @config.globalRef ?= "\u0111"
-                @config.initial_buffer ?= config.globalRef
+                @config.initial_buffer ?= ""
                 @config.showGeneratedJS ?= false
                 # fields:
                 @internals =
@@ -20,7 +39,6 @@ define ['cmd', 'keybindings', 'ui', 'pkgmgr', 'objectviewer', 'corelib', 'shellu
 
         # main DuctTape function
         dt = dtobj.exec = -> dtobj.internals.cmd.exec.apply dtobj.cmd, arguments
-        dt.toHTML = -> $ "<span>TODO: run help function</span>"
 
         dtobj.internals.pkgmgr = new (PkgMgr(dt))()
 
@@ -29,6 +47,8 @@ define ['cmd', 'keybindings', 'ui', 'pkgmgr', 'objectviewer', 'corelib', 'shellu
         dtobj.internals.pkgmgr.definePackage(ui(dt))
         dtobj.internals.pkgmgr.definePackage(shellUtils(dt))
         dtobj.internals.pkgmgr.definePackage(help(dt))
+
+        dt.toHTML = -> (dt 'o help:help').value 'intro'
 
         # Registers global reference
         window[config.globalRef] = dt

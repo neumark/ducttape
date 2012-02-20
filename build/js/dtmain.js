@@ -1,6 +1,23 @@
 
 (function() {
-  var __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; }, __slice = Array.prototype.slice;
+  /*
+     Copyright 2012 Peter Neumark
+  
+     Licensed under the Apache License, Version 2.0 (the "License");
+     you may not use this file except in compliance with the License.
+     You may obtain a copy of the License at
+  
+         http://www.apache.org/licenses/LICENSE-2.0
+  
+     Unless required by applicable law or agreed to in writing, software
+     distributed under the License is distributed on an "AS IS" BASIS,
+     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+     See the License for the specific language governing permissions and
+     limitations under the License.
+  
+     cmd.coffee - The DuctTape command interpreter.
+  
+  */  var __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; }, __slice = Array.prototype.slice;
   define('cmd',[], function() {
     return function(dtObj) {
       var Cmd, badCommand;
@@ -37,9 +54,9 @@
           };
         }
         Cmd.prototype.exec = function() {
-          var args, command, fn, tmp, _ref;
+          var args, command, fn, ret, tmp, _ref;
           command = arguments[0], args = 2 <= arguments.length ? __slice.call(arguments, 1) : [];
-          if (command != null) {
+          if ((command != null) && ("string" === typeof command)) {
             if (args.length === 0) {
               tmp = command.split(' ');
               command = tmp[0];
@@ -48,7 +65,7 @@
             fn = (_ref = this.cmdStore[command]) != null ? _ref.value : void 0;
             return (fn != null ? fn : badCommand(command)).apply(this, args);
           } else {
-            return "DuctTape pre 0.001; Welcome!\n(TODO: redirect to help.)";
+            return ret = "Sorry, can't help you with that! No action registered for value '" + command + "'!";
           }
         };
         return Cmd;
@@ -58,7 +75,24 @@
 }).call(this);
 
 (function() {
-  var __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; }, __hasProp = Object.prototype.hasOwnProperty;
+  /*
+     Copyright 2012 Peter Neumark
+  
+     Licensed under the Apache License, Version 2.0 (the "License");
+     you may not use this file except in compliance with the License.
+     You may obtain a copy of the License at
+  
+         http://www.apache.org/licenses/LICENSE-2.0
+  
+     Unless required by applicable law or agreed to in writing, software
+     distributed under the License is distributed on an "AS IS" BASIS,
+     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+     See the License for the specific language governing permissions and
+     limitations under the License.
+  
+     keybindings.coffee - Defines and triggers keybindings.
+  
+  */  var __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; }, __hasProp = Object.prototype.hasOwnProperty;
   define('keybindings',[], function() {
     var KeyBindings;
     return KeyBindings = (function() {
@@ -111,10 +145,23 @@
 }).call(this);
 
 (function() {
-  /* 
-      TODO: disable ACE keyboard shortcuts
-      add the following: 
-          lib.commandLinkStr
+  /*
+     Copyright 2012 Peter Neumark
+  
+     Licensed under the Apache License, Version 2.0 (the "License");
+     you may not use this file except in compliance with the License.
+     You may obtain a copy of the License at
+  
+         http://www.apache.org/licenses/LICENSE-2.0
+  
+     Unless required by applicable law or agreed to in writing, software
+     distributed under the License is distributed on an "AS IS" BASIS,
+     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+     See the License for the specific language governing permissions and
+     limitations under the License.
+  
+     ui.coffee - The DuctTape UI.
+  
   */  var __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
   define('ui',[], function() {
     return function(dt) {
@@ -270,7 +317,7 @@
         UI.prototype.init_ui = function() {
           return $('#menuhelp').click(__bind(function(ev) {
             lib.captureEvent(ev);
-            lib.run('help');
+            lib.run("(" + (dt.symbol()) + " 'o help:help').value()");
             return false;
           }, this));
         };
@@ -336,8 +383,23 @@
           var _ref, _ref2;
           return $("<div class=\"eval_result\"><span class=\"label label-warning\"> <strong>Exception</strong> (" + ((_ref = ex != null ? ex.type : void 0) != null ? _ref : "") + ") </span>&nbsp;<strong>" + ((_ref2 = ex != null ? ex.message : void 0) != null ? _ref2 : "") + "</strong>" + ((ex != null ? ex.stack : void 0) != null ? '<pre>' + ex.stack + '</pre>' : '') + "</div>");
         };
+        UI.prototype.detach = function(content) {
+          var msg, oldParent, _ref;
+          if (((_ref = content.parents().last()) != null ? _ref[0] : void 0) instanceof HTMLHtmlElement) {
+            oldParent = content.parents().first();
+            msg = $("<div class='eval_result'><h2>This content has been moved!</h2>Sorry, it seems the content that used to be here is now somewhere else. No worries, though, <a href='#'>you can always get it back</a>.</div>");
+            msg.find('a').click(__bind(function(ev) {
+              lib.captureEvent(ev);
+              this.detach(content);
+              content.appendTo(oldParent);
+              return msg.detach();
+            }, this));
+            content.detach();
+            return msg.appendTo(oldParent);
+          }
+        };
         UI.prototype.execute = function(coffee_stmt, js_stmt, silent) {
-          var evalexpr, exception, rendered, result;
+          var evalexpr, exception, htmlResult, rendered, result;
           if (silent == null) {
             silent = false;
           }
@@ -345,13 +407,18 @@
           exception = null;
           result = null;
           try {
-            return result = window.eval(evalexpr.replace(/\n/g, "") + "\n");
+            return result = (dt('v internals')).corelib.execJS(evalexpr);
           } catch (error) {
             return exception = error;
           } finally {
             rendered = null;
             try {
-              rendered = exception != null ? this.formatEx(exception) : (dt('o objectViewer:show')).value(result);
+              htmlResult = exception != null ? this.formatEx(exception) : (dt('o objectViewer:show')).value(result);
+              if (htmlResult === result) {
+                this.detach($(result));
+              }
+              rendered = $("<div class='eval_result'></div>");
+              $(htmlResult).appendTo(rendered);
             } catch (renderErr) {
               exception = renderErr;
               rendered = $('<div><h3>Error displaying value</h3></div>').append(this.formatEx(exception));
@@ -364,7 +431,9 @@
             if (silent === false) {
               $('#interactions').append(this.format_command);
             }
-            $('#interactions').append(rendered);
+            if ((result != null) || (exception != null)) {
+              $('#interactions').append(rendered);
+            }
           }
         };
         UI.prototype.format_command = function() {
@@ -439,11 +508,26 @@
 
 (function() {
   /*
-      PkgMgr is organized around the concept of Values With Metadata (VWM).
-      See corelib for details.
+     Copyright 2012 Peter Neumark
   
-      Packages are VWM's, as are the objects contained within.
-      Deeper in the object hierarchy there can be "plain old objects" as well.
+     Licensed under the Apache License, Version 2.0 (the "License");
+     you may not use this file except in compliance with the License.
+     You may obtain a copy of the License at
+  
+         http://www.apache.org/licenses/LICENSE-2.0
+  
+     Unless required by applicable law or agreed to in writing, software
+     distributed under the License is distributed on an "AS IS" BASIS,
+     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+     See the License for the specific language governing permissions and
+     limitations under the License.
+  
+     pkgmgr.coffee - the DuctTape package manager.
+     PkgMgr is organized around the concept of Values With Metadata (VWM).
+     See corelib for details.
+  
+     Packages are VWM's, as are the objects contained within.
+     Deeper in the object hierarchy there can be "plain old objects" as well.
   */  var __hasProp = Object.prototype.hasOwnProperty, __extends = function(child, parent) {
     for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; }
     function ctor() { this.constructor = child; }
@@ -527,7 +611,25 @@
 }).call(this);
 
 (function() {
-  var __hasProp = Object.prototype.hasOwnProperty, __indexOf = Array.prototype.indexOf || function(item) {
+  /*
+     Copyright 2012 Peter Neumark
+  
+     Licensed under the Apache License, Version 2.0 (the "License");
+     you may not use this file except in compliance with the License.
+     You may obtain a copy of the License at
+  
+         http://www.apache.org/licenses/LICENSE-2.0
+  
+     Unless required by applicable law or agreed to in writing, software
+     distributed under the License is distributed on an "AS IS" BASIS,
+     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+     See the License for the specific language governing permissions and
+     limitations under the License.
+  
+     objectviewer.coffee - code for the objectViewer package, registered at
+     startup in ducttape.coffee
+  
+  */  var __hasProp = Object.prototype.hasOwnProperty, __indexOf = Array.prototype.indexOf || function(item) {
     for (var i = 0, l = this.length; i < l; i++) {
       if (this[i] === item) return i;
     }
@@ -542,27 +644,21 @@
           return jQuery('<div />').text(str).html();
         },
         showValue: function(val, container) {
-                    if (container != null) {
-            container;
-          } else {
-            container = $("<div class=\"eval_result\"></div>");
-          };
           if (((val != null ? val.toHTML : void 0) != null) && (typeof val.toHTML === "function")) {
-            container.append(val.toHTML());
+            return val.toHTML();
           } else if (((val != null ? val.jquery : void 0) != null) || (val instanceof HTMLElement)) {
-            container.append(val);
+            return val;
           } else {
             try {
-              container.text(ov.stringValue(val));
+              return $("<span>" + (ov.htmlEncode(ov.stringValue(val))) + "</span>");
             } catch (e) {
               if ((e.message != null) && (e.message === "complexTypeError")) {
-                container.append(ov.objectViewer(val));
+                return ov.objectViewer(val);
               } else {
                 throw e;
               }
             }
           }
-          return container;
         },
         stringValue: function(val) {
           var i;
@@ -612,7 +708,7 @@
         },
         objectViewer: function(obj) {
           var get_children, get_node_data, mk_keylist, mk_node, object_viewer, refname;
-          refname = "(" + (dt('config')).global_ref + " 'internals').pkgmgr.getFun('builtin', 'ov').body.cache[" + ov.objectViewer.cache.length + "]";
+          refname = "" + (dt.symbol()) + ".ov.cache[" + ov.objectViewer.cache.length + "]";
           ov.objectViewer.cache.push(obj);
           mk_node = function(key, value, visible) {
             var ret, value_str;
@@ -732,7 +828,8 @@
           object_viewer.on('click', 'a.objectViewer_item', function(ev) {
             var kl;
             kl = mk_keylist($(ev.currentTarget));
-            return (dt('internals')).ui.insertText(kl.length === 0 ? refname : "" + refname + "['" + (kl.join("']['")) + "']");
+            (dt('o ui:lib')).value.captureEvent(ev);
+            return (dt('o ui:insertText')).value(kl.length === 0 ? refname : "" + refname + "['" + (kl.join("']['")) + "']");
           });
           return object_viewer;
         }
@@ -768,7 +865,24 @@
 }).call(this);
 
 (function() {
-  var __slice = Array.prototype.slice;
+  /*
+     Copyright 2012 Peter Neumark
+  
+     Licensed under the Apache License, Version 2.0 (the "License");
+     you may not use this file except in compliance with the License.
+     You may obtain a copy of the License at
+  
+         http://www.apache.org/licenses/LICENSE-2.0
+  
+     Unless required by applicable law or agreed to in writing, software
+     distributed under the License is distributed on an "AS IS" BASIS,
+     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+     See the License for the specific language governing permissions and
+     limitations under the License.
+  
+     corelib.coffee - Classes and functions used by DuctTape internally.
+  
+  */  var __slice = Array.prototype.slice;
   define('corelib',[], function() {
     var VWM;
     return {
@@ -827,13 +941,34 @@
             'bare': true
           });
         }
+      },
+      execJS: function(jsSrc) {
+        return window.eval(jsSrc.replace(/\n/g, "") + "\n");
       }
     };
   });
 }).call(this);
 
 (function() {
-  define('shellutils',[], function() {
+  /*
+     Copyright 2012 Peter Neumark
+  
+     Licensed under the Apache License, Version 2.0 (the "License");
+     you may not use this file except in compliance with the License.
+     You may obtain a copy of the License at
+  
+         http://www.apache.org/licenses/LICENSE-2.0
+  
+     Unless required by applicable law or agreed to in writing, software
+     distributed under the License is distributed on an "AS IS" BASIS,
+     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+     See the License for the specific language governing permissions and
+     limitations under the License.
+  
+     shellutils.coffee - "shell utility functions", to make the DuctTape
+     command more convenient for users.
+  
+  */  define('shellutils',[], function() {
     return function(dt) {
       var pkg;
       return pkg = {
@@ -909,10 +1044,46 @@
 }).call(this);
 
 (function() {
-  var __slice = Array.prototype.slice;
+  /*
+     Copyright 2012 Peter Neumark
+  
+     Licensed under the Apache License, Version 2.0 (the "License");
+     you may not use this file except in compliance with the License.
+     You may obtain a copy of the License at
+  
+         http://www.apache.org/licenses/LICENSE-2.0
+  
+     Unless required by applicable law or agreed to in writing, software
+     distributed under the License is distributed on an "AS IS" BASIS,
+     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+     See the License for the specific language governing permissions and
+     limitations under the License.
+  
+     help.coffee - Contains code and content for the help system.
+  
+  */  var __hasProp = Object.prototype.hasOwnProperty;
   define('help',[], function() {
     return function(dt) {
-      var converter, pkg;
+      var converter, fixLinks, pkg, uiLib;
+      uiLib = (dt('o ui:lib')).value;
+      fixLinks = function(div) {
+        return div.find('a').replaceWith(function() {
+          var a, link;
+          a = $(this);
+          if ((a.attr('href')) === "/pseudoURL/run") {
+            link = $("<a href='#'>" + (a.attr('title') ? a.attr('title') : a.text()) + "</a>");
+            link.click(function(ev) {
+              uiLib.captureEvent(ev);
+              return uiLib.run(a.text());
+            });
+            return link;
+          } else if ((a.attr('href')) === "/pseudoURL/replace") {
+            return (dt('o objectViewer:show')).value((dt('v internals')).corelib.execJS((dt('v internals')).corelib.compile(a.text())));
+          } else {
+            return $("<a href='" + (a.attr('href')) + "' target='_blank'>" + (a.text()) + "</a>");
+          }
+        });
+      };
       converter = new Showdown.converter();
       return pkg = {
         name: 'help',
@@ -928,23 +1099,53 @@
               description: 'Function implementing the help command.',
               makePublic: true
             },
-            value: function() {
-              var helpObj, i, sectionKey, _i, _len;
-              sectionKey = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
-              sectionKey = ((sectionKey != null ? sectionKey.length : void 0) != null) < 1 ? ['main'] : sectionKey;
-              helpObj = pkg.value.helpStore.value;
-              try {
-                for (_i = 0, _len = sectionKey.length; _i < _len; _i++) {
-                  i = sectionKey[_i];
-                  helpObj = helpObj[i];
+            value: function(section) {
+              var helpText, result, vwm;
+              if ((section != null ? section[dt.symbol() + 'id'] : void 0) != null) {
+                try {
+                  vwm = dt('o ' + section[dt.symbol() + 'id']);
+                } catch (e) {
+                  return "Error retrieving help for " + section[dt.symbol() + 'id'];
                 }
-                if (!(helpObj != null)) {
-                  throw new Error("NoSuchHelpSection");
+                if (vwm.attr.description != null) {
+                  return vwm.attr.description;
+                } else {
+                  return "No description for " + section[dt.symbol() + 'id'];
                 }
-              } catch (err) {
-                return "No such help item: " + sectionKey.join(".");
+              } else {
+                                if (section != null) {
+                  section;
+                } else {
+                  section = 'main';
+                };
+                helpText = pkg.value.helpStore.value[section];
+                if (!(helpText != null)) {
+                  return "No such help item: " + section;
+                }
+                result = $("<div class='eval_result'>" + converter.makeHtml(helpText) + "</div>");
+                fixLinks(result);
+                return result;
               }
-              return $("<div class='eval_result'>" + converter.makeHtml(helpObj) + "</div>");
+            }
+          },
+          listSections: {
+            attr: {
+              description: 'Utility function for listing help sections.'
+            },
+            value: function() {
+              var dom, key;
+              dom = $(converter.makeHtml(((function() {
+                var _ref, _results;
+                _ref = pkg.value.helpStore.value;
+                _results = [];
+                for (key in _ref) {
+                  if (!__hasProp.call(_ref, key)) continue;
+                  _results.push("*   [\u0111.help '" + key + "'](/pseudoURL/run \"" + key + "\")");
+                }
+                return _results;
+              })()).join("\n")));
+              fixLinks(dom);
+              return dom;
             }
           },
           helpStore: {
@@ -952,8 +1153,8 @@
               description: 'Help contents stored in this object. Should be JSON.stringify-able.'
             },
             value: {
-              main: "Main *help* section. To be updated.",
-              intro: "Welcome to *DuctTape*, a new kind of terminal for the web."
+              main: "# DuctTape help #\nthis is the _main_ section, which can be reached via [\u0111.help()](/pseudoURL/run) or [\u0111.help main](/pseudoURL/run).\n\n## Available help sections  \n[(\u0111 'o help:listSections').value()](/pseudoURL/replace)\n## Help for a function or object\nFor any DuctTape function or object, view the related documentation by typing **\u0111.help _function_**\n\nExample: [\u0111.help \u0111.show](/pseudoURL/run)\n",
+              intro: "# Welcome to DuctTape #\n_DuctTape_ is an [open source](https://github.com/neumark/ducttape) [CoffeeScript](http://coffeescript.org) [REPL](http://en.wikipedia.org/wiki/REPL) for the web.\n\n## Getting Started ##\nAny valid CoffeeScript expression typed into the console will be translated to JavaScript and executed.\nDuctTape will display the result.\nThe [\u0111.help()](/pseudoURL/run) function can be used to get help about objects included in DuctTape.\nFor example, [\u0111.help \u0111.show](/pseudoURL/run) will describe the _show_ command.\n\n## Key bindings ##\n\n<table><thead><tr><td><b>Key</b></td><td><b>Action</b></td></tr></thead>\n<tbody>\n<tr><td>Enter  </td><td>Executes current statement.</td></tr>\n<tr><td>Shift+Enter &nbsp;</td><td> Start a new line (multiline expressions are allowed).</td></tr>\n<tr><td>F2  </td><td>Toggles display of generated JavaScript source.</td></tr>\n<tr><td>Alt+D  </td><td>Insert the <i>DuctTape symbol</i> (\u0111).</td></tr>\n<tr><td>up  </td><td>Browse command history (go back).</td></tr>\n<tr><td>down  </td><td>Browse command history (go forward).</td></tr>\n</tbody></table>\n\n## Useful functions ##\nDuctTape comes with a few convenience functions to make your life easier:\n\n[\u0111.history()](/pseudoURL/run): List previous commands.\n\n[\u0111.last()](/pseudoURL/run): Get the last command issued, along with its result.\n\n[\u0111.clear()](/pseudoURL/run): Erase the result of previous commands.\n\n[\u0111.help 'commands'](/pseudoURL/run): Describe available commands.\n\n[\u0111.ov window](/pseudoURL/run): Browse any javascript object (in this case, _window_).\n\n## DuctTape is extensible ##\nThanks to it's modular architecture, anyone can add commands to DuctTape.\nWrite your own custom packages, and use DuctTape for whatever you want!\n\n## Get Involved! ##\nDo you enjoy using DuctTape, have feature requests or need help developing custom packages?\n\nLet me know! You can find me on [GitHub](https://github.com/neumark).\n\n**Have fun!**\n"
             }
           }
         }
@@ -963,7 +1164,24 @@
 }).call(this);
 
 (function() {
-  define('ducttape',['cmd', 'keybindings', 'ui', 'pkgmgr', 'objectviewer', 'corelib', 'shellutils', 'help'], function(Cmd, KeyBindings, ui, PkgMgr, objectviewer, corelib, shellUtils, help) {
+  /*
+     Copyright 2012 Peter Neumark
+  
+     Licensed under the Apache License, Version 2.0 (the "License");
+     you may not use this file except in compliance with the License.
+     You may obtain a copy of the License at
+  
+         http://www.apache.org/licenses/LICENSE-2.0
+  
+     Unless required by applicable law or agreed to in writing, software
+     distributed under the License is distributed on an "AS IS" BASIS,
+     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+     See the License for the specific language governing permissions and
+     limitations under the License.
+  
+     ducttape.coffee - main source file, defines the ducttape function.
+  
+  */  define('ducttape',['cmd', 'keybindings', 'ui', 'pkgmgr', 'objectviewer', 'corelib', 'shellutils', 'help'], function(Cmd, KeyBindings, ui, PkgMgr, objectviewer, corelib, shellUtils, help) {
     return function(config) {
       var DuctTape, dt, dtobj;
       DuctTape = (function() {
@@ -983,7 +1201,7 @@
                     if ((_ref3 = (_base2 = this.config).initial_buffer) != null) {
             _ref3;
           } else {
-            _base2.initial_buffer = config.globalRef;
+            _base2.initial_buffer = "";
           };
                     if ((_ref4 = (_base3 = this.config).showGeneratedJS) != null) {
             _ref4;
@@ -1005,14 +1223,14 @@
       dt = dtobj.exec = function() {
         return dtobj.internals.cmd.exec.apply(dtobj.cmd, arguments);
       };
-      dt.toHTML = function() {
-        return $("<span>TODO: run help function</span>");
-      };
       dtobj.internals.pkgmgr = new (PkgMgr(dt))();
       dtobj.internals.pkgmgr.definePackage(objectviewer(dt));
       dtobj.internals.pkgmgr.definePackage(ui(dt));
       dtobj.internals.pkgmgr.definePackage(shellUtils(dt));
       dtobj.internals.pkgmgr.definePackage(help(dt));
+      dt.toHTML = function() {
+        return (dt('o help:help')).value('intro');
+      };
       window[config.globalRef] = dt;
       $(function() {
         return (dt('o ui:init')).value(dtobj.config.init);
@@ -1021,6 +1239,22 @@
     };
   });
 }).call(this);
+
+/*
+   Copyright 2012 Peter Neumark
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+*/
 
 define('dtmain',["ducttape"], function(dt_init) {
     dt_init(window['ducttape_config'])

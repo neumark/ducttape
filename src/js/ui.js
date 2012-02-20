@@ -1,8 +1,21 @@
 (function() {
-  /* 
-      TODO: disable ACE keyboard shortcuts
-      add the following: 
-          lib.commandLinkStr
+  /*
+     Copyright 2012 Peter Neumark
+  
+     Licensed under the Apache License, Version 2.0 (the "License");
+     you may not use this file except in compliance with the License.
+     You may obtain a copy of the License at
+  
+         http://www.apache.org/licenses/LICENSE-2.0
+  
+     Unless required by applicable law or agreed to in writing, software
+     distributed under the License is distributed on an "AS IS" BASIS,
+     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+     See the License for the specific language governing permissions and
+     limitations under the License.
+  
+     ui.coffee - The DuctTape UI.
+  
   */  var __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
   define([], function() {
     return function(dt) {
@@ -158,7 +171,7 @@
         UI.prototype.init_ui = function() {
           return $('#menuhelp').click(__bind(function(ev) {
             lib.captureEvent(ev);
-            lib.run('help');
+            lib.run("(" + (dt.symbol()) + " 'o help:help').value()");
             return false;
           }, this));
         };
@@ -224,8 +237,23 @@
           var _ref, _ref2;
           return $("<div class=\"eval_result\"><span class=\"label label-warning\"> <strong>Exception</strong> (" + ((_ref = ex != null ? ex.type : void 0) != null ? _ref : "") + ") </span>&nbsp;<strong>" + ((_ref2 = ex != null ? ex.message : void 0) != null ? _ref2 : "") + "</strong>" + ((ex != null ? ex.stack : void 0) != null ? '<pre>' + ex.stack + '</pre>' : '') + "</div>");
         };
+        UI.prototype.detach = function(content) {
+          var msg, oldParent, _ref;
+          if (((_ref = content.parents().last()) != null ? _ref[0] : void 0) instanceof HTMLHtmlElement) {
+            oldParent = content.parents().first();
+            msg = $("<div class='eval_result'><h2>This content has been moved!</h2>Sorry, it seems the content that used to be here is now somewhere else. No worries, though, <a href='#'>you can always get it back</a>.</div>");
+            msg.find('a').click(__bind(function(ev) {
+              lib.captureEvent(ev);
+              this.detach(content);
+              content.appendTo(oldParent);
+              return msg.detach();
+            }, this));
+            content.detach();
+            return msg.appendTo(oldParent);
+          }
+        };
         UI.prototype.execute = function(coffee_stmt, js_stmt, silent) {
-          var evalexpr, exception, rendered, result;
+          var evalexpr, exception, htmlResult, rendered, result;
           if (silent == null) {
             silent = false;
           }
@@ -233,13 +261,18 @@
           exception = null;
           result = null;
           try {
-            return result = window.eval(evalexpr.replace(/\n/g, "") + "\n");
+            return result = (dt('v internals')).corelib.execJS(evalexpr);
           } catch (error) {
             return exception = error;
           } finally {
             rendered = null;
             try {
-              rendered = exception != null ? this.formatEx(exception) : (dt('o objectViewer:show')).value(result);
+              htmlResult = exception != null ? this.formatEx(exception) : (dt('o objectViewer:show')).value(result);
+              if (htmlResult === result) {
+                this.detach($(result));
+              }
+              rendered = $("<div class='eval_result'></div>");
+              $(htmlResult).appendTo(rendered);
             } catch (renderErr) {
               exception = renderErr;
               rendered = $('<div><h3>Error displaying value</h3></div>').append(this.formatEx(exception));
@@ -252,7 +285,9 @@
             if (silent === false) {
               $('#interactions').append(this.format_command);
             }
-            $('#interactions').append(rendered);
+            if ((result != null) || (exception != null)) {
+              $('#interactions').append(rendered);
+            }
           }
         };
         UI.prototype.format_command = function() {

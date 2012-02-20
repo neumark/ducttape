@@ -1,3 +1,23 @@
+###
+   Copyright 2012 Peter Neumark
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+   objectviewer.coffee - code for the objectViewer package, registered at
+   startup in ducttape.coffee
+
+###
+
 define [], ->
     (dt) ->
         # format is a set of functions which can be used to format values
@@ -5,18 +25,16 @@ define [], ->
         ov = 
             htmlEncode: (str) -> jQuery('<div />').text(str).html()
             showValue: (val, container) ->
-                container ?= $("<div class=\"eval_result\"></div>")
                 if val?.toHTML? and (typeof val.toHTML == "function")
-                    container.append val.toHTML()
+                    val.toHTML()
                 else if val?.jquery? or (val instanceof HTMLElement)
-                    container.append(val)
+                    val
                 else
                     try
-                        container.text ov.stringValue val 
+                        $ "<span>#{ ov.htmlEncode ov.stringValue val }</span>"
                     catch e
-                        if e.message? and (e.message == "complexTypeError") then container.append ov.objectViewer val
+                        if e.message? and (e.message == "complexTypeError") then ov.objectViewer val
                         else throw e
-                return container
             stringValue: (val) ->
                 switch (typeof val)
                     when "string" then '"' + val + '"'
@@ -43,7 +61,7 @@ define [], ->
             objectViewer: (obj) ->
                 # TODO: handle Array, Date, Regexp and a couple other builtin objects
                 # If dt.ov is overwritten, ov.cache will not be used...
-                refname = "(#{ (dt 'config').global_ref } 'internals').pkgmgr.getFun('builtin', 'ov').body.cache[#{ov.objectViewer.cache.length}]"
+                refname = "#{ dt.symbol() }.ov.cache[#{ov.objectViewer.cache.length}]"
                 ov.objectViewer.cache.push(obj)
                 mk_node = (key, value, visible = true) ->
                     value_str = null
@@ -104,7 +122,8 @@ define [], ->
                     plugins : [ "themes", "json_data", "crrm" ]
                 object_viewer.on 'click', 'a.objectViewer_item', (ev) -> 
                     kl = mk_keylist $(ev.currentTarget)
-                    (dt 'internals').ui.insertText(
+                    (dt 'o ui:lib').value.captureEvent ev
+                    (dt 'o ui:insertText').value(
                         if kl.length == 0 then refname else "#{ refname }['#{ kl.join("']['") }']")
                 object_viewer
 

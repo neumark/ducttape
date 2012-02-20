@@ -1,8 +1,21 @@
-### 
-    TODO: disable ACE keyboard shortcuts
-    add the following: 
-        lib.commandLinkStr
-### 
+###
+   Copyright 2012 Peter Neumark
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+   ui.coffee - The DuctTape UI.
+
+###
 
 define [], ->
     (dt) ->
@@ -119,7 +132,7 @@ define [], ->
             init_ui: () ->
                 $('#menuhelp').click (ev) =>
                     lib.captureEvent ev
-                    lib.run 'help'
+                    lib.run "(#{ dt.symbol() } 'o help:help').value()"
                     false
             updateGeneratedJS: ->
                 $('#jsSource pre').text(@js_source)
@@ -163,18 +176,38 @@ define [], ->
                 $("html, body").animate({ scrollTop: $(document).height() }, 200)
             formatEx: (ex) ->
                 $("<div class=\"eval_result\"><span class=\"label label-warning\"> <strong>Exception</strong> (#{ ex?.type ? ""}) </span>&nbsp;<strong>#{ ex?.message ? ""}</strong>#{ if ex?.stack? then '<pre>'+ex.stack+'</pre>' else '' }</div>")
+            detach: (content) ->
+                # note: if there are other children of the parent, the order will be messed up!
+                # In the following case, the element being returned is a jQuery or vanilla DOM node
+                # that is already attached to the DOM.
+                # We need to locate the previous parent, and insert a "this content has moved, but you can
+                # move it back" link.
+                if content.parents().last()?[0] instanceof HTMLHtmlElement
+                    oldParent = content.parents().first()
+                    msg = $("<div class='eval_result'><h2>This content has been moved!</h2>Sorry, it seems the content that used to be here is now somewhere else. No worries, though, <a href='#'>you can always get it back</a>.</div>")
+                    msg.find('a').click (ev) =>
+                        lib.captureEvent ev
+                        # detach from current parent
+                        @detach(content)
+                        content.appendTo oldParent
+                        msg.detach()
+                    content.detach()
+                    msg.appendTo oldParent
             execute: (coffee_stmt, js_stmt, silent = false) ->
                 evalexpr = js_stmt ? (dt 'v internals').corelib.compile coffee_stmt
                 exception = null
                 result = null
                 try 
-                    result = window.eval evalexpr.replace(/\n/g, "") + "\n"
+                    result = (dt 'v internals').corelib.execJS evalexpr
                 catch error
                     exception = error
                 finally
                     rendered = null
                     try
-                        rendered = if exception? then @formatEx exception else (dt 'o objectViewer:show').value result
+                        htmlResult = if exception? then @formatEx exception else (dt 'o objectViewer:show').value result
+                        if htmlResult == result then @detach $(result)
+                        rendered = $("<div class='eval_result'></div>")
+                        $(htmlResult).appendTo rendered
                     catch renderErr
                         exception = renderErr
                         rendered = $('<div><h3>Error displaying value</h3></div>').append @formatEx exception
@@ -183,7 +216,7 @@ define [], ->
                         coffee: coffee_stmt
                         value: exception ? result
                     if silent is off then $('#interactions').append @format_command 
-                    $('#interactions').append rendered
+                    if result? or exception? then $('#interactions').append rendered
             format_command: =>
                 lines = $('div.ace_content', @editor_div).find('div.ace_line').clone()
                 div_inner = $ "<div class='highlighted_expr ace_editor ace_text-layer'></div>" 

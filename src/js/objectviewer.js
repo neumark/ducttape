@@ -1,5 +1,23 @@
 (function() {
-  var __hasProp = Object.prototype.hasOwnProperty, __indexOf = Array.prototype.indexOf || function(item) {
+  /*
+     Copyright 2012 Peter Neumark
+  
+     Licensed under the Apache License, Version 2.0 (the "License");
+     you may not use this file except in compliance with the License.
+     You may obtain a copy of the License at
+  
+         http://www.apache.org/licenses/LICENSE-2.0
+  
+     Unless required by applicable law or agreed to in writing, software
+     distributed under the License is distributed on an "AS IS" BASIS,
+     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+     See the License for the specific language governing permissions and
+     limitations under the License.
+  
+     objectviewer.coffee - code for the objectViewer package, registered at
+     startup in ducttape.coffee
+  
+  */  var __hasProp = Object.prototype.hasOwnProperty, __indexOf = Array.prototype.indexOf || function(item) {
     for (var i = 0, l = this.length; i < l; i++) {
       if (this[i] === item) return i;
     }
@@ -14,27 +32,21 @@
           return jQuery('<div />').text(str).html();
         },
         showValue: function(val, container) {
-                    if (container != null) {
-            container;
-          } else {
-            container = $("<div class=\"eval_result\"></div>");
-          };
           if (((val != null ? val.toHTML : void 0) != null) && (typeof val.toHTML === "function")) {
-            container.append(val.toHTML());
+            return val.toHTML();
           } else if (((val != null ? val.jquery : void 0) != null) || (val instanceof HTMLElement)) {
-            container.append(val);
+            return val;
           } else {
             try {
-              container.text(ov.stringValue(val));
+              return $("<span>" + (ov.htmlEncode(ov.stringValue(val))) + "</span>");
             } catch (e) {
               if ((e.message != null) && (e.message === "complexTypeError")) {
-                container.append(ov.objectViewer(val));
+                return ov.objectViewer(val);
               } else {
                 throw e;
               }
             }
           }
-          return container;
         },
         stringValue: function(val) {
           var i;
@@ -84,7 +96,7 @@
         },
         objectViewer: function(obj) {
           var get_children, get_node_data, mk_keylist, mk_node, object_viewer, refname;
-          refname = "(" + (dt('config')).global_ref + " 'internals').pkgmgr.getFun('builtin', 'ov').body.cache[" + ov.objectViewer.cache.length + "]";
+          refname = "" + (dt.symbol()) + ".ov.cache[" + ov.objectViewer.cache.length + "]";
           ov.objectViewer.cache.push(obj);
           mk_node = function(key, value, visible) {
             var ret, value_str;
@@ -204,7 +216,8 @@
           object_viewer.on('click', 'a.objectViewer_item', function(ev) {
             var kl;
             kl = mk_keylist($(ev.currentTarget));
-            return (dt('internals')).ui.insertText(kl.length === 0 ? refname : "" + refname + "['" + (kl.join("']['")) + "']");
+            (dt('o ui:lib')).value.captureEvent(ev);
+            return (dt('o ui:insertText')).value(kl.length === 0 ? refname : "" + refname + "['" + (kl.join("']['")) + "']");
           });
           return object_viewer;
         }
