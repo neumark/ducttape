@@ -53,6 +53,7 @@
         function UI(editor_div_id) {
           this.editor_div_id = editor_div_id != null ? editor_div_id : "editor";
           this.format_command = __bind(this.format_command, this);
+          this.scrollToBottom = __bind(this.scrollToBottom, this);
           this.resetEditorContents = __bind(this.resetEditorContents, this);
           this.insertText = __bind(this.insertText, this);
           this.update = __bind(this.update, this);
@@ -210,10 +211,13 @@
           return this.coffee_source = "";
         };
         UI.prototype.insertText = function(text) {
-          var currentValue;
+          var currentValue, cursor;
+          cursor = this.editor.getCursorPosition();
+          cursor.column += text.length;
           currentValue = this.editor.getSession().getValue();
           this.editor.getSession().setValue(currentValue === (dt('config')).initial_buffer ? text : currentValue + text);
-          return this.scrollToBottom();
+          this.scrollToBottom();
+          return this.editor.moveCursorToPosition(cursor);
         };
         UI.prototype.resetEditorContents = function(newContents) {
           var lines;
@@ -229,9 +233,10 @@
           });
         };
         UI.prototype.scrollToBottom = function() {
-          return $("html, body").animate({
+          $("html, body").animate({
             scrollTop: $(document).height()
           }, 200);
+          return $('textarea', this.editor_div).focus();
         };
         UI.prototype.formatEx = function(ex) {
           var _ref, _ref2;
@@ -285,7 +290,7 @@
             if (silent === false) {
               $('#interactions').append(this.format_command);
             }
-            if ((result != null) || (exception != null)) {
+            if ((result !== null) || (exception !== null)) {
               $('#interactions').append(rendered);
             }
           }

@@ -161,10 +161,13 @@ define [], ->
                 @js_source = ""
                 @coffee_source = ""
             insertText: (text) =>
+                cursor = @editor.getCursorPosition()
+                cursor.column += text.length;
                 currentValue = @editor.getSession().getValue()
                 @editor.getSession().setValue(
                     if currentValue == (dt 'config').initial_buffer then text else currentValue + text)
                 @scrollToBottom()
+                @editor.moveCursorToPosition cursor
             resetEditorContents: (newContents = config.initial_buffer) =>
                 lines = newContents.split('\n')
                 @editor.gotoLine 0
@@ -172,8 +175,11 @@ define [], ->
                 @editor.moveCursorToPosition
                     column: lines[lines.length - 1].length 
                     row: lines.length - 1
-            scrollToBottom: () ->
+            scrollToBottom: () =>
+                # Scroll
                 $("html, body").animate({ scrollTop: $(document).height() }, 200)
+                # Put focus on edit buffer
+                $('textarea', @editor_div).focus()
             formatEx: (ex) ->
                 $("<div class=\"eval_result\"><span class=\"label label-warning\"> <strong>Exception</strong> (#{ ex?.type ? ""}) </span>&nbsp;<strong>#{ ex?.message ? ""}</strong>#{ if ex?.stack? then '<pre>'+ex.stack+'</pre>' else '' }</div>")
             detach: (content) ->
@@ -216,7 +222,7 @@ define [], ->
                         coffee: coffee_stmt
                         value: exception ? result
                     if silent is off then $('#interactions').append @format_command 
-                    if result? or exception? then $('#interactions').append rendered
+                    if (result != null) or (exception != null) then $('#interactions').append rendered
             format_command: =>
                 lines = $('div.ace_content', @editor_div).find('div.ace_line').clone()
                 div_inner = $ "<div class='highlighted_expr ace_editor ace_text-layer'></div>" 

@@ -199,6 +199,7 @@
         function UI(editor_div_id) {
           this.editor_div_id = editor_div_id != null ? editor_div_id : "editor";
           this.format_command = __bind(this.format_command, this);
+          this.scrollToBottom = __bind(this.scrollToBottom, this);
           this.resetEditorContents = __bind(this.resetEditorContents, this);
           this.insertText = __bind(this.insertText, this);
           this.update = __bind(this.update, this);
@@ -356,10 +357,13 @@
           return this.coffee_source = "";
         };
         UI.prototype.insertText = function(text) {
-          var currentValue;
+          var currentValue, cursor;
+          cursor = this.editor.getCursorPosition();
+          cursor.column += text.length;
           currentValue = this.editor.getSession().getValue();
           this.editor.getSession().setValue(currentValue === (dt('config')).initial_buffer ? text : currentValue + text);
-          return this.scrollToBottom();
+          this.scrollToBottom();
+          return this.editor.moveCursorToPosition(cursor);
         };
         UI.prototype.resetEditorContents = function(newContents) {
           var lines;
@@ -375,9 +379,10 @@
           });
         };
         UI.prototype.scrollToBottom = function() {
-          return $("html, body").animate({
+          $("html, body").animate({
             scrollTop: $(document).height()
           }, 200);
+          return $('textarea', this.editor_div).focus();
         };
         UI.prototype.formatEx = function(ex) {
           var _ref, _ref2;
@@ -431,7 +436,7 @@
             if (silent === false) {
               $('#interactions').append(this.format_command);
             }
-            if ((result != null) || (exception != null)) {
+            if ((result !== null) || (exception !== null)) {
               $('#interactions').append(rendered);
             }
           }
@@ -528,14 +533,14 @@
   
      Packages are VWM's, as are the objects contained within.
      Deeper in the object hierarchy there can be "plain old objects" as well.
-  */  var __hasProp = Object.prototype.hasOwnProperty, __extends = function(child, parent) {
+  */  var __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; }, __hasProp = Object.prototype.hasOwnProperty, __extends = function(child, parent) {
     for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; }
     function ctor() { this.constructor = child; }
     ctor.prototype = parent.prototype;
     child.prototype = new ctor;
     child.__super__ = parent.prototype;
     return child;
-  }, __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; }, __slice = Array.prototype.slice;
+  }, __slice = Array.prototype.slice;
   define('pkgmgr',[], function() {
     return function(dt) {
       var Pkg, PkgMgr, VWM;
@@ -543,7 +548,7 @@
       Pkg = (function() {
         __extends(Pkg, VWM);
         function Pkg(pkgSpec) {
-          var key, obj, _ref;
+          this.toHTML = __bind(this.toHTML, this);          var key, obj, _ref;
           Pkg.__super__.constructor.call(this, pkgSpec);
           if (!this.hasAttributes(["author", "description", "url"])) {
             throw new Error("InvalidPackageSpecification");
@@ -568,13 +573,71 @@
         Pkg.prototype.load = function(name) {
           return this.value[name];
         };
+        Pkg.prototype.toHTML = function() {
+          var dl, name, pkgDesc, _fn, _ref, _ref2, _ref3;
+          pkgDesc = $(" <div>\n     <h2>" + this.name + "</h2>\n     <table>\n         <tr><td><b>Author&nbsp;</b></td><td>" + ((_ref = this.attr.author) != null ? _ref : "") + "</td></tr>\n         <tr><td><b>URL&nbsp;</b></td><td><a href=\"" + this.attr.url + "\" target='_blank'>" + this.attr.url + "</a></td></tr>\n         <tr><td><b>Version&nbsp;</b></td><td>" + ((_ref2 = this.attr.version) != null ? _ref2 : "") + "</td></tr>\n     </table>\n     <p><!-- description --></p>\n     <p>Package Contents:\n         <dl></dl>\n     </p>\n</div>");
+          pkgDesc.find('p').first().append((dt('o help:displayMarkDown')).value(this.attr.description));
+          dl = pkgDesc.find('dl');
+          _ref3 = this.value;
+          _fn = __bind(function(name) {
+            var mdSrc;
+            dl.append($("<dt>" + name + "</dt>"));
+            mdSrc = this.value[name].attr.makePublic === true ? "_Available as:_ [" + (dt.symbol()) + "." + name + "](/pseudoURL/insert)<br />" : "";
+            mdSrc += this.value[name].attr.description;
+            return dl.append($("<dd></dd>").append((dt('o help:displayMarkDown')).value(mdSrc)));
+          }, this);
+          for (name in _ref3) {
+            if (!__hasProp.call(_ref3, name)) continue;
+            _fn(name);
+          }
+          return pkgDesc;
+        };
         return Pkg;
       })();
       return PkgMgr = (function() {
         function PkgMgr(store) {
           this.store = store != null ? store : {};
+          this.listPackages = __bind(this.listPackages, this);
           this.load = __bind(this.load, this);
           this.save = __bind(this.save, this);
+          this.definePackage = __bind(this.definePackage, this);
+          this.definePackage({
+            name: 'pkgmgr',
+            attr: {
+              author: 'Peter Neumark',
+              url: 'https://github.com/neumark/ducttape',
+              version: '1.0',
+              description: "Use this package to load custom packages into **DuctTape**."
+            },
+            value: {
+              definePackage: {
+                attr: {
+                  description: "loads a new package into DuctTape.",
+                  makePublic: true
+                },
+                value: this.definePackage
+              },
+              save: {
+                attr: {
+                  description: "Add a Value With Metadata to an existing package."
+                },
+                value: this.save
+              },
+              load: {
+                attr: {
+                  description: "Retrieve a reference to a Value With Metadata object."
+                },
+                value: this.load
+              },
+              listPackages: {
+                attr: {
+                  description: "Displays the list of currently loaded packages and their contents.",
+                  makePublic: true
+                },
+                value: this.listPackages
+              }
+            }
+          });
         }
         PkgMgr.prototype.definePackage = function(pkgSpec) {
           var pkg;
@@ -597,6 +660,21 @@
           return this.pkgDefinedGuard(pkg, function() {
             return this.store[pkg].load(name);
           });
+        };
+        PkgMgr.prototype.listPackages = function() {
+          var out, pkgName, _fn, _ref;
+          out = $("<div />");
+          _ref = this.store;
+          _fn = __bind(function(pkgName) {
+            out.append(this.store[pkgName].toHTML());
+            return out.append("<hr />");
+          }, this);
+          for (pkgName in _ref) {
+            if (!__hasProp.call(_ref, pkgName)) continue;
+            _fn(pkgName);
+          }
+          out.find("hr").last().detach();
+          return out;
         };
         PkgMgr.prototype.pkgDefinedGuard = function(pkgName, fn) {
           if (!(this.store[pkgName] != null)) {
@@ -1064,25 +1142,39 @@
   */  var __hasProp = Object.prototype.hasOwnProperty;
   define('help',[], function() {
     return function(dt) {
-      var converter, fixLinks, pkg, uiLib;
+      var converter, displayMarkDown, fixLinks, pkg, uiLib;
       uiLib = (dt('o ui:lib')).value;
       fixLinks = function(div) {
         return div.find('a').replaceWith(function() {
           var a, link;
           a = $(this);
-          if ((a.attr('href')) === "/pseudoURL/run") {
-            link = $("<a href='#'>" + (a.attr('title') ? a.attr('title') : a.text()) + "</a>");
-            link.click(function(ev) {
-              uiLib.captureEvent(ev);
-              return uiLib.run(a.text());
-            });
-            return link;
-          } else if ((a.attr('href')) === "/pseudoURL/replace") {
-            return (dt('o objectViewer:show')).value((dt('v internals')).corelib.execJS((dt('v internals')).corelib.compile(a.text())));
-          } else {
-            return $("<a href='" + (a.attr('href')) + "' target='_blank'>" + (a.text()) + "</a>");
+          switch (a.attr('href')) {
+            case "/pseudoURL/run":
+              link = $("<a href='#'>" + (a.attr('title') ? a.attr('title') : a.text()) + "</a>");
+              link.click(function(ev) {
+                uiLib.captureEvent(ev);
+                return uiLib.run(a.text());
+              });
+              return link;
+            case "/pseudoURL/insert":
+              link = $("<a href='#'>" + (a.attr('title') ? a.attr('title') : a.text()) + "</a>");
+              link.click(function(ev) {
+                uiLib.captureEvent(ev);
+                return (dt('o ui:insertText')).value(a.text());
+              });
+              return link;
+            case "/pseudoURL/replace":
+              return (dt('o objectViewer:show')).value((dt('v internals')).corelib.execJS((dt('v internals')).corelib.compile(a.text())));
+            default:
+              return $("<a href='" + (a.attr('href')) + "' target='_blank'>" + (a.text()) + "</a>");
           }
         });
+      };
+      displayMarkDown = function(md) {
+        var result;
+        result = $("<div class='eval_result'>" + converter.makeHtml(md) + "</div>");
+        fixLinks(result);
+        return result;
       };
       converter = new Showdown.converter();
       return pkg = {
@@ -1100,7 +1192,7 @@
               makePublic: true
             },
             value: function(section) {
-              var helpText, result, vwm;
+              var helpText, vwm;
               if ((section != null ? section[dt.symbol() + 'id'] : void 0) != null) {
                 try {
                   vwm = dt('o ' + section[dt.symbol() + 'id']);
@@ -1108,7 +1200,7 @@
                   return "Error retrieving help for " + section[dt.symbol() + 'id'];
                 }
                 if (vwm.attr.description != null) {
-                  return vwm.attr.description;
+                  return displayMarkDown(vwm.attr.description);
                 } else {
                   return "No description for " + section[dt.symbol() + 'id'];
                 }
@@ -1119,12 +1211,11 @@
                   section = 'main';
                 };
                 helpText = pkg.value.helpStore.value[section];
-                if (!(helpText != null)) {
+                if (helpText != null) {
+                  return displayMarkDown(helpText);
+                } else {
                   return "No such help item: " + section;
                 }
-                result = $("<div class='eval_result'>" + converter.makeHtml(helpText) + "</div>");
-                fixLinks(result);
-                return result;
               }
             }
           },
@@ -1148,13 +1239,19 @@
               return dom;
             }
           },
+          displayMarkDown: {
+            attr: {
+              description: 'Returns a DOM element with parsed MarkDown, correctly links to DuctTape PseudoURLs.'
+            },
+            value: displayMarkDown
+          },
           helpStore: {
             attr: {
               description: 'Help contents stored in this object. Should be JSON.stringify-able.'
             },
             value: {
               main: "# DuctTape help #\nthis is the _main_ section, which can be reached via [\u0111.help()](/pseudoURL/run) or [\u0111.help main](/pseudoURL/run).\n\n## Available help sections  \n[(\u0111 'o help:listSections').value()](/pseudoURL/replace)\n## Help for a function or object\nFor any DuctTape function or object, view the related documentation by typing **\u0111.help _function_**\n\nExample: [\u0111.help \u0111.show](/pseudoURL/run)\n",
-              intro: "# Welcome to DuctTape #\n_DuctTape_ is an [open source](https://github.com/neumark/ducttape) [CoffeeScript](http://coffeescript.org) [REPL](http://en.wikipedia.org/wiki/REPL) for the web.\n\n## Getting Started ##\nAny valid CoffeeScript expression typed into the console will be translated to JavaScript and executed.\nDuctTape will display the result.\nThe [\u0111.help()](/pseudoURL/run) function can be used to get help about objects included in DuctTape.\nFor example, [\u0111.help \u0111.show](/pseudoURL/run) will describe the _show_ command.\n\n## Key bindings ##\n\n<table><thead><tr><td><b>Key</b></td><td><b>Action</b></td></tr></thead>\n<tbody>\n<tr><td>Enter  </td><td>Executes current statement.</td></tr>\n<tr><td>Shift+Enter &nbsp;</td><td> Start a new line (multiline expressions are allowed).</td></tr>\n<tr><td>F2  </td><td>Toggles display of generated JavaScript source.</td></tr>\n<tr><td>Alt+D  </td><td>Insert the <i>DuctTape symbol</i> (\u0111).</td></tr>\n<tr><td>up  </td><td>Browse command history (go back).</td></tr>\n<tr><td>down  </td><td>Browse command history (go forward).</td></tr>\n</tbody></table>\n\n## Useful functions ##\nDuctTape comes with a few convenience functions to make your life easier:\n\n[\u0111.history()](/pseudoURL/run): List previous commands.\n\n[\u0111.last()](/pseudoURL/run): Get the last command issued, along with its result.\n\n[\u0111.clear()](/pseudoURL/run): Erase the result of previous commands.\n\n[\u0111.help 'commands'](/pseudoURL/run): Describe available commands.\n\n[\u0111.ov window](/pseudoURL/run): Browse any javascript object (in this case, _window_).\n\n## DuctTape is extensible ##\nThanks to it's modular architecture, anyone can add commands to DuctTape.\nWrite your own custom packages, and use DuctTape for whatever you want!\n\n## Get Involved! ##\nDo you enjoy using DuctTape, have feature requests or need help developing custom packages?\n\nLet me know! You can find me on [GitHub](https://github.com/neumark).\n\n**Have fun!**\n"
+              intro: "# Welcome to DuctTape #\n_DuctTape_ is an [open source](https://github.com/neumark/ducttape) [CoffeeScript](http://coffeescript.org) [REPL](http://en.wikipedia.org/wiki/REPL) for the web.\n\n## Getting Started ##\nAny valid CoffeeScript expression typed into the console will be translated to JavaScript and executed.\nDuctTape will display the result.\nThe [\u0111.help()](/pseudoURL/run) function can be used to get help about objects included in DuctTape.\nFor example, [\u0111.help \u0111.show](/pseudoURL/run) will describe the _show_ command.\n\n## Key bindings ##\n\n<table><thead><tr><td><b>Key</b></td><td><b>Action</b></td></tr></thead>\n<tbody>\n<tr><td>Enter  </td><td>Executes current statement.</td></tr>\n<tr><td>Shift+Enter &nbsp;</td><td> Start a new line (multiline expressions are allowed).</td></tr>\n<tr><td>F2  </td><td>Toggles display of generated JavaScript source.</td></tr>\n<tr><td>Alt+D  </td><td>Insert the <i>DuctTape symbol</i> (\u0111).</td></tr>\n<tr><td>up  </td><td>Browse command history (go back).</td></tr>\n<tr><td>down  </td><td>Browse command history (go forward).</td></tr>\n</tbody></table>\n\n## Useful functions ##\nDuctTape comes with a few convenience functions to make your life easier:\n\n[\u0111.history()](/pseudoURL/run): List previous commands.\n\n[\u0111.last()](/pseudoURL/run): Get the last command issued, along with its result.\n\n[\u0111.clear()](/pseudoURL/run): Erase the result of previous commands.\n\n[\u0111.ov window](/pseudoURL/run): Browse any javascript object (in this case, _window_).\n\nTo view the list of all currently loaded packages and their contents, run [\u0111.listPackages()](/pseudoURL/run).\n\n## DuctTape is extensible ##\nThanks to it's modular architecture, anyone can add commands to DuctTape.\nWrite your own custom packages, and use DuctTape for whatever you want!\n\n## Get Involved! ##\nDo you enjoy using DuctTape, have feature requests or need help developing custom packages?\n\nLet me know! You can find me on [GitHub](https://github.com/neumark).\n\n**Have fun!**\n"
             }
           }
         }

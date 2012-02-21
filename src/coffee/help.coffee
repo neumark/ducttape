@@ -23,15 +23,25 @@ define [], ->
         fixLinks = (div) ->
             div.find('a').replaceWith ->
                 a = $ @
-                if (a.attr 'href') == "/pseudoURL/run"
-                    link = $("<a href='#'>#{ if (a.attr 'title') then a.attr 'title' else a.text() }</a>")
-                    link.click (ev) ->
-                        uiLib.captureEvent ev
-                        uiLib.run a.text()
-                    link
-                else if (a.attr 'href') == "/pseudoURL/replace"
-                    (dt 'o objectViewer:show').value (dt 'v internals').corelib.execJS (dt 'v internals').corelib.compile a.text()
-                else $("<a href='#{ a.attr 'href' }' target='_blank'>#{ a.text() }</a>")
+                switch a.attr 'href'
+                    when "/pseudoURL/run"
+                        link = $("<a href='#'>#{ if (a.attr 'title') then a.attr 'title' else a.text() }</a>")
+                        link.click (ev) ->
+                            uiLib.captureEvent ev
+                            uiLib.run a.text()
+                        link
+                    when "/pseudoURL/insert"
+                        link = $("<a href='#'>#{ if (a.attr 'title') then a.attr 'title' else a.text() }</a>")
+                        link.click (ev) ->
+                            uiLib.captureEvent ev
+                            (dt 'o ui:insertText').value a.text()
+                        link
+                    when "/pseudoURL/replace" then (dt 'o objectViewer:show').value (dt 'v internals').corelib.execJS (dt 'v internals').corelib.compile a.text()
+                    else $("<a href='#{ a.attr 'href' }' target='_blank'>#{ a.text() }</a>")
+        displayMarkDown = (md) ->
+            result = $ ("<div class='eval_result'>" + converter.makeHtml(md) + "</div>")
+            fixLinks result
+            result
         converter = new Showdown.converter() 
         pkg =
             name: 'help'
@@ -55,14 +65,11 @@ define [], ->
                             catch e
                                 return "Error retrieving help for "+ section[(dt.symbol() + 'id')]
                             # Very bare bones at the moment...
-                            if vwm.attr.description? then vwm.attr.description else "No description for " + section[(dt.symbol() + 'id')]
+                            if vwm.attr.description? then displayMarkDown vwm.attr.description else "No description for " + section[(dt.symbol() + 'id')]
                         else
                             section ?= 'main'
                             helpText = pkg.value.helpStore.value[section]
-                            if not helpText? then return "No such help item: " + section
-                            result = $ ("<div class='eval_result'>" + converter.makeHtml(helpText) + "</div>")
-                            fixLinks result
-                            result
+                            if helpText? then displayMarkDown helpText else "No such help item: " + section
                 listSections:
                     attr:
                         description: 'Utility function for listing help sections.'
@@ -70,6 +77,10 @@ define [], ->
                             dom = $ converter.makeHtml ("*   [\u0111.help '#{ key }'](/pseudoURL/run \"#{ key }\")" for own key of pkg.value.helpStore.value).join("\n")
                             fixLinks dom
                             dom
+                displayMarkDown:
+                    attr:
+                        description: 'Returns a DOM element with parsed MarkDown, correctly links to DuctTape PseudoURLs.'
+                    value: displayMarkDown
                 helpStore:
                     attr:
                         description: 'Help contents stored in this object. Should be JSON.stringify-able.'
@@ -119,9 +130,9 @@ define [], ->
 
                             [\u0111.clear()](/pseudoURL/run): Erase the result of previous commands.
 
-                            [\u0111.help 'commands'](/pseudoURL/run): Describe available commands.
-
                             [\u0111.ov window](/pseudoURL/run): Browse any javascript object (in this case, _window_).
+
+                            To view the list of all currently loaded packages and their contents, run [\u0111.listPackages()](/pseudoURL/run).
 
                             ## DuctTape is extensible ##
                             Thanks to it's modular architecture, anyone can add commands to DuctTape.
