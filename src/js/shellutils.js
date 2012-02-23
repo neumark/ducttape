@@ -17,7 +17,8 @@
      shellutils.coffee - "shell utility functions", to make the DuctTape
      command more convenient for users.
   
-  */  define([], function() {
+  */  var __slice = Array.prototype.slice;
+  define([], function() {
     return function(dt) {
       var pkg;
       return pkg = {
@@ -84,6 +85,49 @@
                 _fn(h);
               }
               return c;
+            }
+          },
+          setvar: {
+            attr: {
+              description: 'Sets window.varName to the given value.',
+              makePublic: true
+            },
+            value: function(name, value) {
+              return window[name] = value;
+            }
+          },
+          curry: {
+            attr: {
+              description: 'Curries functions, setting this to window'
+            },
+            value: function() {
+              var args, fun;
+              fun = arguments[0], args = 2 <= arguments.length ? __slice.call(arguments, 1) : [];
+              return function() {
+                var laterArgs;
+                laterArgs = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
+                return function() {
+                  var laterArgs;
+                  laterArgs = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
+                  return fun.apply(window, args.concat(laterArgs));
+                };
+              };
+            }
+          },
+          lib: {
+            attr: {
+              description: 'Library of functions useful for command-line programs'
+            },
+            value: {
+              log: function(expr, source, level) {
+                if (source == null) {
+                  source = '';
+                }
+                if (level == null) {
+                  level = 'info';
+                }
+                return (dt('o ui:display')).value(expr);
+              }
             }
           }
         }

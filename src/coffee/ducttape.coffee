@@ -17,45 +17,41 @@
 
 ###
 
-define ['cmd', 'keybindings', 'ui', 'pkgmgr', 'objectviewer', 'corelib', 'shellutils', 'help'], (Cmd, KeyBindings, ui, PkgMgr, objectviewer, corelib, shellUtils, help) ->
-    (config) ->
-        class DuctTape
-            constructor: (@config = {}) ->
-                # sanitize configuration:
-                @config ?= {}
-                @config.globalRef ?= "\u0111"
-                @config.initial_buffer ?= ""
-                @config.showGeneratedJS ?= false
-                # fields:
-                @internals =
-                    cmd: new (Cmd(@))()
-                    corelib: corelib 
-                @session =
-                    history: []
-                    keybindings: new KeyBindings()
+define ['cmd', 'keybindings', 'ui', 'pkgmgr', 'objectviewer', 'corelib', 'fs', 'shellutils', 'help'], (Cmd, KeyBindings, ui, PkgMgr, objectviewer, corelib, fs, shellUtils, help) ->
+    class DuctTape
+        constructor: (@config) ->
+            # sanitize configuration:
+            @config ?= {}
+            @config.globalRef ?= "\u0111"
+            @config.initial_buffer ?= ""
+            @config.showGeneratedJS ?= false
+            # fields:
+            @internals =
+                cmd: new (Cmd(@))()
+                corelib: corelib 
+            @session =
+                history: []
+                keybindings: new KeyBindings()
 
-        # instantiate our DuctTape class
-        dtobj = new DuctTape(config)
+    # instantiate our DuctTape class
+    dtobj = new DuctTape(window.ducttape_config ? {})
 
-        # main DuctTape function
-        dt = dtobj.exec = -> dtobj.internals.cmd.exec.apply dtobj.cmd, arguments
+    # main DuctTape function
+    dt = dtobj.exec = -> dtobj.internals.cmd.exec.apply dtobj.cmd, arguments
 
-        dtobj.internals.pkgmgr = new (PkgMgr(dt))()
+    dtobj.internals.pkgmgr = new (PkgMgr(dt))()
 
-        # load builtin packages:
-        dtobj.internals.pkgmgr.definePackage(objectviewer(dt))
-        dtobj.internals.pkgmgr.definePackage(ui(dt))
-        dtobj.internals.pkgmgr.definePackage(shellUtils(dt))
-        dtobj.internals.pkgmgr.definePackage(help(dt))
+    # load builtin packages:
+    dtobj.internals.pkgmgr.definePackage(objectviewer(dt))
+    dtobj.internals.pkgmgr.definePackage(ui(dt))
+    dtobj.internals.pkgmgr.definePackage(fs(dt))
+    dtobj.internals.pkgmgr.definePackage(shellUtils(dt))
+    dtobj.internals.pkgmgr.definePackage(help(dt))
 
-        dt.toHTML = -> (dt 'o help:help').value 'intro'
+    dt.toHTML = -> (dt 'o help:help').value 'intro'
 
-        # Registers global reference
-        window[config.globalRef] = dt
+    # Registers global reference
+    window[dtobj.config.globalRef] = dt
 
-        # initialize UI when DOM is ready:
-        $ -> 
-            (dt 'o ui:init').value dtobj.config.init
-        
-        dt
+    dt
 

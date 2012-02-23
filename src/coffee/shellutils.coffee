@@ -60,4 +60,23 @@ define [], ->
                                     uiLib.captureEvent ev
                                     uiLib.run h.coffee
                         c
+                setvar:
+                    attr:
+                        description: 'Sets window.varName to the given value.'
+                        makePublic: true
+                    value: (name, value)->
+                        window[name] = value
+                curry:
+                    attr:
+                        description: 'Curries functions, setting this to window'
+                    value: (fun, args...) ->
+                        (laterArgs...) ->
+                            (laterArgs...) -> fun.apply window, args.concat laterArgs
+                lib:
+                    attr:
+                        description: 'Library of functions useful for command-line programs'
+                    value:
+                        log: (expr, source='', level='info') ->
+                            # TODO: change decorator based on source and level
+                            (dt 'o ui:display').value expr
 

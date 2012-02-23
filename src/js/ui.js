@@ -16,12 +16,13 @@
   
      ui.coffee - The DuctTape UI.
   
-  */  var __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
+  */  var __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; }, __slice = Array.prototype.slice;
   define([], function() {
     return function(dt) {
-      var HistoryBrowser, UI, config, lib, pkg, session, ui;
+      var HistoryBrowser, UI, config, lib, pkg, session, show, ui;
       config = dt('v config');
       session = dt('v session');
+      show = (dt('o objectViewer:show')).value;
       HistoryBrowser = (function() {
         function HistoryBrowser(ui) {
           this.ui = ui;
@@ -53,6 +54,7 @@
         function UI(editor_div_id) {
           this.editor_div_id = editor_div_id != null ? editor_div_id : "editor";
           this.format_command = __bind(this.format_command, this);
+          this.display = __bind(this.display, this);
           this.scrollToBottom = __bind(this.scrollToBottom, this);
           this.resetEditorContents = __bind(this.resetEditorContents, this);
           this.insertText = __bind(this.insertText, this);
@@ -67,13 +69,13 @@
           this.UPDATE_DELAY = 300;
           this.historyBrowser = null;
         }
-        UI.prototype.init = function(runAfterInit) {
+        UI.prototype.init = function() {
+          if (this.editor != null) {
+            return false;
+          }
           this.init_ace();
           this.init_ui();
-          this.resetEditorContents();
-          if (runAfterInit != null) {
-            return runAfterInit(dt);
-          }
+          return this.resetEditorContents();
         };
         UI.prototype.init_ace = function() {
           var bind, trigger;
@@ -254,11 +256,26 @@
               return msg.detach();
             }, this));
             content.detach();
-            return msg.appendTo(oldParent);
+            msg.appendTo(oldParent);
           }
+          return content;
+        };
+        UI.prototype.display = function(expr, where, decorator) {
+          var div;
+          if (where == null) {
+            where = $('#interactions');
+          }
+          if (decorator == null) {
+            decorator = $('<div class="eval_result"></div>');
+          }
+          div = decorator.append(this.detach(show(expr)));
+          if (typeof where === "object") {
+            where.append(div);
+          }
+          return null;
         };
         UI.prototype.execute = function(coffee_stmt, js_stmt, silent) {
-          var evalexpr, exception, htmlResult, rendered, result;
+          var evalexpr, exception, historyEntry, result;
           if (silent == null) {
             silent = false;
           }
@@ -270,28 +287,28 @@
           } catch (error) {
             return exception = error;
           } finally {
-            rendered = null;
-            try {
-              htmlResult = exception != null ? this.formatEx(exception) : (dt('o objectViewer:show')).value(result);
-              if (htmlResult === result) {
-                this.detach($(result));
-              }
-              rendered = $("<div class='eval_result'></div>");
-              $(htmlResult).appendTo(rendered);
-            } catch (renderErr) {
-              exception = renderErr;
-              rendered = $('<div><h3>Error displaying value</h3></div>').append(this.formatEx(exception));
-            }
-            (dt('v session')).history.push({
+            (dt('v session')).history.push(historyEntry = {
               js: js_stmt,
               coffee: coffee_stmt,
-              value: exception != null ? exception : result
+              value: exception != null ? exception : result,
+              timestamp: new Date()
             });
             if (silent === false) {
               $('#interactions').append(this.format_command);
             }
             if ((result !== null) || (exception !== null)) {
-              $('#interactions').append(rendered);
+              this.display((function() {
+                try {
+                  if (exception != null) {
+                    return this.formatEx(exception);
+                  } else {
+                    return result;
+                  }
+                } catch (renderEx) {
+                  historyEntry.renderEx = renderEx;
+                  return $('<div><h3>Error displaying value</h3></div>').append(this.formatEx(renderEx));
+                }
+              }).call(this));
             }
           }
         };
@@ -312,7 +329,7 @@
           ev.preventDefault();
           return ev.stopPropagation();
         },
-        run: __bind(function(expr, silent) {
+        run: function(expr, silent) {
           var div;
           if (silent == null) {
             silent = false;
@@ -324,7 +341,24 @@
           }
           ui.execute(expr, null, true);
           return ui.scrollToBottom();
-        }, this)
+        },
+        asyncValue: function(loadingMsg) {
+          var div;
+          if (loadingMsg == null) {
+            loadingMsg = 'loading...';
+          }
+          div = $('<div class="eval_result"></div>');
+          ui.display(loadingMsg, $('#interactions'), div);
+          return function() {
+            var values;
+            values = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
+            div.children().remove();
+            if (values.length === 0) {
+              values = values[0];
+            }
+            return ui.display(values, false, div);
+          };
+        }
       };
       return pkg = {
         name: 'ui',
@@ -337,7 +371,8 @@
         value: {
           init: {
             attr: {
-              description: 'Initialializes the DuctTape user interface.'
+              description: 'Initialializes the DuctTape user interface.',
+              makePublic: true
             },
             value: ui.init
           },
@@ -358,6 +393,13 @@
               description: 'A library of useful functions for programming the DuctTape UI.'
             },
             value: lib
+          },
+          display: {
+            attr: {
+              description: 'Displays the result of an expression in the interactions window.',
+              makePublic: true
+            },
+            value: ui.display
           }
         }
       };

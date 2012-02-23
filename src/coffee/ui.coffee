@@ -21,6 +21,7 @@ define [], ->
     (dt) ->
         config = (dt 'v config')
         session = (dt 'v session')
+        show = (dt 'o objectViewer:show').value
 
         class HistoryBrowser
             constructor: (@ui) ->
@@ -49,11 +50,11 @@ define [], ->
                 @timeoutHandle = null
                 @UPDATE_DELAY = 300 # in miliseconds
                 @historyBrowser = null
-            init: (runAfterInit) =>
+            init: () =>
+                if @editor? then return false
                 @init_ace()
                 @init_ui()
                 @resetEditorContents()
-                if runAfterInit? then runAfterInit(dt)
             init_ace: () ->
                 @editor = ace.edit @editor_div_id
                 @editor.getSession().setMode(new (ace.require("ace/mode/coffee").Mode)())
@@ -199,6 +200,11 @@ define [], ->
                         msg.detach()
                     content.detach()
                     msg.appendTo oldParent
+                content
+            display: (expr, where = $('#interactions'), decorator = $('<div class="eval_result"></div>')) =>
+                div = decorator.append @detach show expr
+                if typeof(where) == "object" then where.append div
+                null
             execute: (coffee_stmt, js_stmt, silent = false) ->
                 evalexpr = js_stmt ? (dt 'v internals').corelib.compile coffee_stmt
                 exception = null
@@ -208,21 +214,20 @@ define [], ->
                 catch error
                     exception = error
                 finally
-                    rendered = null
-                    try
-                        htmlResult = if exception? then @formatEx exception else (dt 'o objectViewer:show').value result
-                        if htmlResult == result then @detach $(result)
-                        rendered = $("<div class='eval_result'></div>")
-                        $(htmlResult).appendTo rendered
-                    catch renderErr
-                        exception = renderErr
-                        rendered = $('<div><h3>Error displaying value</h3></div>').append @formatEx exception
-                    (dt 'v session').history.push
+                    # add to history
+                    (dt 'v session').history.push historyEntry =
                         js: js_stmt
                         coffee: coffee_stmt
                         value: exception ? result
+                        timestamp: new Date()
                     if silent is off then $('#interactions').append @format_command 
-                    if (result != null) or (exception != null) then $('#interactions').append rendered
+                    if (result != null) or (exception != null) then @display(
+                        try
+                            (if exception? then @formatEx exception else result)
+                        catch renderEx
+                            historyEntry.renderEx = renderEx
+                            $('<div><h3>Error displaying value</h3></div>').append @formatEx renderEx
+                    )
             format_command: =>
                 lines = $('div.ace_content', @editor_div).find('div.ace_line').clone()
                 div_inner = $ "<div class='highlighted_expr ace_editor ace_text-layer'></div>" 
@@ -236,7 +241,7 @@ define [], ->
             captureEvent: (ev) ->
                 ev.preventDefault()
                 ev.stopPropagation()
-            run: (expr, silent = false) =>
+            run: (expr, silent = false) ->
                 # TODO syntax highlighting in run
                 if silent is off 
                     div =  $ "<div class='alert alert-info'></div>"
@@ -244,7 +249,13 @@ define [], ->
                     $("#interactions").append div
                 ui.execute(expr, null, true)
                 ui.scrollToBottom()
-
+            asyncValue: (loadingMsg = 'loading...') ->
+                div = $ '<div class="eval_result"></div>'
+                ui.display loadingMsg, $('#interactions'), div
+                (values...) ->
+                    div.children().remove()
+                    if values.length == 0 then values = values[0]
+                    ui.display values, false, div
         pkg =
             name: 'ui'
             attr:
@@ -256,6 +267,7 @@ define [], ->
                 init:
                     attr:
                         description: 'Initialializes the DuctTape user interface.'
+                        makePublic: true
                     value: ui.init
                 insertText:
                     attr:
@@ -269,3 +281,8 @@ define [], ->
                     attr:
                         description: 'A library of useful functions for programming the DuctTape UI.'
                     value: lib
+                display:
+                    attr:
+                        description: 'Displays the result of an expression in the interactions window.'
+                        makePublic: true
+                    value: ui.display

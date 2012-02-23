@@ -1,5 +1,5 @@
 
-js/dtmain.js
+js/ducttape.js
 ----------------
 js/cmd.js
 js/keybindings.js
@@ -7,7 +7,7 @@ js/ui.js
 js/pkgmgr.js
 js/objectviewer.js
 js/corelib.js
+js/fs.js
 js/shellutils.js
 js/help.js
 js/ducttape.js
-js/dtmain.js

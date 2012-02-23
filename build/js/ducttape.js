@@ -162,12 +162,13 @@
   
      ui.coffee - The DuctTape UI.
   
-  */  var __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
+  */  var __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; }, __slice = Array.prototype.slice;
   define('ui',[], function() {
     return function(dt) {
-      var HistoryBrowser, UI, config, lib, pkg, session, ui;
+      var HistoryBrowser, UI, config, lib, pkg, session, show, ui;
       config = dt('v config');
       session = dt('v session');
+      show = (dt('o objectViewer:show')).value;
       HistoryBrowser = (function() {
         function HistoryBrowser(ui) {
           this.ui = ui;
@@ -199,6 +200,7 @@
         function UI(editor_div_id) {
           this.editor_div_id = editor_div_id != null ? editor_div_id : "editor";
           this.format_command = __bind(this.format_command, this);
+          this.display = __bind(this.display, this);
           this.scrollToBottom = __bind(this.scrollToBottom, this);
           this.resetEditorContents = __bind(this.resetEditorContents, this);
           this.insertText = __bind(this.insertText, this);
@@ -213,13 +215,13 @@
           this.UPDATE_DELAY = 300;
           this.historyBrowser = null;
         }
-        UI.prototype.init = function(runAfterInit) {
+        UI.prototype.init = function() {
+          if (this.editor != null) {
+            return false;
+          }
           this.init_ace();
           this.init_ui();
-          this.resetEditorContents();
-          if (runAfterInit != null) {
-            return runAfterInit(dt);
-          }
+          return this.resetEditorContents();
         };
         UI.prototype.init_ace = function() {
           var bind, trigger;
@@ -400,11 +402,26 @@
               return msg.detach();
             }, this));
             content.detach();
-            return msg.appendTo(oldParent);
+            msg.appendTo(oldParent);
           }
+          return content;
+        };
+        UI.prototype.display = function(expr, where, decorator) {
+          var div;
+          if (where == null) {
+            where = $('#interactions');
+          }
+          if (decorator == null) {
+            decorator = $('<div class="eval_result"></div>');
+          }
+          div = decorator.append(this.detach(show(expr)));
+          if (typeof where === "object") {
+            where.append(div);
+          }
+          return null;
         };
         UI.prototype.execute = function(coffee_stmt, js_stmt, silent) {
-          var evalexpr, exception, htmlResult, rendered, result;
+          var evalexpr, exception, historyEntry, result;
           if (silent == null) {
             silent = false;
           }
@@ -416,28 +433,28 @@
           } catch (error) {
             return exception = error;
           } finally {
-            rendered = null;
-            try {
-              htmlResult = exception != null ? this.formatEx(exception) : (dt('o objectViewer:show')).value(result);
-              if (htmlResult === result) {
-                this.detach($(result));
-              }
-              rendered = $("<div class='eval_result'></div>");
-              $(htmlResult).appendTo(rendered);
-            } catch (renderErr) {
-              exception = renderErr;
-              rendered = $('<div><h3>Error displaying value</h3></div>').append(this.formatEx(exception));
-            }
-            (dt('v session')).history.push({
+            (dt('v session')).history.push(historyEntry = {
               js: js_stmt,
               coffee: coffee_stmt,
-              value: exception != null ? exception : result
+              value: exception != null ? exception : result,
+              timestamp: new Date()
             });
             if (silent === false) {
               $('#interactions').append(this.format_command);
             }
             if ((result !== null) || (exception !== null)) {
-              $('#interactions').append(rendered);
+              this.display((function() {
+                try {
+                  if (exception != null) {
+                    return this.formatEx(exception);
+                  } else {
+                    return result;
+                  }
+                } catch (renderEx) {
+                  historyEntry.renderEx = renderEx;
+                  return $('<div><h3>Error displaying value</h3></div>').append(this.formatEx(renderEx));
+                }
+              }).call(this));
             }
           }
         };
@@ -458,7 +475,7 @@
           ev.preventDefault();
           return ev.stopPropagation();
         },
-        run: __bind(function(expr, silent) {
+        run: function(expr, silent) {
           var div;
           if (silent == null) {
             silent = false;
@@ -470,7 +487,24 @@
           }
           ui.execute(expr, null, true);
           return ui.scrollToBottom();
-        }, this)
+        },
+        asyncValue: function(loadingMsg) {
+          var div;
+          if (loadingMsg == null) {
+            loadingMsg = 'loading...';
+          }
+          div = $('<div class="eval_result"></div>');
+          ui.display(loadingMsg, $('#interactions'), div);
+          return function() {
+            var values;
+            values = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
+            div.children().remove();
+            if (values.length === 0) {
+              values = values[0];
+            }
+            return ui.display(values, false, div);
+          };
+        }
       };
       return pkg = {
         name: 'ui',
@@ -483,7 +517,8 @@
         value: {
           init: {
             attr: {
-              description: 'Initialializes the DuctTape user interface.'
+              description: 'Initialializes the DuctTape user interface.',
+              makePublic: true
             },
             value: ui.init
           },
@@ -504,6 +539,13 @@
               description: 'A library of useful functions for programming the DuctTape UI.'
             },
             value: lib
+          },
+          display: {
+            attr: {
+              description: 'Displays the result of an expression in the interactions window.',
+              makePublic: true
+            },
+            value: ui.display
           }
         }
       };
@@ -1029,6 +1071,98 @@
 
 (function() {
   /*
+  
+     Copyright 2012 Peter Neumark
+  
+     Licensed under the Apache License, Version 2.0 (the "License");
+     you may not use this file except in compliance with the License.
+     You may obtain a copy of the License at
+  
+         http://www.apache.org/licenses/LICENSE-2.0
+  
+     Unless required by applicable law or agreed to in writing, software
+     distributed under the License is distributed on an "AS IS" BASIS,
+     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+     See the License for the specific language governing permissions and
+     limitations under the License.
+  
+     FileSystem interface for DuctTape
+  
+     FS provides a uniform way of accessing hierarchical information like the unix
+     filesystem or the DOM tree. It contains the following parts:
+     * The UI: a small "prompt" which can show the current directory, or
+       whatever you like.
+     * Commands: commands to navigate and manipulate the filesystem:
+       mount, unmount, ls, pwd, cd
+     * The FSILib object, which provides the FSI API for modules whishing to
+       implement access to a particular service.
+  */  define('fs',[], function() {
+    return function(dt) {
+      var mkSessionData, pkg, session;
+      session = dt('v session');
+      mkSessionData = function(path, obj) {
+        return {
+          currentPath: path,
+          currentObject: obj
+        };
+      };
+      return pkg = {
+        name: "fs",
+        attr: {
+          description: "FileSystem inteface package",
+          author: "Peter Neumark",
+          version: "1.0",
+          url: "https://github.com/neumark/ducttape"
+        },
+        value: {
+          mount: {
+            attr: {
+              description: "Attach new FS adaptor.",
+              makePublic: true
+            },
+            value: function(root) {
+              var _ref;
+              return (_ref = session.fs) != null ? _ref : session.fs = mkSessionData([], root);
+            }
+          },
+          pwd: {
+            attr: {
+              description: "Print current directory.",
+              makePublic: true
+            },
+            value: function() {
+              var _ref, _ref2;
+              return ((_ref = (_ref2 = session.fs) != null ? _ref2.currentPath : void 0) != null ? _ref : []).join('/');
+            }
+          },
+          co: {
+            attr: {
+              description: "Displays current object.",
+              makePublic: true
+            },
+            value: function() {
+              var _ref, _ref2;
+              return (_ref = session.fs) != null ? (_ref2 = _ref.currentObject) != null ? _ref2.getContents((dt('o ui:lib')).value.asyncValue()) : void 0 : void 0;
+            }
+          },
+          ls: {
+            attr: {
+              description: "Lists children of current object.",
+              makePublic: true
+            },
+            value: function() {
+              var _ref, _ref2;
+              return (_ref = session.fs) != null ? (_ref2 = _ref.currentObject) != null ? _ref2.getChildren((dt('o ui:lib')).value.asyncValue()) : void 0 : void 0;
+            }
+          }
+        }
+      };
+    };
+  });
+}).call(this);
+
+(function() {
+  /*
      Copyright 2012 Peter Neumark
   
      Licensed under the Apache License, Version 2.0 (the "License");
@@ -1046,7 +1180,8 @@
      shellutils.coffee - "shell utility functions", to make the DuctTape
      command more convenient for users.
   
-  */  define('shellutils',[], function() {
+  */  var __slice = Array.prototype.slice;
+  define('shellutils',[], function() {
     return function(dt) {
       var pkg;
       return pkg = {
@@ -1113,6 +1248,49 @@
                 _fn(h);
               }
               return c;
+            }
+          },
+          setvar: {
+            attr: {
+              description: 'Sets window.varName to the given value.',
+              makePublic: true
+            },
+            value: function(name, value) {
+              return window[name] = value;
+            }
+          },
+          curry: {
+            attr: {
+              description: 'Curries functions, setting this to window'
+            },
+            value: function() {
+              var args, fun;
+              fun = arguments[0], args = 2 <= arguments.length ? __slice.call(arguments, 1) : [];
+              return function() {
+                var laterArgs;
+                laterArgs = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
+                return function() {
+                  var laterArgs;
+                  laterArgs = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
+                  return fun.apply(window, args.concat(laterArgs));
+                };
+              };
+            }
+          },
+          lib: {
+            attr: {
+              description: 'Library of functions useful for command-line programs'
+            },
+            value: {
+              log: function(expr, source, level) {
+                if (source == null) {
+                  source = '';
+                }
+                if (level == null) {
+                  level = 'info';
+                }
+                return (dt('o ui:display')).value(expr);
+              }
             }
           }
         }
@@ -1278,81 +1456,57 @@
   
      ducttape.coffee - main source file, defines the ducttape function.
   
-  */  define('ducttape',['cmd', 'keybindings', 'ui', 'pkgmgr', 'objectviewer', 'corelib', 'shellutils', 'help'], function(Cmd, KeyBindings, ui, PkgMgr, objectviewer, corelib, shellUtils, help) {
-    return function(config) {
-      var DuctTape, dt, dtobj;
-      DuctTape = (function() {
-        function DuctTape(config) {
-          var _base, _base2, _base3, _ref, _ref2, _ref3, _ref4;
-          this.config = config != null ? config : {};
-                    if ((_ref = this.config) != null) {
-            _ref;
-          } else {
-            this.config = {};
-          };
-                    if ((_ref2 = (_base = this.config).globalRef) != null) {
-            _ref2;
-          } else {
-            _base.globalRef = "\u0111";
-          };
-                    if ((_ref3 = (_base2 = this.config).initial_buffer) != null) {
-            _ref3;
-          } else {
-            _base2.initial_buffer = "";
-          };
-                    if ((_ref4 = (_base3 = this.config).showGeneratedJS) != null) {
-            _ref4;
-          } else {
-            _base3.showGeneratedJS = false;
-          };
-          this.internals = {
-            cmd: new (Cmd(this))(),
-            corelib: corelib
-          };
-          this.session = {
-            history: [],
-            keybindings: new KeyBindings()
-          };
-        }
-        return DuctTape;
-      })();
-      dtobj = new DuctTape(config);
-      dt = dtobj.exec = function() {
-        return dtobj.internals.cmd.exec.apply(dtobj.cmd, arguments);
-      };
-      dtobj.internals.pkgmgr = new (PkgMgr(dt))();
-      dtobj.internals.pkgmgr.definePackage(objectviewer(dt));
-      dtobj.internals.pkgmgr.definePackage(ui(dt));
-      dtobj.internals.pkgmgr.definePackage(shellUtils(dt));
-      dtobj.internals.pkgmgr.definePackage(help(dt));
-      dt.toHTML = function() {
-        return (dt('o help:help')).value('intro');
-      };
-      window[config.globalRef] = dt;
-      $(function() {
-        return (dt('o ui:init')).value(dtobj.config.init);
-      });
-      return dt;
+  */  define('ducttape',['cmd', 'keybindings', 'ui', 'pkgmgr', 'objectviewer', 'corelib', 'fs', 'shellutils', 'help'], function(Cmd, KeyBindings, ui, PkgMgr, objectviewer, corelib, fs, shellUtils, help) {
+    var DuctTape, dt, dtobj, _ref;
+    DuctTape = (function() {
+      function DuctTape(config) {
+        var _base, _base2, _base3, _ref, _ref2, _ref3, _ref4;
+        this.config = config;
+                if ((_ref = this.config) != null) {
+          _ref;
+        } else {
+          this.config = {};
+        };
+                if ((_ref2 = (_base = this.config).globalRef) != null) {
+          _ref2;
+        } else {
+          _base.globalRef = "\u0111";
+        };
+                if ((_ref3 = (_base2 = this.config).initial_buffer) != null) {
+          _ref3;
+        } else {
+          _base2.initial_buffer = "";
+        };
+                if ((_ref4 = (_base3 = this.config).showGeneratedJS) != null) {
+          _ref4;
+        } else {
+          _base3.showGeneratedJS = false;
+        };
+        this.internals = {
+          cmd: new (Cmd(this))(),
+          corelib: corelib
+        };
+        this.session = {
+          history: [],
+          keybindings: new KeyBindings()
+        };
+      }
+      return DuctTape;
+    })();
+    dtobj = new DuctTape((_ref = window.ducttape_config) != null ? _ref : {});
+    dt = dtobj.exec = function() {
+      return dtobj.internals.cmd.exec.apply(dtobj.cmd, arguments);
     };
+    dtobj.internals.pkgmgr = new (PkgMgr(dt))();
+    dtobj.internals.pkgmgr.definePackage(objectviewer(dt));
+    dtobj.internals.pkgmgr.definePackage(ui(dt));
+    dtobj.internals.pkgmgr.definePackage(fs(dt));
+    dtobj.internals.pkgmgr.definePackage(shellUtils(dt));
+    dtobj.internals.pkgmgr.definePackage(help(dt));
+    dt.toHTML = function() {
+      return (dt('o help:help')).value('intro');
+    };
+    window[dtobj.config.globalRef] = dt;
+    return dt;
   });
 }).call(this);
-
-/*
-   Copyright 2012 Peter Neumark
-
-   Licensed under the Apache License, Version 2.0 (the "License");
-   you may not use this file except in compliance with the License.
-   You may obtain a copy of the License at
-
-       http://www.apache.org/licenses/LICENSE-2.0
-
-   Unless required by applicable law or agreed to in writing, software
-   distributed under the License is distributed on an "AS IS" BASIS,
-   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-   See the License for the specific language governing permissions and
-   limitations under the License.
-*/
-
-define('dtmain',["ducttape"], function(dt_init) {
-    dt_init(window['ducttape_config'])
-});

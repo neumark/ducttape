@@ -23,14 +23,6 @@
   <link href="build/css/ducttape.css" rel="stylesheet">
 </head>
 <body>
-    <script type="text/javascript">
-        window.ducttape_config = {
-            init: function(dt) {
-                dt('o ui:lib').value.run(dt.symbol() +'.help "intro"');
-                $('#interactions').children().last().append('<div class="alert"><span class="label label-info">New</span> <a target="_blank" href="http://peterneumark.com/ducttape/2012-02-22/welcome-to-ducttape/">Checkout out</a> my blog entry on DuctTape for more info!</div>')
-            }
-        };
-    </script>
     <div class="navbar navbar-fixed-top">
       <div class="navbar-inner">
         <div class="container">
@@ -83,9 +75,18 @@
 <script src="deps/bootstrap/js/bootstrap-collapse.js"></script>
 <script src="deps/bootstrap/js/bootstrap-carousel.js"></script>
 <script src="deps/bootstrap/js/bootstrap-typeahead.js"></script>
-<script data-main="build/js/dtmain" src="deps/requirejs/require.js"></script>
+<script src="deps/requirejs/require.js"></script>
 <script type="text/javascript">
-
+    require.config({        
+        baseUrl: "build/js/"
+    });
+    require(["ducttape"], function(dt) {  
+        $(function() {
+            dt.init();
+            dt('o ui:lib').value.run(dt.symbol() +'.help "intro"');
+        });
+    });
+  // google analytics 
   var _gaq = _gaq || [];
   _gaq.push(['_setAccount', 'UA-29307183-1']);
   _gaq.push(['_setDomainName', 'github.com']);

@@ -21,7 +21,7 @@
     optimize: "none",
     modules: [
         {
-            name: "dtmain"
+            name: "ducttape"
         }
     ]
 })
