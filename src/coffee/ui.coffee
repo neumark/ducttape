@@ -17,11 +17,23 @@
 
 ###
 
-define [], ->
+define ['corelib'], (corelib) ->
     (dt) ->
         config = (dt 'v config')
         session = (dt 'v session')
         show = (dt 'o objectViewer:show').value
+
+        # Corelib does not have a reference to dt, so we add the class's toHTML method here.
+        # Display the "loading..." message until fulfillment of promise
+        corelib.Promise::toHTML = ->
+            # TODO: touch up loading msg:
+            div = $ '<div class="eval_result"><span>loading...<span></div>'
+            replaceContents = (values...) =>
+                div.children().remove()
+                if values.length == 0 then values = values[0]
+                ui.display values, false, div
+            if @value? then replaceContents(@value) else @on "success failure", => replaceContents(@value)
+            div
 
         class HistoryBrowser
             constructor: (@ui) ->
@@ -149,7 +161,7 @@ define [], ->
                 @timeoutHandle = null
                 @coffee_source = @editor.getSession().getValue().trim()
                 try 
-                    @js_source = ((dt 'v internals').corelib.compile @coffee_source)?.trim()
+                    @js_source = (corelib.compile @coffee_source)?.trim()
                     $("#ok").show()
                     $("#parseerror").hide()
                     if config.showGeneratedJS then @updateGeneratedJS()
@@ -206,11 +218,11 @@ define [], ->
                 if typeof(where) == "object" then where.append div
                 null
             execute: (coffee_stmt, js_stmt, silent = false) ->
-                evalexpr = js_stmt ? (dt 'v internals').corelib.compile coffee_stmt
+                evalexpr = js_stmt ? corelib.compile coffee_stmt
                 exception = null
                 result = null
                 try 
-                    result = (dt 'v internals').corelib.execJS evalexpr
+                    result = corelib.execJS evalexpr
                 catch error
                     exception = error
                 finally

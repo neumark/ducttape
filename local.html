@@ -81,6 +81,9 @@
 <script src="http://localhost:8081/deps/bootstrap/js/bootstrap-collapse.js"></script>
 <script src="http://localhost:8081/deps/bootstrap/js/bootstrap-carousel.js"></script>
 <script src="http://localhost:8081/deps/bootstrap/js/bootstrap-typeahead.js"></script>
+<!-- backbone and underscore --> 
+<script src="http://localhost:8081/deps/documentcloud/underscore.js"></script>
+<script src="http://localhost:8081/deps/documentcloud/backbone.js"></script>
 <!-- chrjs files for talking to tiddlyweb -->
 <script src="http://tiddlyspace.com/bags/tiddlyspace/tiddlers/chrjs"></script>
 <!--<script src="http://tiddlyspace.com/bags/common/tiddlers/chrjs.users"></script>-->
@@ -88,13 +91,9 @@
 <script src="http://localhost:8081/deps/requirejs/require.js"></script>
 <script type="text/javascript">
     require.config({        
-        paths: {
-            "ducttape": "http://localhost:8081/build/js/ducttape",
-            "pkg": "http://localhost:8081/build/",
-            "cs": "http://localhost:8081/deps/requirejs/cs"
-        }   
+        baseUrl: 'build/js/'
     });
-    require(["ducttape", "pkg/fs_tiddlyweb"], function(dt, fs_tiddlyweb) {  
+    require(["ducttape", "fs_tiddlyweb"], function(dt, fs_tiddlyweb) {  
         dt.definePackage(fs_tiddlyweb(dt));
         $(function() {
             dt.init();

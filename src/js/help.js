@@ -17,7 +17,7 @@
      help.coffee - Contains code and content for the help system.
   
   */  var __hasProp = Object.prototype.hasOwnProperty;
-  define([], function() {
+  define(['corelib'], function(corelib) {
     return function(dt) {
       var converter, displayMarkDown, fixLinks, pkg, uiLib;
       uiLib = (dt('o ui:lib')).value;
@@ -41,7 +41,7 @@
               });
               return link;
             case "/pseudoURL/replace":
-              return (dt('o objectViewer:show')).value((dt('v internals')).corelib.execJS((dt('v internals')).corelib.compile(a.text())));
+              return (dt('o objectViewer:show')).value(corelib.execJS(corelib.compile(a.text())));
             default:
               return $("<a href='" + (a.attr('href')) + "' target='_blank'>" + (a.text()) + "</a>");
           }

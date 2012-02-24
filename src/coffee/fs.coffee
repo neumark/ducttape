@@ -25,9 +25,8 @@
    * The FSILib object, which provides the FSI API for modules whishing to
      implement access to a particular service.
 ###
-define [], ->
+define ['corelib'], (corelib) ->
     (dt) ->
-        #VWM = (dt 'v internals').corelib.VWM
         session = (dt 'v session')
         mkSessionData = (path, obj) ->
             currentPath: path
@@ -58,12 +57,12 @@ define [], ->
                         description: "Displays current object."
                         makePublic: true
                     value: ->
-                        session.fs?.currentObject?.getContents (dt 'o ui:lib').value.asyncValue()
+                        session.fs?.currentObject?.contents()
 
                 ls:
                     attr:
                         description: "Lists children of current object."
                         makePublic: true
                     value: ->
-                        session.fs?.currentObject?.getChildren (dt 'o ui:lib').value.asyncValue()
+                        session.fs?.currentObject?.children()
                    

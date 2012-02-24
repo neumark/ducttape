@@ -16,13 +16,34 @@
   
      ui.coffee - The DuctTape UI.
   
-  */  var __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; }, __slice = Array.prototype.slice;
-  define([], function() {
+  */  var __slice = Array.prototype.slice, __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
+  define(['corelib'], function(corelib) {
     return function(dt) {
       var HistoryBrowser, UI, config, lib, pkg, session, show, ui;
       config = dt('v config');
       session = dt('v session');
       show = (dt('o objectViewer:show')).value;
+      corelib.Promise.prototype.toHTML = function() {
+        var div, replaceContents;
+        div = $('<div class="eval_result"><span>loading...<span></div>');
+        replaceContents = __bind(function() {
+          var values;
+          values = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
+          div.children().remove();
+          if (values.length === 0) {
+            values = values[0];
+          }
+          return ui.display(values, false, div);
+        }, this);
+        if (this.value != null) {
+          replaceContents(this.value);
+        } else {
+          this.on("success failure", __bind(function() {
+            return replaceContents(this.value);
+          }, this));
+        }
+        return div;
+      };
       HistoryBrowser = (function() {
         function HistoryBrowser(ui) {
           this.ui = ui;
@@ -195,7 +216,7 @@
           this.timeoutHandle = null;
           this.coffee_source = this.editor.getSession().getValue().trim();
           try {
-            this.js_source = (_ref = (dt('v internals')).corelib.compile(this.coffee_source)) != null ? _ref.trim() : void 0;
+            this.js_source = (_ref = corelib.compile(this.coffee_source)) != null ? _ref.trim() : void 0;
             $("#ok").show();
             $("#parseerror").hide();
             if (config.showGeneratedJS) {
@@ -279,11 +300,11 @@
           if (silent == null) {
             silent = false;
           }
-          evalexpr = js_stmt != null ? js_stmt : (dt('v internals')).corelib.compile(coffee_stmt);
+          evalexpr = js_stmt != null ? js_stmt : corelib.compile(coffee_stmt);
           exception = null;
           result = null;
           try {
-            return result = (dt('v internals')).corelib.execJS(evalexpr);
+            return result = corelib.execJS(evalexpr);
           } catch (error) {
             return exception = error;
           } finally {

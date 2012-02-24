@@ -28,12 +28,11 @@
     child.__super__ = parent.prototype;
     return child;
   }, __slice = Array.prototype.slice;
-  define([], function() {
+  define(['corelib'], function(corelib) {
     return function(dt) {
-      var Pkg, PkgMgr, VWM;
-      VWM = (dt('v internals')).corelib.VWM;
+      var Pkg, PkgMgr;
       Pkg = (function() {
-        __extends(Pkg, VWM);
+        __extends(Pkg, corelib.VWM);
         function Pkg(pkgSpec) {
           this.toHTML = __bind(this.toHTML, this);          var key, obj, _ref;
           Pkg.__super__.constructor.call(this, pkgSpec);
@@ -44,7 +43,7 @@
           for (key in _ref) {
             if (!__hasProp.call(_ref, key)) continue;
             obj = _ref[key];
-            this.save(new VWM(key, obj));
+            this.save(new corelib.VWM(key, obj));
           }
         }
         Pkg.prototype.save = function(vwm) {
@@ -139,7 +138,7 @@
           var args, pkg;
           pkg = arguments[0], args = 2 <= arguments.length ? __slice.call(arguments, 1) : [];
           return this.pkgDefinedGuard(pkg, function() {
-            this.store[pkg].save(new VWM(args));
+            this.store[pkg].save(new corelib.VWM(args));
             return true;
           });
         };

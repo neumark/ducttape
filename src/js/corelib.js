@@ -16,13 +16,12 @@
   
      corelib.coffee - Classes and functions used by DuctTape internally.
   
-  */  var __slice = Array.prototype.slice;
+  */  var __slice = Array.prototype.slice, __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
   define([], function() {
-    var VWM;
     return {
-      VWM: VWM = (function() {
-        VWM.prototype.doc = "A VWM has 3 parts:\n- name              unique id (within namespace) - string\n- attr              attributes - object (dictionary)\n- value             the actual value - any truthy javascript value";
-        function VWM() {
+      VWM: (function() {
+        _Class.prototype.doc = "A VWM has 3 parts:\n- name              unique id (within namespace) - string\n- attr              attributes - object (dictionary)\n- value             the actual value - any truthy javascript value";
+        function _Class() {
           var vwm, _ref;
           vwm = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
           _ref = (function() {
@@ -50,7 +49,7 @@
             throw new Error("VWM attr field must be an object");
           }
         }
-        VWM.prototype.hasAttributes = function(attrList) {
+        _Class.prototype.hasAttributes = function(attrList) {
           var f, missing;
           missing = (function() {
             var _i, _len, _results;
@@ -65,7 +64,25 @@
           }).call(this);
           return missing.length === 0;
         };
-        return VWM;
+        return _Class;
+      })(),
+      Promise: (function() {
+        function _Class(spec) {
+          this.spec = spec != null ? spec : {};
+          this.fulfill = __bind(this.fulfill, this);
+          this.value = null;
+          this.make = new Date();
+          _.extend(this, Backbone.Events);
+        }
+        _Class.prototype.fulfill = function() {
+          var isSuccess, value;
+          isSuccess = arguments[0], value = 2 <= arguments.length ? __slice.call(arguments, 1) : [];
+          this.isSuccess = isSuccess;
+          this.fulfilled = new Date();
+          this.value = this.spec.transform != null ? this.spec.transform(value) : value;
+          return this.trigger((this.isSuccess ? "success" : "failure"), this.value);
+        };
+        return _Class;
       })(),
       compile: function(src) {
         if (src.length === 0) {

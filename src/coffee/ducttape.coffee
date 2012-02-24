@@ -17,7 +17,7 @@
 
 ###
 
-define ['cmd', 'keybindings', 'ui', 'pkgmgr', 'objectviewer', 'corelib', 'fs', 'shellutils', 'help'], (Cmd, KeyBindings, ui, PkgMgr, objectviewer, corelib, fs, shellUtils, help) ->
+define ['cmd', 'keybindings', 'ui', 'pkgmgr', 'objectviewer', 'fs', 'shellutils', 'help'], (Cmd, KeyBindings, ui, PkgMgr, objectviewer, fs, shellUtils, help) ->
     class DuctTape
         constructor: (@config) ->
             # sanitize configuration:
@@ -28,7 +28,6 @@ define ['cmd', 'keybindings', 'ui', 'pkgmgr', 'objectviewer', 'corelib', 'fs', '
             # fields:
             @internals =
                 cmd: new (Cmd(@))()
-                corelib: corelib 
             @session =
                 history: []
                 keybindings: new KeyBindings()

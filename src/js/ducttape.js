@@ -16,7 +16,7 @@
   
      ducttape.coffee - main source file, defines the ducttape function.
   
-  */  define(['cmd', 'keybindings', 'ui', 'pkgmgr', 'objectviewer', 'corelib', 'fs', 'shellutils', 'help'], function(Cmd, KeyBindings, ui, PkgMgr, objectviewer, corelib, fs, shellUtils, help) {
+  */  define(['cmd', 'keybindings', 'ui', 'pkgmgr', 'objectviewer', 'fs', 'shellutils', 'help'], function(Cmd, KeyBindings, ui, PkgMgr, objectviewer, fs, shellUtils, help) {
     var DuctTape, dt, dtobj, _ref;
     DuctTape = (function() {
       function DuctTape(config) {
@@ -43,8 +43,7 @@
           _base3.showGeneratedJS = false;
         };
         this.internals = {
-          cmd: new (Cmd(this))(),
-          corelib: corelib
+          cmd: new (Cmd(this))()
         };
         this.session = {
           history: [],

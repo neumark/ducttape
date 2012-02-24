@@ -17,7 +17,7 @@
 
 ###
 
-define [], ->
+define ['corelib'], (corelib) ->
     (dt) ->
         uiLib = (dt 'o ui:lib').value
         fixLinks = (div) ->
@@ -36,7 +36,7 @@ define [], ->
                             uiLib.captureEvent ev
                             (dt 'o ui:insertText').value a.text()
                         link
-                    when "/pseudoURL/replace" then (dt 'o objectViewer:show').value (dt 'v internals').corelib.execJS (dt 'v internals').corelib.compile a.text()
+                    when "/pseudoURL/replace" then (dt 'o objectViewer:show').value corelib.execJS corelib.compile a.text()
                     else $("<a href='#{ a.attr 'href' }' target='_blank'>#{ a.text() }</a>")
         displayMarkDown = (md) ->
             result = $ ("<div class='eval_result'>" + converter.makeHtml(md) + "</div>")

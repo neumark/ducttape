@@ -160,15 +160,138 @@
      See the License for the specific language governing permissions and
      limitations under the License.
   
+     corelib.coffee - Classes and functions used by DuctTape internally.
+  
+  */  var __slice = Array.prototype.slice, __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
+  define('corelib',[], function() {
+    return {
+      VWM: (function() {
+        _Class.prototype.doc = "A VWM has 3 parts:\n- name              unique id (within namespace) - string\n- attr              attributes - object (dictionary)\n- value             the actual value - any truthy javascript value";
+        function _Class() {
+          var vwm, _ref;
+          vwm = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
+          _ref = (function() {
+            var _ref, _ref2, _ref3, _ref4, _ref5, _ref6;
+            switch (vwm != null ? vwm.length : void 0) {
+              case 1:
+                if ((((_ref = vwm[0]) != null ? _ref.length : void 0) != null) === 3) {
+                  return vwm[0];
+                } else {
+                  return [(_ref2 = vwm[0]) != null ? _ref2.name : void 0, (_ref3 = vwm[0]) != null ? _ref3.attr : void 0, (_ref4 = vwm[0]) != null ? _ref4.value : void 0];
+                }
+                break;
+              case 2:
+                return [vwm != null ? vwm[0] : void 0, vwm != null ? (_ref5 = vwm[1]) != null ? _ref5.attr : void 0 : void 0, vwm != null ? (_ref6 = vwm[1]) != null ? _ref6.value : void 0 : void 0];
+              case 3:
+                return vwm;
+              default:
+                return [];
+            }
+          })(), this.name = _ref[0], this.attr = _ref[1], this.value = _ref[2];
+          if ((!(this.name != null)) || (!(this.attr != null)) || (!this.value)) {
+            throw new Error("Bad VWM format");
+          }
+          if ((typeof this.attr) !== "object") {
+            throw new Error("VWM attr field must be an object");
+          }
+        }
+        _Class.prototype.hasAttributes = function(attrList) {
+          var f, missing;
+          missing = (function() {
+            var _i, _len, _results;
+            _results = [];
+            for (_i = 0, _len = attrList.length; _i < _len; _i++) {
+              f = attrList[_i];
+              if (!(this.attr[f] != null)) {
+                _results.push(f);
+              }
+            }
+            return _results;
+          }).call(this);
+          return missing.length === 0;
+        };
+        return _Class;
+      })(),
+      Promise: (function() {
+        function _Class(spec) {
+          this.spec = spec != null ? spec : {};
+          this.fulfill = __bind(this.fulfill, this);
+          this.value = null;
+          this.make = new Date();
+          _.extend(this, Backbone.Events);
+        }
+        _Class.prototype.fulfill = function() {
+          var isSuccess, value;
+          isSuccess = arguments[0], value = 2 <= arguments.length ? __slice.call(arguments, 1) : [];
+          this.isSuccess = isSuccess;
+          this.fulfilled = new Date();
+          this.value = this.spec.transform != null ? this.spec.transform(value) : value;
+          return this.trigger((this.isSuccess ? "success" : "failure"), this.value);
+        };
+        return _Class;
+      })(),
+      compile: function(src) {
+        if (src.length === 0) {
+          return src;
+        } else {
+          return CoffeeScript.compile(src, {
+            'bare': true
+          });
+        }
+      },
+      execJS: function(jsSrc) {
+        return window.eval(jsSrc.replace(/\n/g, "") + "\n");
+      }
+    };
+  });
+}).call(this);
+
+(function() {
+  /*
+     Copyright 2012 Peter Neumark
+  
+     Licensed under the Apache License, Version 2.0 (the "License");
+     you may not use this file except in compliance with the License.
+     You may obtain a copy of the License at
+  
+         http://www.apache.org/licenses/LICENSE-2.0
+  
+     Unless required by applicable law or agreed to in writing, software
+     distributed under the License is distributed on an "AS IS" BASIS,
+     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+     See the License for the specific language governing permissions and
+     limitations under the License.
+  
      ui.coffee - The DuctTape UI.
   
-  */  var __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; }, __slice = Array.prototype.slice;
-  define('ui',[], function() {
+  */  var __slice = Array.prototype.slice, __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
+  define('ui',['corelib'], function(corelib) {
     return function(dt) {
       var HistoryBrowser, UI, config, lib, pkg, session, show, ui;
       config = dt('v config');
       session = dt('v session');
       show = (dt('o objectViewer:show')).value;
+      corelib.Promise.prototype.toHTML = function() {
+        var div, replaceContents;
+        div = $('<div class="eval_result"><span>loading...<span></div>');
+        replaceContents = __bind(function() {
+          var values;
+          values = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
+          div.children().remove();
+          if (values.length === 0) {
+            values = values[0];
+          }
+          return ui.display(values, false, div);
+        }, this);
+        if (this.value != null) {
+          replaceContents(this.value);
+        } else {
+          this.on("success failure", __bind(function() {
+            return replaceContents(this.value);
+          }, this));
+        }
+        return div;
+      };
       HistoryBrowser = (function() {
         function HistoryBrowser(ui) {
           this.ui = ui;
@@ -341,7 +464,7 @@
           this.timeoutHandle = null;
           this.coffee_source = this.editor.getSession().getValue().trim();
           try {
-            this.js_source = (_ref = (dt('v internals')).corelib.compile(this.coffee_source)) != null ? _ref.trim() : void 0;
+            this.js_source = (_ref = corelib.compile(this.coffee_source)) != null ? _ref.trim() : void 0;
             $("#ok").show();
             $("#parseerror").hide();
             if (config.showGeneratedJS) {
@@ -425,11 +548,11 @@
           if (silent == null) {
             silent = false;
           }
-          evalexpr = js_stmt != null ? js_stmt : (dt('v internals')).corelib.compile(coffee_stmt);
+          evalexpr = js_stmt != null ? js_stmt : corelib.compile(coffee_stmt);
           exception = null;
           result = null;
           try {
-            return result = (dt('v internals')).corelib.execJS(evalexpr);
+            return result = corelib.execJS(evalexpr);
           } catch (error) {
             return exception = error;
           } finally {
@@ -583,12 +706,11 @@
     child.__super__ = parent.prototype;
     return child;
   }, __slice = Array.prototype.slice;
-  define('pkgmgr',[], function() {
+  define('pkgmgr',['corelib'], function(corelib) {
     return function(dt) {
-      var Pkg, PkgMgr, VWM;
-      VWM = (dt('v internals')).corelib.VWM;
+      var Pkg, PkgMgr;
       Pkg = (function() {
-        __extends(Pkg, VWM);
+        __extends(Pkg, corelib.VWM);
         function Pkg(pkgSpec) {
           this.toHTML = __bind(this.toHTML, this);          var key, obj, _ref;
           Pkg.__super__.constructor.call(this, pkgSpec);
@@ -599,7 +721,7 @@
           for (key in _ref) {
             if (!__hasProp.call(_ref, key)) continue;
             obj = _ref[key];
-            this.save(new VWM(key, obj));
+            this.save(new corelib.VWM(key, obj));
           }
         }
         Pkg.prototype.save = function(vwm) {
@@ -694,7 +816,7 @@
           var args, pkg;
           pkg = arguments[0], args = 2 <= arguments.length ? __slice.call(arguments, 1) : [];
           return this.pkgDefinedGuard(pkg, function() {
-            this.store[pkg].save(new VWM(args));
+            this.store[pkg].save(new corelib.VWM(args));
             return true;
           });
         };
@@ -986,91 +1108,6 @@
 
 (function() {
   /*
-     Copyright 2012 Peter Neumark
-  
-     Licensed under the Apache License, Version 2.0 (the "License");
-     you may not use this file except in compliance with the License.
-     You may obtain a copy of the License at
-  
-         http://www.apache.org/licenses/LICENSE-2.0
-  
-     Unless required by applicable law or agreed to in writing, software
-     distributed under the License is distributed on an "AS IS" BASIS,
-     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-     See the License for the specific language governing permissions and
-     limitations under the License.
-  
-     corelib.coffee - Classes and functions used by DuctTape internally.
-  
-  */  var __slice = Array.prototype.slice;
-  define('corelib',[], function() {
-    var VWM;
-    return {
-      VWM: VWM = (function() {
-        VWM.prototype.doc = "A VWM has 3 parts:\n- name              unique id (within namespace) - string\n- attr              attributes - object (dictionary)\n- value             the actual value - any truthy javascript value";
-        function VWM() {
-          var vwm, _ref;
-          vwm = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
-          _ref = (function() {
-            var _ref, _ref2, _ref3, _ref4, _ref5, _ref6;
-            switch (vwm != null ? vwm.length : void 0) {
-              case 1:
-                if ((((_ref = vwm[0]) != null ? _ref.length : void 0) != null) === 3) {
-                  return vwm[0];
-                } else {
-                  return [(_ref2 = vwm[0]) != null ? _ref2.name : void 0, (_ref3 = vwm[0]) != null ? _ref3.attr : void 0, (_ref4 = vwm[0]) != null ? _ref4.value : void 0];
-                }
-                break;
-              case 2:
-                return [vwm != null ? vwm[0] : void 0, vwm != null ? (_ref5 = vwm[1]) != null ? _ref5.attr : void 0 : void 0, vwm != null ? (_ref6 = vwm[1]) != null ? _ref6.value : void 0 : void 0];
-              case 3:
-                return vwm;
-              default:
-                return [];
-            }
-          })(), this.name = _ref[0], this.attr = _ref[1], this.value = _ref[2];
-          if ((!(this.name != null)) || (!(this.attr != null)) || (!this.value)) {
-            throw new Error("Bad VWM format");
-          }
-          if ((typeof this.attr) !== "object") {
-            throw new Error("VWM attr field must be an object");
-          }
-        }
-        VWM.prototype.hasAttributes = function(attrList) {
-          var f, missing;
-          missing = (function() {
-            var _i, _len, _results;
-            _results = [];
-            for (_i = 0, _len = attrList.length; _i < _len; _i++) {
-              f = attrList[_i];
-              if (!(this.attr[f] != null)) {
-                _results.push(f);
-              }
-            }
-            return _results;
-          }).call(this);
-          return missing.length === 0;
-        };
-        return VWM;
-      })(),
-      compile: function(src) {
-        if (src.length === 0) {
-          return src;
-        } else {
-          return CoffeeScript.compile(src, {
-            'bare': true
-          });
-        }
-      },
-      execJS: function(jsSrc) {
-        return window.eval(jsSrc.replace(/\n/g, "") + "\n");
-      }
-    };
-  });
-}).call(this);
-
-(function() {
-  /*
   
      Copyright 2012 Peter Neumark
   
@@ -1096,7 +1133,7 @@
        mount, unmount, ls, pwd, cd
      * The FSILib object, which provides the FSI API for modules whishing to
        implement access to a particular service.
-  */  define('fs',[], function() {
+  */  define('fs',['corelib'], function(corelib) {
     return function(dt) {
       var mkSessionData, pkg, session;
       session = dt('v session');
@@ -1142,7 +1179,7 @@
             },
             value: function() {
               var _ref, _ref2;
-              return (_ref = session.fs) != null ? (_ref2 = _ref.currentObject) != null ? _ref2.getContents((dt('o ui:lib')).value.asyncValue()) : void 0 : void 0;
+              return (_ref = session.fs) != null ? (_ref2 = _ref.currentObject) != null ? _ref2.contents() : void 0 : void 0;
             }
           },
           ls: {
@@ -1152,7 +1189,7 @@
             },
             value: function() {
               var _ref, _ref2;
-              return (_ref = session.fs) != null ? (_ref2 = _ref.currentObject) != null ? _ref2.getChildren((dt('o ui:lib')).value.asyncValue()) : void 0 : void 0;
+              return (_ref = session.fs) != null ? (_ref2 = _ref.currentObject) != null ? _ref2.children() : void 0 : void 0;
             }
           }
         }
@@ -1318,7 +1355,7 @@
      help.coffee - Contains code and content for the help system.
   
   */  var __hasProp = Object.prototype.hasOwnProperty;
-  define('help',[], function() {
+  define('help',['corelib'], function(corelib) {
     return function(dt) {
       var converter, displayMarkDown, fixLinks, pkg, uiLib;
       uiLib = (dt('o ui:lib')).value;
@@ -1342,7 +1379,7 @@
               });
               return link;
             case "/pseudoURL/replace":
-              return (dt('o objectViewer:show')).value((dt('v internals')).corelib.execJS((dt('v internals')).corelib.compile(a.text())));
+              return (dt('o objectViewer:show')).value(corelib.execJS(corelib.compile(a.text())));
             default:
               return $("<a href='" + (a.attr('href')) + "' target='_blank'>" + (a.text()) + "</a>");
           }
@@ -1456,7 +1493,7 @@
   
      ducttape.coffee - main source file, defines the ducttape function.
   
-  */  define('ducttape',['cmd', 'keybindings', 'ui', 'pkgmgr', 'objectviewer', 'corelib', 'fs', 'shellutils', 'help'], function(Cmd, KeyBindings, ui, PkgMgr, objectviewer, corelib, fs, shellUtils, help) {
+  */  define('ducttape',['cmd', 'keybindings', 'ui', 'pkgmgr', 'objectviewer', 'fs', 'shellutils', 'help'], function(Cmd, KeyBindings, ui, PkgMgr, objectviewer, fs, shellUtils, help) {
     var DuctTape, dt, dtobj, _ref;
     DuctTape = (function() {
       function DuctTape(config) {
@@ -1483,8 +1520,7 @@
           _base3.showGeneratedJS = false;
         };
         this.internals = {
-          cmd: new (Cmd(this))(),
-          corelib: corelib
+          cmd: new (Cmd(this))()
         };
         this.session = {
           history: [],

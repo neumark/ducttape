@@ -1,64 +1,69 @@
-define [], ->
+define ['corelib'], (corelib) ->
     (dt) ->
         root = (host) ->
 
             class TWObj
                 constructor: (@name) ->
                     @obj = new (tiddlyweb[@type])(@name, host)
-                    @contents = null
-                    @children = null
-                # no children is the default
-                childRequestFn: (cb) -> cb [] 
-                getChildren: 
-                    (cb, failureCb) => if @children? then cb @children else @childRequestFn (
-                        (children) =>
-                            @children = (@mkChild c for c in children) 
-                            cb @children
-                        (failureCb ? @failureCb)
-                    )
-                failureCb: (args...) =>
-                    (dt 'o ui:display').value args
-                getContents: (cb, failureCb) => if @contents? then cb contents else @obj.get(
-                    (c) => 
-                        @contents = c
-                        cb c
-                    (failureCb ? @failureCb)
-                )
+                    @contentObj = null
+                    @childList = null
+                request: (that, ajaxFun, attribute, transform) =>
+                    if @[attribute]? then @[attribute] else 
+                        promise = new corelib.Promise
+                            ajaxFun: ajaxFun
+                            that: that
+                            transform: transform 
+                        promise.twRequest = ajaxFun.apply that, [
+                            (value) -> promise.fulfill true, value
+                            (args...) -> 
+                                # TODO: better error msg
+                                (dt 'o ui:display').value args
+                                promise.fulfill false, args
+                        ]
+                        promise
+                # default content request class .get()
+                contents: => 
+                    @request @obj, @obj.get, 'contentObj'
 
-            class TopLevel extends TWObj # bags, recipes
+            class TopLevel extends TWObj # bags, recipes 
                 constructor: (name) -> 
                     @type = 'Collection'
                     super(name)
-                childRequestFn: -> @obj.get.apply @ arguments
-                getContents: (cb) -> cb null
-                mkChild: 
-                    (collectionName) ->
-                        new SecondLevel (
+                contents: -> null
+                # Children are collections (bags or recipes)
+                children: ->
+                    promise = null
+                    promise = @request @obj, @obj.get, 'childList', (val) ->
+                        if promise.isSuccessful 
+                            (new SecondLevel (
                                 collectionName
                                 switch @name
                                     when 'bags' then 'Bag'
                                     when 'recipes' then 'Recipe'
                                     else
                                         throw new Error 'Unknown top level child: ' + @name
-                        )
+                            ) for i in val)
+                        else val
 
             class SecondLevel extends TWObj # a Bag or Recipe
                 constructor: (name, @type) -> 
                     super(name)
-                childRequestFn: -> 
-                    that = @obj.tiddlers()
-                    that.get.apply that arguments
-                mkChild: (title) -> new Tiddler (title)
+                # children are tiddlers
+                children: =>
+                    @request obj.tiddlers(), obj.tiddlers().get, 'childList', @mkChild
+                mkChild: (title) => new TiddlerWrapper (title)
 
-            class Tiddler extends TWObj
+            class TiddlerWrapper extends TWObj
                 constructor: (name) ->
                     @type = 'Tiddler'
+                children: -> []
+                # TODO: revisions, fields, tags could be further children
 
             class Root extends TWObj
                 constructor: ->
-                getContents: (cb) -> cb host
-                childRequestFn: (cb) -> cb ['bags', 'recipes']
-                mkChild: (name) -> new TopLevel name
+                    @childList = [new TopLevel('bags'), new TopLevel('recipes')]
+                contents: -> host
+                children: => @childList
 
             new Root()
 

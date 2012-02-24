@@ -21,17 +21,15 @@
    Deeper in the object hierarchy there can be "plain old objects" as well.
 ###
 
-define [], ->
+define ['corelib'], (corelib) ->
     (dt) ->
-        VWM = (dt 'v internals').corelib.VWM
-
-        class Pkg extends VWM
+        class Pkg extends corelib.VWM
             constructor: (pkgSpec) ->
                 super pkgSpec
                 if not @hasAttributes ["author", "description", "url"]
                     throw new Error "InvalidPackageSpecification"
                 for own key, obj of @value
-                    @save new VWM key, obj
+                    @save new corelib.VWM key, obj
             save: (vwm) ->
                 if not vwm.hasAttributes ["description"]
                     throw new Error "InvalidObjectSpecification"
@@ -106,7 +104,7 @@ define [], ->
                 true
             save: (pkg, args...) =>
                 @pkgDefinedGuard pkg, ->
-                    @store[pkg].save new VWM args
+                    @store[pkg].save new corelib.VWM args
                     true
             load: (pkg, name) =>
                 @pkgDefinedGuard pkg, ->

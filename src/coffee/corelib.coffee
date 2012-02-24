@@ -19,7 +19,7 @@
 
 define [], ->
     VWM:
-        class VWM
+        class
             doc: """
                  A VWM has 3 parts:
                  - name              unique id (within namespace) - string
@@ -41,6 +41,18 @@ define [], ->
             hasAttributes: (attrList) ->
                 missing = (f for f in attrList when (not @attr[f]?))
                 missing.length == 0
+    Promise:
+        class
+            constructor: (@spec = {}) ->
+                # TODO: timeout in spec
+                @value = null
+                @make = new Date()
+                _.extend @, Backbone.Events
+            fulfill: (@isSuccess, value...) =>
+                @fulfilled = new Date()
+                @value = if @spec.transform? then @spec.transform(value) else value
+                @trigger (if @isSuccess then "success" else "failure"), @value
+
     compile: (src) ->
         if src.length == 0 then src else CoffeeScript.compile(src, {'bare': on})
     execJS: (jsSrc) -> window.eval jsSrc.replace(/\n/g, "") + "\n"

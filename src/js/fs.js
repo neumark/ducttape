@@ -25,7 +25,7 @@
        mount, unmount, ls, pwd, cd
      * The FSILib object, which provides the FSI API for modules whishing to
        implement access to a particular service.
-  */  define([], function() {
+  */  define(['corelib'], function(corelib) {
     return function(dt) {
       var mkSessionData, pkg, session;
       session = dt('v session');
@@ -71,7 +71,7 @@
             },
             value: function() {
               var _ref, _ref2;
-              return (_ref = session.fs) != null ? (_ref2 = _ref.currentObject) != null ? _ref2.getContents((dt('o ui:lib')).value.asyncValue()) : void 0 : void 0;
+              return (_ref = session.fs) != null ? (_ref2 = _ref.currentObject) != null ? _ref2.contents() : void 0 : void 0;
             }
           },
           ls: {
@@ -81,7 +81,7 @@
             },
             value: function() {
               var _ref, _ref2;
-              return (_ref = session.fs) != null ? (_ref2 = _ref.currentObject) != null ? _ref2.getChildren((dt('o ui:lib')).value.asyncValue()) : void 0 : void 0;
+              return (_ref = session.fs) != null ? (_ref2 = _ref.currentObject) != null ? _ref2.children() : void 0 : void 0;
             }
           }
         }
