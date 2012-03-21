@@ -23,7 +23,7 @@
   define(['corelib'], function(corelib) {
     return function(dt) {
       var converter, displayMarkDown, fixLinks, pkg, uiLib;
-      uiLib = (dt('o ui:lib')).value;
+      uiLib = dt.pkgGet('ui', 'lib').value;
       fixLinks = function(div) {
         return div.find('a').replaceWith(function() {
           var a, link;
@@ -40,11 +40,11 @@
               link = $("<a href='#'>" + (a.attr('title') ? a.attr('title') : a.text()) + "</a>");
               link.click(function(ev) {
                 uiLib.captureEvent(ev);
-                return (dt('o ui:insertText')).value(a.text());
+                return dt.pkgGet('ui', 'insertText').value(a.text());
               });
               return link;
             case "/pseudoURL/replace":
-              return (dt('o objectViewer:show')).value(corelib.execJS(corelib.compile(a.text())));
+              return dt.pkgGet('objectViewer', 'show').value(corelib.execJS(corelib.compile(a.text())));
             default:
               return $("<a href='" + (a.attr('href')) + "' target='_blank'>" + (a.text()) + "</a>");
           }
@@ -75,7 +75,7 @@
               var helpText, vwm;
               if ((section != null ? section[dt.symbol() + 'id'] : void 0) != null) {
                 try {
-                  vwm = dt('o ' + section[dt.symbol() + 'id']);
+                  vwm = dt.pkgGet.apply(this(section[dt.symbol() + 'id'].split(':')));
                 } catch (e) {
                   return "Error retrieving help for " + section[dt.symbol() + 'id'];
                 }

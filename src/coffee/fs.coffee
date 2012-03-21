@@ -27,7 +27,7 @@
 ###
 define ['corelib'], (corelib) ->
     (dt) ->
-        session = (dt 'v session')
+        session = dt.pkgGet('core', 'session').value
         mkSessionData = (path, obj) ->
             currentPath: path
             currentObject: obj

@@ -122,8 +122,8 @@ define [], ->
                     plugins : [ "themes", "json_data", "crrm" ]
                 object_viewer.on 'click', 'a.objectViewer_item', (ev) -> 
                     kl = mk_keylist $(ev.currentTarget)
-                    (dt 'o ui:lib').value.captureEvent ev
-                    (dt 'o ui:insertText').value(
+                    dt.pkgGet('ui','lib').value.captureEvent ev
+                    dt.pkgGet('ui','insertText').value(
                         if kl.length == 0 then refname else "#{ refname }['#{ kl.join("']['") }']")
                 object_viewer
 

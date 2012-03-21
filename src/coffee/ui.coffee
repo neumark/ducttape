@@ -19,9 +19,9 @@
 
 define ['corelib'], (corelib) ->
     (dt) ->
-        config = (dt 'v config')
-        session = (dt 'v session')
-        show = (dt 'o objectViewer:show').value
+        config = dt.pkgGet('core','config').value
+        session = dt.pkgGet('core', 'session').value
+        show = dt.pkgGet('objectViewer', 'show').value
 
         # Corelib does not have a reference to dt, so we add the class's toHTML method here.
         # Display the "loading..." message until fulfillment of promise
@@ -178,7 +178,7 @@ define ['corelib'], (corelib) ->
                 cursor.column += text.length;
                 currentValue = @editor.getSession().getValue()
                 @editor.getSession().setValue(
-                    if currentValue == (dt 'config').initial_buffer then text else currentValue + text)
+                    if currentValue == config.initial_buffer then text else currentValue + text)
                 @scrollToBottom()
                 @editor.moveCursorToPosition cursor
             resetEditorContents: (newContents = config.initial_buffer) =>
@@ -227,7 +227,7 @@ define ['corelib'], (corelib) ->
                     exception = error
                 finally
                     # add to history
-                    (dt 'v session').history.push historyEntry =
+                    session.history.push historyEntry =
                         js: js_stmt
                         coffee: coffee_stmt
                         value: exception ? result

@@ -69,7 +69,7 @@
           var dl, name, pkgDesc, _fn, _ref, _ref2, _ref3,
             _this = this;
           pkgDesc = $(" <div>\n     <h2>" + this.name + "</h2>\n     <table>\n         <tr><td><b>Author&nbsp;</b></td><td>" + ((_ref = this.attr.author) != null ? _ref : "") + "</td></tr>\n         <tr><td><b>URL&nbsp;</b></td><td><a href=\"" + this.attr.url + "\" target='_blank'>" + this.attr.url + "</a></td></tr>\n         <tr><td><b>Version&nbsp;</b></td><td>" + ((_ref2 = this.attr.version) != null ? _ref2 : "") + "</td></tr>\n     </table>\n     <p><!-- description --></p>\n     <p>Package Contents:\n         <dl></dl>\n     </p>\n</div>");
-          pkgDesc.find('p').first().append((dt('o help:displayMarkDown')).value(this.attr.description));
+          pkgDesc.find('p').first().append(dt.pkgGet('help', 'displayMarkDown').value(this.attr.description));
           dl = pkgDesc.find('dl');
           _ref3 = this.value;
           _fn = function(name) {
@@ -77,7 +77,7 @@
             dl.append($("<dt>" + name + "</dt>"));
             mdSrc = _this.value[name].attr.makePublic === true ? "_Available as:_ [" + (dt.symbol()) + "." + name + "](/pseudoURL/insert)<br />" : "";
             mdSrc += _this.value[name].attr.description;
-            return dl.append($("<dd></dd>").append((dt('o help:displayMarkDown')).value(mdSrc)));
+            return dl.append($("<dd></dd>").append(dt.pkgGet('help', 'displayMarkDown').value(mdSrc)));
           };
           for (name in _ref3) {
             if (!__hasProp.call(_ref3, name)) continue;
@@ -92,12 +92,10 @@
       return PkgMgr = (function() {
 
         function PkgMgr(store) {
+          var _this = this;
           this.store = store != null ? store : {};
-          this.listPackages = __bind(this.listPackages, this);
-          this.load = __bind(this.load, this);
-          this.save = __bind(this.save, this);
-          this.definePackage = __bind(this.definePackage, this);
-          this.definePackage({
+          this.pkgDef = __bind(this.pkgDef, this);
+          this.pkgDef({
             name: 'pkgmgr',
             attr: {
               author: 'Peter Neumark',
@@ -106,74 +104,69 @@
               description: "Use this package to load custom packages into **DuctTape**."
             },
             value: {
-              definePackage: {
+              pkgDef: {
                 attr: {
                   description: "loads a new package into DuctTape.",
                   makePublic: true
                 },
-                value: this.definePackage
+                value: this.pkgDef
               },
-              save: {
+              pkgSet: {
                 attr: {
-                  description: "Add a Value With Metadata to an existing package."
+                  description: "Add a Value With Metadata to an existing package.",
+                  makePublic: true
                 },
-                value: this.save
+                value: function() {
+                  var args, pkg;
+                  pkg = arguments[0], args = 2 <= arguments.length ? __slice.call(arguments, 1) : [];
+                  return _this.pkgDefinedGuard(pkg, function() {
+                    this.store[pkg].save(new corelib.NAV(args));
+                    return true;
+                  });
+                }
               },
-              load: {
+              pkgGet: {
                 attr: {
-                  description: "Retrieve a reference to a Value With Metadata object."
+                  description: "Retrieve a reference to a Value With Metadata object.",
+                  makePublic: true
                 },
-                value: this.load
+                value: function(pkg, name) {
+                  return _this.pkgDefinedGuard(pkg, function() {
+                    return this.store[pkg].load(name);
+                  });
+                }
               },
-              listPackages: {
+              pkgList: {
                 attr: {
                   description: "Displays the list of currently loaded packages and their contents.",
                   makePublic: true
                 },
-                value: this.listPackages
+                value: function() {
+                  var out, pkgName, _fn, _ref;
+                  out = $("<div />");
+                  _ref = _this.store;
+                  _fn = function(pkgName) {
+                    out.append(_this.store[pkgName].toHTML());
+                    return out.append("<hr />");
+                  };
+                  for (pkgName in _ref) {
+                    if (!__hasProp.call(_ref, pkgName)) continue;
+                    _fn(pkgName);
+                  }
+                  out.find("hr").last().detach();
+                  return out;
+                }
               }
             }
           });
         }
 
-        PkgMgr.prototype.definePackage = function(pkgSpec) {
+        PkgMgr.prototype.pkgDef = function(pkgSpec) {
           var pkg;
           pkg = new Pkg(pkgSpec);
           if (this.store[pkg.name] != null) throw new Error("PkgExists");
           this.store[pkg.name] = pkg;
           return true;
-        };
-
-        PkgMgr.prototype.save = function() {
-          var args, pkg;
-          pkg = arguments[0], args = 2 <= arguments.length ? __slice.call(arguments, 1) : [];
-          return this.pkgDefinedGuard(pkg, function() {
-            this.store[pkg].save(new corelib.NAV(args));
-            return true;
-          });
-        };
-
-        PkgMgr.prototype.load = function(pkg, name) {
-          return this.pkgDefinedGuard(pkg, function() {
-            return this.store[pkg].load(name);
-          });
-        };
-
-        PkgMgr.prototype.listPackages = function() {
-          var out, pkgName, _fn, _ref,
-            _this = this;
-          out = $("<div />");
-          _ref = this.store;
-          _fn = function(pkgName) {
-            out.append(_this.store[pkgName].toHTML());
-            return out.append("<hr />");
-          };
-          for (pkgName in _ref) {
-            if (!__hasProp.call(_ref, pkgName)) continue;
-            _fn(pkgName);
-          }
-          out.find("hr").last().detach();
-          return out;
         };
 
         PkgMgr.prototype.pkgDefinedGuard = function(pkgName, fn) {

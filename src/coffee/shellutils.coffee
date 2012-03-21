@@ -33,7 +33,7 @@ define [], ->
                         description: 'Displays the last executed command and result.'
                         makePublic: true
                     value: ->
-                        h = (dt 'v session').history
+                        h = dt.getPkg('core','session').value
                         if h.length > 0 then h[h.length - 1] else "This is the first command."
                 clear:
                     attr:
@@ -46,15 +46,15 @@ define [], ->
                     attr:
                         description: 'Returns global name of DuctTape function.'
                         makePublic: true
-                    value: -> (dt 'v config').globalRef + ''
+                    value: -> dt.pkgGet('core','config').value.globalRef + ''
                 history:
                     attr:
                         description: 'Prints history of formerly executed commands.'
                         makePublic: true
                     value: ->
-                        uiLib = (dt 'o ui:lib').value
+                        uiLib = dt.pkgGet('ui','lib').value
                         c = $('<div class="eval_result"></div>')
-                        for h in (dt 'v session').history
+                        for h in dt.pkgGet('core','session').value.history
                             do (h) ->
                                 c.append $("<span><a style='display:block;' href='#'>#{ h.coffee }</a></span>").find('a').click (ev) ->
                                     uiLib.captureEvent ev
@@ -78,5 +78,5 @@ define [], ->
                     value:
                         log: (expr, source='', level='info') ->
                             # TODO: change decorator based on source and level
-                            (dt 'o ui:display').value expr
+                            pkgGet('ui','display').value expr
 

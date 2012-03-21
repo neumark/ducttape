@@ -47,17 +47,46 @@
 
     })();
     dtobj = new DuctTape((_ref = window.ducttape_config) != null ? _ref : {});
-    dt = dtobj.exec = function() {
+    dt = function() {
       return dtobj.internals.cmd.exec.apply(dtobj.cmd, arguments);
     };
     dtobj.internals.pkgmgr = new (PkgMgr(dt))();
-    dtobj.internals.pkgmgr.definePackage(objectviewer(dt));
-    dtobj.internals.pkgmgr.definePackage(ui(dt));
-    dtobj.internals.pkgmgr.definePackage(fs(dt));
-    dtobj.internals.pkgmgr.definePackage(shellUtils(dt));
-    dtobj.internals.pkgmgr.definePackage(help(dt));
+    dtobj.internals.pkgmgr.pkgDef({
+      name: 'core',
+      attr: {
+        author: 'Peter Neumark',
+        url: 'https://github.com/neumark/ducttape',
+        version: '1.0',
+        description: 'DuctTape internals.'
+      },
+      value: {
+        session: {
+          attr: {
+            description: "Reference to session object"
+          },
+          value: dtobj.session
+        },
+        config: {
+          attr: {
+            description: "Reference to config object"
+          },
+          value: dtobj.config
+        },
+        exec: {
+          attr: {
+            description: "Parse and execute a command"
+          },
+          value: dt
+        }
+      }
+    });
+    dtobj.internals.pkgmgr.pkgDef(objectviewer(dt));
+    dtobj.internals.pkgmgr.pkgDef(ui(dt));
+    dtobj.internals.pkgmgr.pkgDef(fs(dt));
+    dtobj.internals.pkgmgr.pkgDef(shellUtils(dt));
+    dtobj.internals.pkgmgr.pkgDef(help(dt));
     dt.toHTML = function() {
-      return (dt('o help:help')).value('intro');
+      return dt.pkgGet('help', 'help').value('intro');
     };
     window[dtobj.config.globalRef] = dt;
     return dt;

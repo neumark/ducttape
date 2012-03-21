@@ -55,20 +55,20 @@ define ['corelib'], (corelib) ->
                                     </p>
                                </div>
                             """
-                pkgDesc.find('p').first().append (dt 'o help:displayMarkDown').value @attr.description
+                pkgDesc.find('p').first().append dt.pkgGet('help','displayMarkDown').value @attr.description
                 dl = pkgDesc.find('dl')
                 for own name of @value
                     do (name) =>
                         dl.append $ "<dt>#{ name }</dt>"
                         mdSrc = if @value[name].attr.makePublic is on then "_Available as:_ [#{ dt.symbol() }.#{ name }](/pseudoURL/insert)<br />" else ""
                         mdSrc += @value[name].attr.description
-                        dl.append $("<dd></dd>").append (dt 'o help:displayMarkDown').value mdSrc
+                        dl.append $("<dd></dd>").append dt.pkgGet('help','displayMarkDown').value mdSrc
                 pkgDesc
 
         class PkgMgr
             constructor: (@store = {}) ->
                 # Register self as the first package!
-                @definePackage
+                @pkgDef
                     name: 'pkgmgr'
                     attr:
                         author: 'Peter Neumark'
@@ -78,47 +78,44 @@ define ['corelib'], (corelib) ->
                                      Use this package to load custom packages into **DuctTape**.
                                      """
                     value:
-                        definePackage:
+                        pkgDef:
                             attr:
                                 description: "loads a new package into DuctTape."
                                 makePublic: true
-                            value: @definePackage
-                        save:
+                            value: @pkgDef
+                        pkgSet:
                             attr:
                                 description: "Add a Value With Metadata to an existing package."
-                            value: @save
-                        load:
+                                makePublic: true
+                            value: (pkg, args...) =>
+                                @pkgDefinedGuard pkg, ->
+                                    @store[pkg].save new corelib.NAV args
+                                    true
+                        pkgGet:
                             attr:
                                 description: "Retrieve a reference to a Value With Metadata object."
-                            value: @load
-                        listPackages:
+                                makePublic: true
+                            value: (pkg, name) =>
+                                @pkgDefinedGuard pkg, ->
+                                    @store[pkg].load(name)
+                        pkgList:
                             attr:
                                 description: "Displays the list of currently loaded packages and their contents."
                                 makePublic: true
-                            value: @listPackages
+                            value: =>
+                                out = $ "<div />"
+                                for own pkgName of @store
+                                    do (pkgName) =>
+                                        out.append @store[pkgName].toHTML()
+                                        out.append "<hr />"
+                                out.find("hr").last().detach()
+                                out
                                             
-            definePackage: (pkgSpec) =>
+            pkgDef: (pkgSpec) =>
                 pkg = new Pkg pkgSpec
                 if @store[pkg.name]? then throw new Error "PkgExists"
                 @store[pkg.name] = pkg
                 true
-            save: (pkg, args...) =>
-                @pkgDefinedGuard pkg, ->
-                    @store[pkg].save new corelib.NAV args
-                    true
-            load: (pkg, name) =>
-                @pkgDefinedGuard pkg, ->
-                    @store[pkg].load(name)
-            listPackages: =>
-                out = $ "<div />"
-                for own pkgName of @store
-                    do (pkgName) =>
-                        out.append @store[pkgName].toHTML()
-                        out.append "<hr />"
-                out.find("hr").last().detach()
-                out
             pkgDefinedGuard: (pkgName, fn) ->
                 if not @store[pkgName]? then throw new Error "UndefinedPackage"
                 fn.call @
-
-

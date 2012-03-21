@@ -24,9 +24,9 @@
   define(['corelib'], function(corelib) {
     return function(dt) {
       var HistoryBrowser, UI, config, lib, pkg, session, show, ui;
-      config = dt('v config');
-      session = dt('v session');
-      show = (dt('o objectViewer:show')).value;
+      config = dt.pkgGet('core', 'config').value;
+      session = dt.pkgGet('core', 'session').value;
+      show = dt.pkgGet('objectViewer', 'show').value;
       corelib.Promise.prototype.toHTML = function() {
         var div, replaceContents,
           _this = this;
@@ -238,7 +238,7 @@
           cursor = this.editor.getCursorPosition();
           cursor.column += text.length;
           currentValue = this.editor.getSession().getValue();
-          this.editor.getSession().setValue(currentValue === (dt('config')).initial_buffer ? text : currentValue + text);
+          this.editor.getSession().setValue(currentValue === config.initial_buffer ? text : currentValue + text);
           this.scrollToBottom();
           return this.editor.moveCursorToPosition(cursor);
         };
@@ -305,7 +305,7 @@
           } catch (error) {
             return exception = error;
           } finally {
-            (dt('v session')).history.push(historyEntry = {
+            session.history.push(historyEntry = {
               js: js_stmt,
               coffee: coffee_stmt,
               value: exception != null ? exception : result,

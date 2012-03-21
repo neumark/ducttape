@@ -32,7 +32,7 @@
   define(['corelib'], function(corelib) {
     return function(dt) {
       var mkSessionData, pkg, session;
-      session = dt('v session');
+      session = dt.pkgGet('core', 'session').value;
       mkSessionData = function(path, obj) {
         return {
           currentPath: path,

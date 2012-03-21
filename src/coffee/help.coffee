@@ -19,7 +19,7 @@
 
 define ['corelib'], (corelib) ->
     (dt) ->
-        uiLib = (dt 'o ui:lib').value
+        uiLib = dt.pkgGet('ui','lib').value
         fixLinks = (div) ->
             div.find('a').replaceWith ->
                 a = $ @
@@ -34,9 +34,9 @@ define ['corelib'], (corelib) ->
                         link = $("<a href='#'>#{ if (a.attr 'title') then a.attr 'title' else a.text() }</a>")
                         link.click (ev) ->
                             uiLib.captureEvent ev
-                            (dt 'o ui:insertText').value a.text()
+                            dt.pkgGet('ui','insertText').value a.text()
                         link
-                    when "/pseudoURL/replace" then (dt 'o objectViewer:show').value corelib.execJS corelib.compile a.text()
+                    when "/pseudoURL/replace" then dt.pkgGet('objectViewer','show').value corelib.execJS corelib.compile a.text()
                     else $("<a href='#{ a.attr 'href' }' target='_blank'>#{ a.text() }</a>")
         displayMarkDown = (md) ->
             result = $ ("<div class='eval_result'>" + converter.makeHtml(md) + "</div>")
@@ -61,7 +61,7 @@ define ['corelib'], (corelib) ->
                     value: (section) ->
                         if section?[(dt.symbol() + 'id')]?
                             try 
-                                vwm = (dt 'o ' + section[(dt.symbol() + 'id')])
+                                vwm = dt.pkgGet.apply @ section[(dt.symbol() + 'id')].split(':')
                             catch e
                                 return "Error retrieving help for "+ section[(dt.symbol() + 'id')]
                             # Very bare bones at the moment...

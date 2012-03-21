@@ -40,7 +40,7 @@
             },
             value: function() {
               var h;
-              h = (dt('v session')).history;
+              h = dt.getPkg('core', 'session').value;
               if (h.length > 0) {
                 return h[h.length - 1];
               } else {
@@ -64,7 +64,7 @@
               makePublic: true
             },
             value: function() {
-              return (dt('v config')).globalRef + '';
+              return dt.pkgGet('core', 'config').value.globalRef + '';
             }
           },
           history: {
@@ -74,9 +74,9 @@
             },
             value: function() {
               var c, h, uiLib, _fn, _i, _len, _ref;
-              uiLib = (dt('o ui:lib')).value;
+              uiLib = dt.pkgGet('ui', 'lib').value;
               c = $('<div class="eval_result"></div>');
-              _ref = (dt('v session')).history;
+              _ref = dt.pkgGet('core', 'session').value.history;
               _fn = function(h) {
                 return c.append($("<span><a style='display:block;' href='#'>" + h.coffee + "</a></span>").find('a').click(function(ev) {
                   uiLib.captureEvent(ev);
@@ -125,7 +125,7 @@
               log: function(expr, source, level) {
                 if (source == null) source = '';
                 if (level == null) level = 'info';
-                return (dt('o ui:display')).value(expr);
+                return pkgGet('ui', 'display').value(expr);
               }
             }
           }

@@ -211,8 +211,8 @@
           object_viewer.on('click', 'a.objectViewer_item', function(ev) {
             var kl;
             kl = mk_keylist($(ev.currentTarget));
-            (dt('o ui:lib')).value.captureEvent(ev);
-            return (dt('o ui:insertText')).value(kl.length === 0 ? refname : "" + refname + "['" + (kl.join("']['")) + "']");
+            dt.pkgGet('ui', 'lib').value.captureEvent(ev);
+            return dt.pkgGet('ui', 'insertText').value(kl.length === 0 ? refname : "" + refname + "['" + (kl.join("']['")) + "']");
           });
           return object_viewer;
         }

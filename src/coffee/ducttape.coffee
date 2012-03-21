@@ -36,21 +36,38 @@ define ['cmd', 'keybindings', 'ui', 'pkgmgr', 'objectviewer', 'fs', 'shellutils'
     dtobj = new DuctTape(window.ducttape_config ? {})
 
     # main DuctTape function
-    dt = dtobj.exec = -> dtobj.internals.cmd.exec.apply dtobj.cmd, arguments
-
+    dt = -> dtobj.internals.cmd.exec.apply dtobj.cmd, arguments
     dtobj.internals.pkgmgr = new (PkgMgr(dt))()
 
     # load builtin packages:
-    dtobj.internals.pkgmgr.definePackage(objectviewer(dt))
-    dtobj.internals.pkgmgr.definePackage(ui(dt))
-    dtobj.internals.pkgmgr.definePackage(fs(dt))
-    dtobj.internals.pkgmgr.definePackage(shellUtils(dt))
-    dtobj.internals.pkgmgr.definePackage(help(dt))
+    dtobj.internals.pkgmgr.pkgDef
+        name: 'core'
+        attr:
+            author: 'Peter Neumark'
+            url: 'https://github.com/neumark/ducttape'
+            version: '1.0'
+            description: 'DuctTape internals.'
+        value:
+            session:
+                attr:
+                    description: "Reference to session object"
+                value: dtobj.session 
+            config:
+                attr:
+                    description: "Reference to config object"
+                value: dtobj.config
+            exec:
+                attr:
+                    description: "Parse and execute a command"
+                value: dt
+    dtobj.internals.pkgmgr.pkgDef objectviewer dt
+    dtobj.internals.pkgmgr.pkgDef ui dt
+    dtobj.internals.pkgmgr.pkgDef fs dt
+    dtobj.internals.pkgmgr.pkgDef shellUtils dt
+    dtobj.internals.pkgmgr.pkgDef help dt
 
-    dt.toHTML = -> (dt 'o help:help').value 'intro'
+    dt.toHTML = -> dt.pkgGet('help', 'help').value 'intro'
 
     # Registers global reference
     window[dtobj.config.globalRef] = dt
-
     dt
-
