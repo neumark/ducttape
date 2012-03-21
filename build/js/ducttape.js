@@ -1,23 +1,27 @@
 
+
+/*
+   Copyright 2012 Peter Neumark
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+   cmd.coffee - The DuctTape command interpreter.
+*/
+
 (function() {
-  /*
-     Copyright 2012 Peter Neumark
-  
-     Licensed under the Apache License, Version 2.0 (the "License");
-     you may not use this file except in compliance with the License.
-     You may obtain a copy of the License at
-  
-         http://www.apache.org/licenses/LICENSE-2.0
-  
-     Unless required by applicable law or agreed to in writing, software
-     distributed under the License is distributed on an "AS IS" BASIS,
-     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-     See the License for the specific language governing permissions and
-     limitations under the License.
-  
-     cmd.coffee - The DuctTape command interpreter.
-  
-  */  var __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; }, __slice = Array.prototype.slice;
+  var __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
+    __slice = Array.prototype.slice;
+
   define('cmd',[], function() {
     return function(dtObj) {
       var Cmd, badCommand;
@@ -27,6 +31,7 @@
         };
       };
       return Cmd = (function() {
+
         function Cmd() {
           this.exec = __bind(this.exec, this);          this.cmdStore = {
             v: {
@@ -53,6 +58,7 @@
             }
           };
         }
+
         Cmd.prototype.exec = function() {
           var args, command, fn, ret, tmp, _ref;
           command = arguments[0], args = 2 <= arguments.length ? __slice.call(arguments, 1) : [];
@@ -68,48 +74,56 @@
             return ret = "Sorry, can't help you with that! No action registered for value '" + command + "'!";
           }
         };
+
         return Cmd;
+
       })();
     };
   });
+
 }).call(this);
 
+
+/*
+   Copyright 2012 Peter Neumark
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+   keybindings.coffee - Defines and triggers keybindings.
+*/
+
 (function() {
-  /*
-     Copyright 2012 Peter Neumark
-  
-     Licensed under the Apache License, Version 2.0 (the "License");
-     you may not use this file except in compliance with the License.
-     You may obtain a copy of the License at
-  
-         http://www.apache.org/licenses/LICENSE-2.0
-  
-     Unless required by applicable law or agreed to in writing, software
-     distributed under the License is distributed on an "AS IS" BASIS,
-     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-     See the License for the specific language governing permissions and
-     limitations under the License.
-  
-     keybindings.coffee - Defines and triggers keybindings.
-  
-  */  var __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; }, __hasProp = Object.prototype.hasOwnProperty;
+  var __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
+    __hasProp = Object.prototype.hasOwnProperty;
+
   define('keybindings',[], function() {
     var KeyBindings;
     return KeyBindings = (function() {
+
       function KeyBindings(store) {
         this.store = store != null ? store : {};
         this.trigger = __bind(this.trigger, this);
         this.bind = __bind(this.bind, this);
       }
+
       KeyBindings.prototype.bind = function(ev) {
         if (!((ev != null ? ev.keyCode : void 0) != null)) {
           throw new Error("keyCode of key event descriptor must be set");
         }
-        if (!(this.store[ev.keyCode] != null)) {
-          this.store[ev.keyCode] = [];
-        }
+        if (!(this.store[ev.keyCode] != null)) this.store[ev.keyCode] = [];
         return this.store[ev.keyCode].push(ev);
       };
+
       KeyBindings.prototype.trigger = function(ev) {
         var attr, differences, i, l, val;
         if ((!((ev != null ? ev.keyCode : void 0) != null)) || (!(this.store[ev.keyCode] != null))) {
@@ -126,75 +140,81 @@
             for (attr in _ref) {
               if (!__hasProp.call(_ref, attr)) continue;
               val = _ref[attr];
-              if ((ev[attr] != null) && ev[attr] !== val) {
-                _results.push(attr);
-              }
+              if ((ev[attr] != null) && ev[attr] !== val) _results.push(attr);
             }
             return _results;
           })();
-          if (differences.length === 0) {
-            return l[i].action(ev);
-          }
+          if (differences.length === 0) return l[i].action(ev);
           i++;
         }
         return false;
       };
+
       return KeyBindings;
+
     })();
   });
+
 }).call(this);
 
+
+/*
+   Copyright 2012 Peter Neumark
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+   corelib.coffee - Classes and functions used by DuctTape internally.
+*/
+
 (function() {
-  /*
-     Copyright 2012 Peter Neumark
-  
-     Licensed under the Apache License, Version 2.0 (the "License");
-     you may not use this file except in compliance with the License.
-     You may obtain a copy of the License at
-  
-         http://www.apache.org/licenses/LICENSE-2.0
-  
-     Unless required by applicable law or agreed to in writing, software
-     distributed under the License is distributed on an "AS IS" BASIS,
-     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-     See the License for the specific language governing permissions and
-     limitations under the License.
-  
-     corelib.coffee - Classes and functions used by DuctTape internally.
-  
-  */  var __slice = Array.prototype.slice, __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
+  var __slice = Array.prototype.slice,
+    __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
+
   define('corelib',[], function() {
     return {
-      VWM: (function() {
-        _Class.prototype.doc = "A VWM has 3 parts:\n- name              unique id (within namespace) - string\n- attr              attributes - object (dictionary)\n- value             the actual value - any truthy javascript value";
+      NAV: (function() {
+
+        _Class.prototype.doc = "A NAV has 3 parts:\n- name              unique id (within namespace) - string\n- attr              attributes - object (dictionary)\n- value             the actual value - any truthy javascript value";
+
         function _Class() {
-          var vwm, _ref;
-          vwm = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
+          var nav, _ref;
+          nav = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
           _ref = (function() {
             var _ref, _ref2, _ref3, _ref4, _ref5, _ref6;
-            switch (vwm != null ? vwm.length : void 0) {
+            switch (nav != null ? nav.length : void 0) {
               case 1:
-                if ((((_ref = vwm[0]) != null ? _ref.length : void 0) != null) === 3) {
-                  return vwm[0];
+                if ((((_ref = nav[0]) != null ? _ref.length : void 0) != null) === 3) {
+                  return nav[0];
                 } else {
-                  return [(_ref2 = vwm[0]) != null ? _ref2.name : void 0, (_ref3 = vwm[0]) != null ? _ref3.attr : void 0, (_ref4 = vwm[0]) != null ? _ref4.value : void 0];
+                  return [(_ref2 = nav[0]) != null ? _ref2.name : void 0, (_ref3 = nav[0]) != null ? _ref3.attr : void 0, (_ref4 = nav[0]) != null ? _ref4.value : void 0];
                 }
                 break;
               case 2:
-                return [vwm != null ? vwm[0] : void 0, vwm != null ? (_ref5 = vwm[1]) != null ? _ref5.attr : void 0 : void 0, vwm != null ? (_ref6 = vwm[1]) != null ? _ref6.value : void 0 : void 0];
+                return [nav != null ? nav[0] : void 0, nav != null ? (_ref5 = nav[1]) != null ? _ref5.attr : void 0 : void 0, nav != null ? (_ref6 = nav[1]) != null ? _ref6.value : void 0 : void 0];
               case 3:
-                return vwm;
+                return nav;
               default:
                 return [];
             }
           })(), this.name = _ref[0], this.attr = _ref[1], this.value = _ref[2];
           if ((!(this.name != null)) || (!(this.attr != null)) || (!this.value)) {
-            throw new Error("Bad VWM format");
+            throw new Error("Bad NAV format");
           }
           if ((typeof this.attr) !== "object") {
-            throw new Error("VWM attr field must be an object");
+            throw new Error("NAV attr field must be an object");
           }
         }
+
         _Class.prototype.hasAttributes = function(attrList) {
           var f, missing;
           missing = (function() {
@@ -202,33 +222,37 @@
             _results = [];
             for (_i = 0, _len = attrList.length; _i < _len; _i++) {
               f = attrList[_i];
-              if (!(this.attr[f] != null)) {
-                _results.push(f);
-              }
+              if (!(this.attr[f] != null)) _results.push(f);
             }
             return _results;
           }).call(this);
           return missing.length === 0;
         };
+
         return _Class;
+
       })(),
       Promise: (function() {
+
         function _Class(spec) {
           this.spec = spec != null ? spec : {};
           this.fulfill = __bind(this.fulfill, this);
           this.value = null;
-          this.make = new Date();
+          this.made = new Date();
           _.extend(this, Backbone.Events);
         }
+
         _Class.prototype.fulfill = function() {
           var isSuccess, value;
           isSuccess = arguments[0], value = 2 <= arguments.length ? __slice.call(arguments, 1) : [];
           this.isSuccess = isSuccess;
+          this.value = value;
           this.fulfilled = new Date();
-          this.value = this.spec.transform != null ? this.spec.transform(value) : value;
           return this.trigger((this.isSuccess ? "success" : "failure"), this.value);
         };
+
         return _Class;
+
       })(),
       compile: function(src) {
         if (src.length === 0) {
@@ -244,27 +268,32 @@
       }
     };
   });
+
 }).call(this);
 
+
+/*
+   Copyright 2012 Peter Neumark
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+   ui.coffee - The DuctTape UI.
+*/
+
 (function() {
-  /*
-     Copyright 2012 Peter Neumark
-  
-     Licensed under the Apache License, Version 2.0 (the "License");
-     you may not use this file except in compliance with the License.
-     You may obtain a copy of the License at
-  
-         http://www.apache.org/licenses/LICENSE-2.0
-  
-     Unless required by applicable law or agreed to in writing, software
-     distributed under the License is distributed on an "AS IS" BASIS,
-     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-     See the License for the specific language governing permissions and
-     limitations under the License.
-  
-     ui.coffee - The DuctTape UI.
-  
-  */  var __slice = Array.prototype.slice, __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
+  var __slice = Array.prototype.slice,
+    __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
+
   define('ui',['corelib'], function(corelib) {
     return function(dt) {
       var HistoryBrowser, UI, config, lib, pkg, session, show, ui;
@@ -272,41 +301,39 @@
       session = dt('v session');
       show = (dt('o objectViewer:show')).value;
       corelib.Promise.prototype.toHTML = function() {
-        var div, replaceContents;
+        var div, replaceContents,
+          _this = this;
         div = $('<div class="eval_result"><span>loading...<span></div>');
-        replaceContents = __bind(function() {
+        replaceContents = function() {
           var values;
           values = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
           div.children().remove();
-          if (values.length === 0) {
-            values = values[0];
-          }
+          if (values.length === 0) values = values[0];
           return ui.display(values, false, div);
-        }, this);
+        };
         if (this.value != null) {
           replaceContents(this.value);
         } else {
-          this.on("success failure", __bind(function() {
-            return replaceContents(this.value);
-          }, this));
+          this.on("success failure", function() {
+            return replaceContents(_this.value);
+          });
         }
         return div;
       };
       HistoryBrowser = (function() {
+
         function HistoryBrowser(ui) {
           this.ui = ui;
           this.editBuffer = this.ui.editor.getSession().getValue();
           this.pos = null;
         }
+
         HistoryBrowser.prototype.back = function() {
-          if (!(this.pos != null)) {
-            this.pos = session.history.length;
-          }
-          if (this.pos > 0) {
-            this.pos--;
-          }
+          if (!(this.pos != null)) this.pos = session.history.length;
+          if (this.pos > 0) this.pos--;
           return this.ui.resetEditorContents(session.history[this.pos].coffee);
         };
+
         HistoryBrowser.prototype.forward = function() {
           this.pos++;
           if (this.pos >= session.history.length) {
@@ -317,9 +344,12 @@
             return true;
           }
         };
+
         return HistoryBrowser;
+
       })();
       UI = (function() {
+
         function UI(editor_div_id) {
           this.editor_div_id = editor_div_id != null ? editor_div_id : "editor";
           this.format_command = __bind(this.format_command, this);
@@ -338,16 +368,17 @@
           this.UPDATE_DELAY = 300;
           this.historyBrowser = null;
         }
+
         UI.prototype.init = function() {
-          if (this.editor != null) {
-            return false;
-          }
+          if (this.editor != null) return false;
           this.init_ace();
           this.init_ui();
           return this.resetEditorContents();
         };
+
         UI.prototype.init_ace = function() {
-          var bind, trigger;
+          var bind, trigger,
+            _this = this;
           this.editor = ace.edit(this.editor_div_id);
           this.editor.getSession().setMode(new (ace.require("ace/mode/coffee").Mode)());
           this.editor.getSession().setTabSize(4);
@@ -361,115 +392,107 @@
           bind = session.keybindings.bind;
           trigger = session.keybindings.trigger;
           this.editor.setKeyboardHandler({
-            handleKeyboard: __bind(function(_1, _2, _3, _4, ev) {
-              if ((ev != null) && trigger(ev)) {
-                return lib.captureEvent(ev);
-              }
-            }, this)
+            handleKeyboard: function(_1, _2, _3, _4, ev) {
+              if ((ev != null) && trigger(ev)) return lib.captureEvent(ev);
+            }
           });
           bind({
             description: 'Execute contents of buffer.',
             keyCode: 13,
             shiftKey: false,
-            action: __bind(function() {
-              if (this.js_source.length > 0) {
-                this.historyBrowser = null;
-                this.update();
-                this.execute(this.coffee_source, this.js_source);
-                this.clear_src_buffers();
-                this.resetEditorContents();
-                this.scrollToBottom();
+            action: function() {
+              if (_this.js_source.length > 0) {
+                _this.historyBrowser = null;
+                _this.update();
+                _this.execute(_this.coffee_source, _this.js_source);
+                _this.clear_src_buffers();
+                _this.resetEditorContents();
+                _this.scrollToBottom();
               }
               return true;
-            }, this)
+            }
           });
           bind({
             description: 'Insert DuctTape symbol (\u0111).',
             keyCode: 68,
             altKey: true,
-            action: __bind(function() {
-              this.editor.insert('\u0111');
+            action: function() {
+              _this.editor.insert('\u0111');
               return true;
-            }, this)
+            }
           });
           bind({
             description: 'Toggle generated javascript window.',
             keyCode: 113,
-            action: __bind(function() {
+            action: function() {
               if (config.showGeneratedJS) {
                 $('#jsSource').hide();
               } else {
-                this.updateGeneratedJS();
+                _this.updateGeneratedJS();
                 $('#jsSource').show();
-                this.scrollToBottom();
+                _this.scrollToBottom();
               }
               config.showGeneratedJS = !config.showGeneratedJS;
               return true;
-            }, this)
+            }
           });
           bind({
             description: 'Browse command history (previous).',
             keyCode: 38,
-            action: __bind(function() {
-              var _ref;
-              if (this.editor.getCursorPosition().row === 0) {
-                                if ((_ref = this.historyBrowser) != null) {
-                  _ref;
-                } else {
-                  this.historyBrowser = new HistoryBrowser(this);
-                };
-                this.historyBrowser.back();
+            action: function() {
+              if (_this.editor.getCursorPosition().row === 0) {
+                if (_this.historyBrowser == null) {
+                  _this.historyBrowser = new HistoryBrowser(_this);
+                }
+                _this.historyBrowser.back();
                 return true;
               } else {
                 return false;
               }
-            }, this)
+            }
           });
           return bind({
             description: 'Browse command history (next).',
             keyCode: 40,
-            action: __bind(function() {
-              if ((this.historyBrowser != null) && this.editor.getCursorPosition().row === (this.editor.getSession().getValue().split('\n').length - 1)) {
-                if (!this.historyBrowser.forward()) {
-                  this.historyBrowser = null;
-                }
+            action: function() {
+              if ((_this.historyBrowser != null) && _this.editor.getCursorPosition().row === (_this.editor.getSession().getValue().split('\n').length - 1)) {
+                if (!_this.historyBrowser.forward()) _this.historyBrowser = null;
                 return true;
               } else {
                 return false;
               }
-            }, this)
+            }
           });
         };
+
         UI.prototype.init_ui = function() {
-          return $('#menuhelp').click(__bind(function(ev) {
+          var _this = this;
+          return $('#menuhelp').click(function(ev) {
             lib.captureEvent(ev);
             lib.run("(" + (dt.symbol()) + " 'o help:help').value()");
             return false;
-          }, this));
+          });
         };
+
         UI.prototype.updateGeneratedJS = function() {
           return $('#jsSource pre').text(this.js_source);
         };
+
         UI.prototype.updateTimeout = function() {
-          if (this.timeoutHandle != null) {
-            window.clearTimeout(this.timeoutHandle);
-          }
+          if (this.timeoutHandle != null) window.clearTimeout(this.timeoutHandle);
           return this.timeoutHandle = setTimeout(this.update, this.UPDATE_DELAY);
         };
+
         UI.prototype.update = function() {
           var _ref;
-          if (this.timeoutHandle != null) {
-            window.clearTimeout(this.timeoutHandle);
-          }
+          if (this.timeoutHandle != null) window.clearTimeout(this.timeoutHandle);
           this.timeoutHandle = null;
           this.coffee_source = this.editor.getSession().getValue().trim();
           try {
             this.js_source = (_ref = corelib.compile(this.coffee_source)) != null ? _ref.trim() : void 0;
             $("#ok").show();
             $("#parseerror").hide();
-            if (config.showGeneratedJS) {
-              return this.updateGeneratedJS();
-            }
+            if (config.showGeneratedJS) return this.updateGeneratedJS();
           } catch (error) {
             this.js_source = "";
             $("#ok").hide();
@@ -477,10 +500,12 @@
             return this.scrollToBottom();
           }
         };
+
         UI.prototype.clear_src_buffers = function() {
           this.js_source = "";
           return this.coffee_source = "";
         };
+
         UI.prototype.insertText = function(text) {
           var currentValue, cursor;
           cursor = this.editor.getCursorPosition();
@@ -490,11 +515,10 @@
           this.scrollToBottom();
           return this.editor.moveCursorToPosition(cursor);
         };
+
         UI.prototype.resetEditorContents = function(newContents) {
           var lines;
-          if (newContents == null) {
-            newContents = config.initial_buffer;
-          }
+          if (newContents == null) newContents = config.initial_buffer;
           lines = newContents.split('\n');
           this.editor.gotoLine(0);
           this.editor.getSession().setValue(newContents);
@@ -503,51 +527,49 @@
             row: lines.length - 1
           });
         };
+
         UI.prototype.scrollToBottom = function() {
           $("html, body").animate({
             scrollTop: $(document).height()
           }, 200);
           return $('textarea', this.editor_div).focus();
         };
+
         UI.prototype.formatEx = function(ex) {
           var _ref, _ref2;
           return $("<div class=\"eval_result\"><span class=\"label label-warning\"> <strong>Exception</strong> (" + ((_ref = ex != null ? ex.type : void 0) != null ? _ref : "") + ") </span>&nbsp;<strong>" + ((_ref2 = ex != null ? ex.message : void 0) != null ? _ref2 : "") + "</strong>" + ((ex != null ? ex.stack : void 0) != null ? '<pre>' + ex.stack + '</pre>' : '') + "</div>");
         };
+
         UI.prototype.detach = function(content) {
-          var msg, oldParent, _ref;
+          var msg, oldParent, _ref,
+            _this = this;
           if (((_ref = content.parents().last()) != null ? _ref[0] : void 0) instanceof HTMLHtmlElement) {
             oldParent = content.parents().first();
             msg = $("<div class='eval_result'><h2>This content has been moved!</h2>Sorry, it seems the content that used to be here is now somewhere else. No worries, though, <a href='#'>you can always get it back</a>.</div>");
-            msg.find('a').click(__bind(function(ev) {
+            msg.find('a').click(function(ev) {
               lib.captureEvent(ev);
-              this.detach(content);
+              _this.detach(content);
               content.appendTo(oldParent);
               return msg.detach();
-            }, this));
+            });
             content.detach();
             msg.appendTo(oldParent);
           }
           return content;
         };
+
         UI.prototype.display = function(expr, where, decorator) {
           var div;
-          if (where == null) {
-            where = $('#interactions');
-          }
-          if (decorator == null) {
-            decorator = $('<div class="eval_result"></div>');
-          }
+          if (where == null) where = $('#interactions');
+          if (decorator == null) decorator = $('<div class="eval_result"></div>');
           div = decorator.append(this.detach(show(expr)));
-          if (typeof where === "object") {
-            where.append(div);
-          }
+          if (typeof where === "object") where.append(div);
           return null;
         };
+
         UI.prototype.execute = function(coffee_stmt, js_stmt, silent) {
           var evalexpr, exception, historyEntry, result;
-          if (silent == null) {
-            silent = false;
-          }
+          if (silent == null) silent = false;
           evalexpr = js_stmt != null ? js_stmt : corelib.compile(coffee_stmt);
           exception = null;
           result = null;
@@ -562,9 +584,7 @@
               value: exception != null ? exception : result,
               timestamp: new Date()
             });
-            if (silent === false) {
-              $('#interactions').append(this.format_command);
-            }
+            if (silent === false) $('#interactions').append(this.format_command);
             if ((result !== null) || (exception !== null)) {
               this.display((function() {
                 try {
@@ -581,6 +601,7 @@
             }
           }
         };
+
         UI.prototype.format_command = function() {
           var div_inner, div_outer, lines;
           lines = $('div.ace_content', this.editor_div).find('div.ace_line').clone();
@@ -590,7 +611,9 @@
           div_outer.append(div_inner);
           return div_outer;
         };
+
         return UI;
+
       })();
       ui = new UI();
       lib = {
@@ -600,9 +623,7 @@
         },
         run: function(expr, silent) {
           var div;
-          if (silent == null) {
-            silent = false;
-          }
+          if (silent == null) silent = false;
           if (silent === false) {
             div = $("<div class='alert alert-info'></div>");
             div.text(expr);
@@ -613,18 +634,14 @@
         },
         asyncValue: function(loadingMsg) {
           var div;
-          if (loadingMsg == null) {
-            loadingMsg = 'loading...';
-          }
+          if (loadingMsg == null) loadingMsg = 'loading...';
           div = $('<div class="eval_result"></div>');
           ui.display(loadingMsg, $('#interactions'), div);
           return function() {
             var values;
             values = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
             div.children().remove();
-            if (values.length === 0) {
-              values = values[0];
-            }
+            if (values.length === 0) values = values[0];
             return ui.display(values, false, div);
           };
         }
@@ -674,45 +691,49 @@
       };
     };
   });
+
 }).call(this);
 
+
+/*
+   Copyright 2012 Peter Neumark
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+   pkgmgr.coffee - the DuctTape package manager.
+   PkgMgr is organized around the concept of Values With Metadata (NAV).
+   See corelib for details.
+
+   Packages are NAV's, as are the objects contained within.
+   Deeper in the object hierarchy there can be "plain old objects" as well.
+*/
+
 (function() {
-  /*
-     Copyright 2012 Peter Neumark
-  
-     Licensed under the Apache License, Version 2.0 (the "License");
-     you may not use this file except in compliance with the License.
-     You may obtain a copy of the License at
-  
-         http://www.apache.org/licenses/LICENSE-2.0
-  
-     Unless required by applicable law or agreed to in writing, software
-     distributed under the License is distributed on an "AS IS" BASIS,
-     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-     See the License for the specific language governing permissions and
-     limitations under the License.
-  
-     pkgmgr.coffee - the DuctTape package manager.
-     PkgMgr is organized around the concept of Values With Metadata (VWM).
-     See corelib for details.
-  
-     Packages are VWM's, as are the objects contained within.
-     Deeper in the object hierarchy there can be "plain old objects" as well.
-  */  var __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; }, __hasProp = Object.prototype.hasOwnProperty, __extends = function(child, parent) {
-    for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; }
-    function ctor() { this.constructor = child; }
-    ctor.prototype = parent.prototype;
-    child.prototype = new ctor;
-    child.__super__ = parent.prototype;
-    return child;
-  }, __slice = Array.prototype.slice;
+  var __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
+    __hasProp = Object.prototype.hasOwnProperty,
+    __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor; child.__super__ = parent.prototype; return child; },
+    __slice = Array.prototype.slice;
+
   define('pkgmgr',['corelib'], function(corelib) {
     return function(dt) {
       var Pkg, PkgMgr;
-      Pkg = (function() {
-        __extends(Pkg, corelib.VWM);
+      Pkg = (function(_super) {
+
+        __extends(Pkg, _super);
+
         function Pkg(pkgSpec) {
-          this.toHTML = __bind(this.toHTML, this);          var key, obj, _ref;
+          this.toHTML = __bind(this.toHTML, this);
+          var key, obj, _ref;
           Pkg.__super__.constructor.call(this, pkgSpec);
           if (!this.hasAttributes(["author", "description", "url"])) {
             throw new Error("InvalidPackageSpecification");
@@ -721,44 +742,51 @@
           for (key in _ref) {
             if (!__hasProp.call(_ref, key)) continue;
             obj = _ref[key];
-            this.save(new corelib.VWM(key, obj));
+            this.save(new corelib.NAV(key, obj));
           }
         }
-        Pkg.prototype.save = function(vwm) {
-          if (!vwm.hasAttributes(["description"])) {
+
+        Pkg.prototype.save = function(nav) {
+          if (!nav.hasAttributes(["description"])) {
             throw new Error("InvalidObjectSpecification");
           }
-          this.value[vwm.name] = vwm;
-          if (vwm.attr.makePublic === true) {
-            dt[vwm.name] = this.value[vwm.name].value;
-            return dt[vwm.name]['\u0111id'] = this.name + ':' + vwm.name;
+          this.value[nav.name] = nav;
+          if (nav.attr.makePublic === true) {
+            dt[nav.name] = this.value[nav.name].value;
+            return dt[nav.name]['\u0111id'] = this.name + ':' + nav.name;
           }
         };
+
         Pkg.prototype.load = function(name) {
           return this.value[name];
         };
+
         Pkg.prototype.toHTML = function() {
-          var dl, name, pkgDesc, _fn, _ref, _ref2, _ref3;
+          var dl, name, pkgDesc, _fn, _ref, _ref2, _ref3,
+            _this = this;
           pkgDesc = $(" <div>\n     <h2>" + this.name + "</h2>\n     <table>\n         <tr><td><b>Author&nbsp;</b></td><td>" + ((_ref = this.attr.author) != null ? _ref : "") + "</td></tr>\n         <tr><td><b>URL&nbsp;</b></td><td><a href=\"" + this.attr.url + "\" target='_blank'>" + this.attr.url + "</a></td></tr>\n         <tr><td><b>Version&nbsp;</b></td><td>" + ((_ref2 = this.attr.version) != null ? _ref2 : "") + "</td></tr>\n     </table>\n     <p><!-- description --></p>\n     <p>Package Contents:\n         <dl></dl>\n     </p>\n</div>");
           pkgDesc.find('p').first().append((dt('o help:displayMarkDown')).value(this.attr.description));
           dl = pkgDesc.find('dl');
           _ref3 = this.value;
-          _fn = __bind(function(name) {
+          _fn = function(name) {
             var mdSrc;
             dl.append($("<dt>" + name + "</dt>"));
-            mdSrc = this.value[name].attr.makePublic === true ? "_Available as:_ [" + (dt.symbol()) + "." + name + "](/pseudoURL/insert)<br />" : "";
-            mdSrc += this.value[name].attr.description;
+            mdSrc = _this.value[name].attr.makePublic === true ? "_Available as:_ [" + (dt.symbol()) + "." + name + "](/pseudoURL/insert)<br />" : "";
+            mdSrc += _this.value[name].attr.description;
             return dl.append($("<dd></dd>").append((dt('o help:displayMarkDown')).value(mdSrc)));
-          }, this);
+          };
           for (name in _ref3) {
             if (!__hasProp.call(_ref3, name)) continue;
             _fn(name);
           }
           return pkgDesc;
         };
+
         return Pkg;
-      })();
+
+      })(corelib.NAV);
       return PkgMgr = (function() {
+
         function PkgMgr(store) {
           this.store = store != null ? store : {};
           this.listPackages = __bind(this.listPackages, this);
@@ -803,36 +831,39 @@
             }
           });
         }
+
         PkgMgr.prototype.definePackage = function(pkgSpec) {
           var pkg;
           pkg = new Pkg(pkgSpec);
-          if (this.store[pkg.name] != null) {
-            throw new Error("PkgExists");
-          }
+          if (this.store[pkg.name] != null) throw new Error("PkgExists");
           this.store[pkg.name] = pkg;
           return true;
         };
+
         PkgMgr.prototype.save = function() {
           var args, pkg;
           pkg = arguments[0], args = 2 <= arguments.length ? __slice.call(arguments, 1) : [];
           return this.pkgDefinedGuard(pkg, function() {
-            this.store[pkg].save(new corelib.VWM(args));
+            this.store[pkg].save(new corelib.NAV(args));
             return true;
           });
         };
+
         PkgMgr.prototype.load = function(pkg, name) {
           return this.pkgDefinedGuard(pkg, function() {
             return this.store[pkg].load(name);
           });
         };
+
         PkgMgr.prototype.listPackages = function() {
-          var out, pkgName, _fn, _ref;
+          var out, pkgName, _fn, _ref,
+            _this = this;
           out = $("<div />");
           _ref = this.store;
-          _fn = __bind(function(pkgName) {
-            out.append(this.store[pkgName].toHTML());
+          _fn = function(pkgName) {
+            out.append(_this.store[pkgName].toHTML());
             return out.append("<hr />");
-          }, this);
+          };
           for (pkgName in _ref) {
             if (!__hasProp.call(_ref, pkgName)) continue;
             _fn(pkgName);
@@ -840,43 +871,44 @@
           out.find("hr").last().detach();
           return out;
         };
+
         PkgMgr.prototype.pkgDefinedGuard = function(pkgName, fn) {
-          if (!(this.store[pkgName] != null)) {
-            throw new Error("UndefinedPackage");
-          }
+          if (!(this.store[pkgName] != null)) throw new Error("UndefinedPackage");
           return fn.call(this);
         };
+
         return PkgMgr;
+
       })();
     };
   });
+
 }).call(this);
 
+
+/*
+   Copyright 2012 Peter Neumark
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+   objectviewer.coffee - code for the objectViewer package, registered at
+   startup in ducttape.coffee
+*/
+
 (function() {
-  /*
-     Copyright 2012 Peter Neumark
-  
-     Licensed under the Apache License, Version 2.0 (the "License");
-     you may not use this file except in compliance with the License.
-     You may obtain a copy of the License at
-  
-         http://www.apache.org/licenses/LICENSE-2.0
-  
-     Unless required by applicable law or agreed to in writing, software
-     distributed under the License is distributed on an "AS IS" BASIS,
-     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-     See the License for the specific language governing permissions and
-     limitations under the License.
-  
-     objectviewer.coffee - code for the objectViewer package, registered at
-     startup in ducttape.coffee
-  
-  */  var __hasProp = Object.prototype.hasOwnProperty, __indexOf = Array.prototype.indexOf || function(item) {
-    for (var i = 0, l = this.length; i < l; i++) {
-      if (this[i] === item) return i;
-    }
-    return -1;
-  };
+  var __hasProp = Object.prototype.hasOwnProperty,
+    __indexOf = Array.prototype.indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
+
   define('objectviewer',[], function() {
     return function(dt) {
       var objectViewer_MAXSTRLEN, ov, pkg;
@@ -954,9 +986,7 @@
           ov.objectViewer.cache.push(obj);
           mk_node = function(key, value, visible) {
             var ret, value_str;
-            if (visible == null) {
-              visible = true;
-            }
+            if (visible == null) visible = true;
             value_str = null;
             try {
               value_str = ov.stringValue(value);
@@ -987,9 +1017,7 @@
             try {
               kl = Object.getOwnPropertyNames(parent);
             } catch (e) {
-              if (!(typeof o !== "undefined" && o !== null)) {
-                return [];
-              }
+              if (!(typeof o !== "undefined" && o !== null)) return [];
               kl = (function() {
                 var _results;
                 _results = [];
@@ -1042,7 +1070,7 @@
                 _results = [];
                 for (_i = 0, _len = keylist.length; _i < _len; _i++) {
                   k = keylist[_i];
-                  _results.push((node = node[k]));
+                  _results.push(node = node[k]);
                 }
                 return _results;
               })())[keylist.length - 1];
@@ -1104,36 +1132,41 @@
       };
     };
   });
+
 }).call(this);
 
+
+/*
+
+   Copyright 2012 Peter Neumark
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+   FileSystem interface for DuctTape
+
+   FS provides a uniform way of accessing hierarchical information like the unix
+   filesystem or the DOM tree. It contains the following parts:
+   * The UI: a small "prompt" which can show the current directory, or
+     whatever you like.
+   * Commands: commands to navigate and manipulate the filesystem:
+     mount, unmount, ls, pwd, cd
+   * The FSILib object, which provides the FSI API for modules whishing to
+     implement access to a particular service.
+*/
+
 (function() {
-  /*
-  
-     Copyright 2012 Peter Neumark
-  
-     Licensed under the Apache License, Version 2.0 (the "License");
-     you may not use this file except in compliance with the License.
-     You may obtain a copy of the License at
-  
-         http://www.apache.org/licenses/LICENSE-2.0
-  
-     Unless required by applicable law or agreed to in writing, software
-     distributed under the License is distributed on an "AS IS" BASIS,
-     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-     See the License for the specific language governing permissions and
-     limitations under the License.
-  
-     FileSystem interface for DuctTape
-  
-     FS provides a uniform way of accessing hierarchical information like the unix
-     filesystem or the DOM tree. It contains the following parts:
-     * The UI: a small "prompt" which can show the current directory, or
-       whatever you like.
-     * Commands: commands to navigate and manipulate the filesystem:
-       mount, unmount, ls, pwd, cd
-     * The FSILib object, which provides the FSI API for modules whishing to
-       implement access to a particular service.
-  */  define('fs',['corelib'], function(corelib) {
+
+  define('fs',['corelib'], function(corelib) {
     return function(dt) {
       var mkSessionData, pkg, session;
       session = dt('v session');
@@ -1196,28 +1229,32 @@
       };
     };
   });
+
 }).call(this);
 
+
+/*
+   Copyright 2012 Peter Neumark
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+   shellutils.coffee - "shell utility functions", to make the DuctTape
+   command more convenient for users.
+*/
+
 (function() {
-  /*
-     Copyright 2012 Peter Neumark
-  
-     Licensed under the Apache License, Version 2.0 (the "License");
-     you may not use this file except in compliance with the License.
-     You may obtain a copy of the License at
-  
-         http://www.apache.org/licenses/LICENSE-2.0
-  
-     Unless required by applicable law or agreed to in writing, software
-     distributed under the License is distributed on an "AS IS" BASIS,
-     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-     See the License for the specific language governing permissions and
-     limitations under the License.
-  
-     shellutils.coffee - "shell utility functions", to make the DuctTape
-     command more convenient for users.
-  
-  */  var __slice = Array.prototype.slice;
+  var __slice = Array.prototype.slice;
+
   define('shellutils',[], function() {
     return function(dt) {
       var pkg;
@@ -1320,12 +1357,8 @@
             },
             value: {
               log: function(expr, source, level) {
-                if (source == null) {
-                  source = '';
-                }
-                if (level == null) {
-                  level = 'info';
-                }
+                if (source == null) source = '';
+                if (level == null) level = 'info';
                 return (dt('o ui:display')).value(expr);
               }
             }
@@ -1334,27 +1367,31 @@
       };
     };
   });
+
 }).call(this);
 
+
+/*
+   Copyright 2012 Peter Neumark
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+   help.coffee - Contains code and content for the help system.
+*/
+
 (function() {
-  /*
-     Copyright 2012 Peter Neumark
-  
-     Licensed under the Apache License, Version 2.0 (the "License");
-     you may not use this file except in compliance with the License.
-     You may obtain a copy of the License at
-  
-         http://www.apache.org/licenses/LICENSE-2.0
-  
-     Unless required by applicable law or agreed to in writing, software
-     distributed under the License is distributed on an "AS IS" BASIS,
-     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-     See the License for the specific language governing permissions and
-     limitations under the License.
-  
-     help.coffee - Contains code and content for the help system.
-  
-  */  var __hasProp = Object.prototype.hasOwnProperty;
+  var __hasProp = Object.prototype.hasOwnProperty;
+
   define('help',['corelib'], function(corelib) {
     return function(dt) {
       var converter, displayMarkDown, fixLinks, pkg, uiLib;
@@ -1420,11 +1457,7 @@
                   return "No description for " + section[dt.symbol() + 'id'];
                 }
               } else {
-                                if (section != null) {
-                  section;
-                } else {
-                  section = 'main';
-                };
+                if (section == null) section = 'main';
                 helpText = pkg.value.helpStore.value[section];
                 if (helpText != null) {
                   return displayMarkDown(helpText);
@@ -1473,52 +1506,45 @@
       };
     };
   });
+
 }).call(this);
 
+
+/*
+   Copyright 2012 Peter Neumark
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+   ducttape.coffee - main source file, defines the ducttape function.
+*/
+
 (function() {
-  /*
-     Copyright 2012 Peter Neumark
-  
-     Licensed under the Apache License, Version 2.0 (the "License");
-     you may not use this file except in compliance with the License.
-     You may obtain a copy of the License at
-  
-         http://www.apache.org/licenses/LICENSE-2.0
-  
-     Unless required by applicable law or agreed to in writing, software
-     distributed under the License is distributed on an "AS IS" BASIS,
-     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-     See the License for the specific language governing permissions and
-     limitations under the License.
-  
-     ducttape.coffee - main source file, defines the ducttape function.
-  
-  */  define('ducttape',['cmd', 'keybindings', 'ui', 'pkgmgr', 'objectviewer', 'fs', 'shellutils', 'help'], function(Cmd, KeyBindings, ui, PkgMgr, objectviewer, fs, shellUtils, help) {
+
+  define('ducttape',['cmd', 'keybindings', 'ui', 'pkgmgr', 'objectviewer', 'fs', 'shellutils', 'help'], function(Cmd, KeyBindings, ui, PkgMgr, objectviewer, fs, shellUtils, help) {
     var DuctTape, dt, dtobj, _ref;
     DuctTape = (function() {
+
       function DuctTape(config) {
-        var _base, _base2, _base3, _ref, _ref2, _ref3, _ref4;
+        var _base, _base2, _base3;
         this.config = config;
-                if ((_ref = this.config) != null) {
-          _ref;
-        } else {
-          this.config = {};
-        };
-                if ((_ref2 = (_base = this.config).globalRef) != null) {
-          _ref2;
-        } else {
-          _base.globalRef = "\u0111";
-        };
-                if ((_ref3 = (_base2 = this.config).initial_buffer) != null) {
-          _ref3;
-        } else {
+        if (this.config == null) this.config = {};
+        if ((_base = this.config).globalRef == null) _base.globalRef = "\u0111";
+        if ((_base2 = this.config).initial_buffer == null) {
           _base2.initial_buffer = "";
-        };
-                if ((_ref4 = (_base3 = this.config).showGeneratedJS) != null) {
-          _ref4;
-        } else {
+        }
+        if ((_base3 = this.config).showGeneratedJS == null) {
           _base3.showGeneratedJS = false;
-        };
+        }
         this.internals = {
           cmd: new (Cmd(this))()
         };
@@ -1527,7 +1553,9 @@
           keybindings: new KeyBindings()
         };
       }
+
       return DuctTape;
+
     })();
     dtobj = new DuctTape((_ref = window.ducttape_config) != null ? _ref : {});
     dt = dtobj.exec = function() {
@@ -1545,4 +1573,5 @@
     window[dtobj.config.globalRef] = dt;
     return dt;
   });
+
 }).call(this);

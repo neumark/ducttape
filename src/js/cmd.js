@@ -1,22 +1,26 @@
+
+/*
+   Copyright 2012 Peter Neumark
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+   cmd.coffee - The DuctTape command interpreter.
+*/
+
 (function() {
-  /*
-     Copyright 2012 Peter Neumark
-  
-     Licensed under the Apache License, Version 2.0 (the "License");
-     you may not use this file except in compliance with the License.
-     You may obtain a copy of the License at
-  
-         http://www.apache.org/licenses/LICENSE-2.0
-  
-     Unless required by applicable law or agreed to in writing, software
-     distributed under the License is distributed on an "AS IS" BASIS,
-     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-     See the License for the specific language governing permissions and
-     limitations under the License.
-  
-     cmd.coffee - The DuctTape command interpreter.
-  
-  */  var __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; }, __slice = Array.prototype.slice;
+  var __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
+    __slice = Array.prototype.slice;
+
   define([], function() {
     return function(dtObj) {
       var Cmd, badCommand;
@@ -26,6 +30,7 @@
         };
       };
       return Cmd = (function() {
+
         function Cmd() {
           this.exec = __bind(this.exec, this);          this.cmdStore = {
             v: {
@@ -52,6 +57,7 @@
             }
           };
         }
+
         Cmd.prototype.exec = function() {
           var args, command, fn, ret, tmp, _ref;
           command = arguments[0], args = 2 <= arguments.length ? __slice.call(arguments, 1) : [];
@@ -67,8 +73,11 @@
             return ret = "Sorry, can't help you with that! No action registered for value '" + command + "'!";
           }
         };
+
         return Cmd;
+
       })();
     };
   });
+
 }).call(this);

@@ -1,28 +1,27 @@
+
+/*
+   Copyright 2012 Peter Neumark
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+   objectviewer.coffee - code for the objectViewer package, registered at
+   startup in ducttape.coffee
+*/
+
 (function() {
-  /*
-     Copyright 2012 Peter Neumark
-  
-     Licensed under the Apache License, Version 2.0 (the "License");
-     you may not use this file except in compliance with the License.
-     You may obtain a copy of the License at
-  
-         http://www.apache.org/licenses/LICENSE-2.0
-  
-     Unless required by applicable law or agreed to in writing, software
-     distributed under the License is distributed on an "AS IS" BASIS,
-     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-     See the License for the specific language governing permissions and
-     limitations under the License.
-  
-     objectviewer.coffee - code for the objectViewer package, registered at
-     startup in ducttape.coffee
-  
-  */  var __hasProp = Object.prototype.hasOwnProperty, __indexOf = Array.prototype.indexOf || function(item) {
-    for (var i = 0, l = this.length; i < l; i++) {
-      if (this[i] === item) return i;
-    }
-    return -1;
-  };
+  var __hasProp = Object.prototype.hasOwnProperty,
+    __indexOf = Array.prototype.indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
+
   define([], function() {
     return function(dt) {
       var objectViewer_MAXSTRLEN, ov, pkg;
@@ -100,9 +99,7 @@
           ov.objectViewer.cache.push(obj);
           mk_node = function(key, value, visible) {
             var ret, value_str;
-            if (visible == null) {
-              visible = true;
-            }
+            if (visible == null) visible = true;
             value_str = null;
             try {
               value_str = ov.stringValue(value);
@@ -133,9 +130,7 @@
             try {
               kl = Object.getOwnPropertyNames(parent);
             } catch (e) {
-              if (!(typeof o !== "undefined" && o !== null)) {
-                return [];
-              }
+              if (!(typeof o !== "undefined" && o !== null)) return [];
               kl = (function() {
                 var _results;
                 _results = [];
@@ -188,7 +183,7 @@
                 _results = [];
                 for (_i = 0, _len = keylist.length; _i < _len; _i++) {
                   k = keylist[_i];
-                  _results.push((node = node[k]));
+                  _results.push(node = node[k]);
                 }
                 return _results;
               })())[keylist.length - 1];
@@ -250,4 +245,5 @@
       };
     };
   });
+
 }).call(this);

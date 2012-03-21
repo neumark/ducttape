@@ -14,30 +14,30 @@
    limitations under the License.
 
    pkgmgr.coffee - the DuctTape package manager.
-   PkgMgr is organized around the concept of Values With Metadata (VWM).
+   PkgMgr is organized around the concept of Values With Metadata (NAV).
    See corelib for details.
 
-   Packages are VWM's, as are the objects contained within.
+   Packages are NAV's, as are the objects contained within.
    Deeper in the object hierarchy there can be "plain old objects" as well.
 ###
 
 define ['corelib'], (corelib) ->
     (dt) ->
-        class Pkg extends corelib.VWM
+        class Pkg extends corelib.NAV
             constructor: (pkgSpec) ->
                 super pkgSpec
                 if not @hasAttributes ["author", "description", "url"]
                     throw new Error "InvalidPackageSpecification"
                 for own key, obj of @value
-                    @save new corelib.VWM key, obj
-            save: (vwm) ->
-                if not vwm.hasAttributes ["description"]
+                    @save new corelib.NAV key, obj
+            save: (nav) ->
+                if not nav.hasAttributes ["description"]
                     throw new Error "InvalidObjectSpecification"
-                @value[vwm.name] = vwm
-                if vwm.attr.makePublic is on 
-                    dt[vwm.name] = @value[vwm.name].value
+                @value[nav.name] = nav
+                if nav.attr.makePublic is on 
+                    dt[nav.name] = @value[nav.name].value
                     # add an identifier to the obj so help() and other conveniences work:
-                    dt[vwm.name]['\u0111id'] = @name + ':' + vwm.name
+                    dt[nav.name]['\u0111id'] = @name + ':' + nav.name
             load: (name) ->
                 @value[name]
             toHTML: =>
@@ -104,7 +104,7 @@ define ['corelib'], (corelib) ->
                 true
             save: (pkg, args...) =>
                 @pkgDefinedGuard pkg, ->
-                    @store[pkg].save new corelib.VWM args
+                    @store[pkg].save new corelib.NAV args
                     true
             load: (pkg, name) =>
                 @pkgDefinedGuard pkg, ->

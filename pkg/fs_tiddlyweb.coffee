@@ -2,69 +2,74 @@ define ['corelib'], (corelib) ->
     (dt) ->
         root = (host) ->
 
-            class TWObj
-                constructor: (@name) ->
-                    @obj = new (tiddlyweb[@type])(@name, host)
+            class TWObj extends corelib.NAV
+                constructor: (@name, filters=null) ->
+                    @obj ?= new (tiddlyweb[@attr.type])(@name, host, filters)
                     @contentObj = null
                     @childList = null
-                request: (that, ajaxFun, attribute, transform) =>
+                request: (that, ajaxFun, attribute, transform = (x)->x) =>
                     if @[attribute]? then @[attribute] else 
                         promise = new corelib.Promise
                             ajaxFun: ajaxFun
                             that: that
-                            transform: transform 
                         promise.twRequest = ajaxFun.apply that, [
-                            (value) -> promise.fulfill true, value
-                            (args...) -> 
+                            (value) => 
+                                @[attribute] = transform(value)
+                                promise.fulfill true, @[attribute]
+                            (args...) => 
                                 # TODO: better error msg
                                 (dt 'o ui:display').value args
                                 promise.fulfill false, args
                         ]
                         promise
-                # default content request class .get()
-                contents: => 
-                    @request @obj, @obj.get, 'contentObj'
 
             class TopLevel extends TWObj # bags, recipes 
                 constructor: (name) -> 
-                    @type = 'Collection'
+                    @attr = type: 'Collection'
+                    @attr.__defineSetter__ 'children', -> throw new Error 'NotImplemented'
+                    @attr.__defineGetter__ 'children', =>
+                        t = switch @name
+                            when 'bags' then 'Bag'
+                            when 'recipes' then 'Recipe'
+                            else
+                                throw new Error 'Unknown top level child: ' + @name
+                        @request @obj, @obj.get, 'childList', (val) =>
+                            (new SecondLevel(i, t) for i in val)
+                    @value = true
                     super(name)
-                contents: -> null
-                # Children are collections (bags or recipes)
-                children: ->
-                    promise = null
-                    promise = @request @obj, @obj.get, 'childList', (val) ->
-                        if promise.isSuccessful 
-                            (new SecondLevel (
-                                collectionName
-                                switch @name
-                                    when 'bags' then 'Bag'
-                                    when 'recipes' then 'Recipe'
-                                    else
-                                        throw new Error 'Unknown top level child: ' + @name
-                            ) for i in val)
-                        else val
 
             class SecondLevel extends TWObj # a Bag or Recipe
-                constructor: (name, @type) -> 
+                constructor: (name, type) -> 
+                    # Define a setter for the value property
+                    @__defineSetter__ 'value', -> throw new Error 'NotImplemented'
+                    @__defineGetter__ "value", =>
+                        @request @obj, @obj.get, 'contentObj'
+                    @attr = type: type
+                    @attr.__defineSetter__ 'children', -> throw new Error 'NotImplemented'
+                    @attr.__defineGetter__ 'children', => @request(
+                            @obj.tiddlers()
+                            (cb1, cb2) => @obj.tiddlers().get cb1, cb2, "fat=1"
+                            'childList',
+                            (tiddlerList) -> (new  TiddlerWrapper (tiddler) for tiddler in tiddlerList)
+                        )
                     super(name)
-                # children are tiddlers
-                children: =>
-                    @request obj.tiddlers(), obj.tiddlers().get, 'childList', @mkChild
-                mkChild: (title) => new TiddlerWrapper (title)
 
             class TiddlerWrapper extends TWObj
-                constructor: (name) ->
-                    @type = 'Tiddler'
-                children: -> []
-                # TODO: revisions, fields, tags could be further children
+                constructor: (@tiddler) ->
+                    @name = @tiddler.title
+                    @attr = type: 'Tiddler'
+                    @value = @tiddler
+                    #@__defineSetter__ 'value', -> throw new Error 'NotImplemented'
+                    #@__defineGetter__ "value", => @tiddler
+                    # TODO: revisions, fields, tags could be further children
 
             class Root extends TWObj
                 constructor: ->
-                    @childList = [new TopLevel('bags'), new TopLevel('recipes')]
-                contents: -> host
-                children: => @childList
-
+                    @name = '/'
+                    @attr = 
+                        type: 'root'
+                        children: [new TopLevel('bags'), new TopLevel('recipes')]
+                    @value = true
             new Root()
 
         pkg =

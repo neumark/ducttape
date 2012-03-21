@@ -18,26 +18,26 @@
 ###
 
 define [], ->
-    VWM:
+    NAV:
         class
             doc: """
-                 A VWM has 3 parts:
+                 A NAV has 3 parts:
                  - name              unique id (within namespace) - string
                  - attr              attributes - object (dictionary)
                  - value             the actual value - any truthy javascript value
                  """
-            constructor: (vwm...) ->
+            constructor: (nav...) ->
                 # - {name: ..., attr: ..., value: ...}
                 # - [name, attr, value]
                 # - [name, {attr: ..., value: ...}]
-                [@name, @attr, @value] = switch vwm?.length
+                [@name, @attr, @value] = switch nav?.length
                     when 1 
-                        if vwm[0]?.length? == 3 then vwm[0] else [vwm[0]?.name, vwm[0]?.attr, vwm[0]?.value]
-                    when 2 then [vwm?[0], vwm?[1]?.attr, vwm?[1]?.value]
-                    when 3 then vwm
+                        if nav[0]?.length? == 3 then nav[0] else [nav[0]?.name, nav[0]?.attr, nav[0]?.value]
+                    when 2 then [nav?[0], nav?[1]?.attr, nav?[1]?.value]
+                    when 3 then nav
                     else []
-                if (not @name?) or (not @attr?) or (not @value) then throw new Error "Bad VWM format"
-                if (typeof @attr) != "object" then throw new Error "VWM attr field must be an object"
+                if (not @name?) or (not @attr?) or (not @value) then throw new Error "Bad NAV format"
+                if (typeof @attr) != "object" then throw new Error "NAV attr field must be an object"
             hasAttributes: (attrList) ->
                 missing = (f for f in attrList when (not @attr[f]?))
                 missing.length == 0
@@ -46,11 +46,10 @@ define [], ->
             constructor: (@spec = {}) ->
                 # TODO: timeout in spec
                 @value = null
-                @make = new Date()
+                @made = new Date()
                 _.extend @, Backbone.Events
-            fulfill: (@isSuccess, value...) =>
+            fulfill: (@isSuccess, @value...) =>
                 @fulfilled = new Date()
-                @value = if @spec.transform? then @spec.transform(value) else value
                 @trigger (if @isSuccess then "success" else "failure"), @value
 
     compile: (src) ->

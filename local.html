@@ -16,15 +16,15 @@
    limitations under the License.
 
    To make this file use local resources, I did:
-   :%s/http:\/\/neumark.github.com\/ducttape\//http:\/\/localhost:8081\//g
+   :%s/http:\/\/neumark.github.com\/ducttape\//http:\/\/localhost\//g
    in VIM.
 -->
 <head>
   <meta http-equiv="content-type" content="text/html;charset=UTF-8" />
   <title>DuctTape</title>
-  <link href="http://localhost:8081/deps/bootstrap/css/bootstrap.css" rel="stylesheet">
-  <link href="http://localhost:8081/deps/bootstrap/css/bootstrap-responsive.css" rel="stylesheet">
-  <link href="http://localhost:8081/build/css/ducttape.css" rel="stylesheet">
+  <link href="deps/bootstrap/css/bootstrap.css" rel="stylesheet">
+  <link href="deps/bootstrap/css/bootstrap-responsive.css" rel="stylesheet">
+  <link href="build/css/ducttape.css" rel="stylesheet">
 </head>
 <body>
     <div class="navbar navbar-fixed-top">
@@ -57,38 +57,38 @@
             </div>
     </div> <!-- /container -->
 <!-- showdown -->
-<script src="http://localhost:8081/deps/showdown/showdown.js" type="text/javascript" charset="utf-8"></script>
+<script src="deps/showdown/showdown.js" type="text/javascript" charset="utf-8"></script>
 <!-- jquery and jquery plugins -->
-<script src="http://localhost:8081/deps/jquery/jquery-1.7.1.js" type="text/javascript" charset="utf-8"></script>
-<script type="text/javascript" src="http://localhost:8081/deps/jquery/jstree/jquery.jstree.js"></script>
+<script src="deps/jquery/jquery-1.7.1.js" type="text/javascript" charset="utf-8"></script>
+<script type="text/javascript" src="deps/jquery/jstree/jquery.jstree.js"></script>
 <!-- ace-related scripts -->
 <!-- NOTE: github serves files over http, so if you're using https, you will need to copy the web workers to your server! -->
-<!-- <script src="http://localhost:8081/deps/ace/ace-uncompressed-noconflict.js" data-ace-base="./" type="text/javascript" charset="utf-8"></script>-->
-<script src="http://localhost:8081/deps/ace/ace-uncompressed-noconflict.js" type="text/javascript" charset="utf-8"></script>
-<script src="http://localhost:8081/deps/ace/mode-coffee-uncompressed-noconflict.js" type="text/javascript" charset="utf-8"></script>
+<!-- <script src="deps/ace/ace-uncompressed-noconflict.js" data-ace-base="./" type="text/javascript" charset="utf-8"></script>-->
+<script src="deps/ace/ace-uncompressed-noconflict.js" type="text/javascript" charset="utf-8"></script>
+<script src="deps/ace/mode-coffee-uncompressed-noconflict.js" type="text/javascript" charset="utf-8"></script>
 <!-- coffeescript compiler -->
-<script src="http://localhost:8081/deps/cs/coffee-script.js"></script>
+<script src="deps/cs/coffee-script.js"></script>
 <!-- bootstrap includes -->
-<script src="http://localhost:8081/deps/bootstrap/js/bootstrap-transition.js"></script>
-<script src="http://localhost:8081/deps/bootstrap/js/bootstrap-alert.js"></script>
-<script src="http://localhost:8081/deps/bootstrap/js/bootstrap-modal.js"></script>
-<script src="http://localhost:8081/deps/bootstrap/js/bootstrap-dropdown.js"></script>
-<script src="http://localhost:8081/deps/bootstrap/js/bootstrap-scrollspy.js"></script>
-<script src="http://localhost:8081/deps/bootstrap/js/bootstrap-tab.js"></script>
-<script src="http://localhost:8081/deps/bootstrap/js/bootstrap-tooltip.js"></script>
-<script src="http://localhost:8081/deps/bootstrap/js/bootstrap-popover.js"></script>
-<script src="http://localhost:8081/deps/bootstrap/js/bootstrap-button.js"></script>
-<script src="http://localhost:8081/deps/bootstrap/js/bootstrap-collapse.js"></script>
-<script src="http://localhost:8081/deps/bootstrap/js/bootstrap-carousel.js"></script>
-<script src="http://localhost:8081/deps/bootstrap/js/bootstrap-typeahead.js"></script>
+<script src="deps/bootstrap/js/bootstrap-transition.js"></script>
+<script src="deps/bootstrap/js/bootstrap-alert.js"></script>
+<script src="deps/bootstrap/js/bootstrap-modal.js"></script>
+<script src="deps/bootstrap/js/bootstrap-dropdown.js"></script>
+<script src="deps/bootstrap/js/bootstrap-scrollspy.js"></script>
+<script src="deps/bootstrap/js/bootstrap-tab.js"></script>
+<script src="deps/bootstrap/js/bootstrap-tooltip.js"></script>
+<script src="deps/bootstrap/js/bootstrap-popover.js"></script>
+<script src="deps/bootstrap/js/bootstrap-button.js"></script>
+<script src="deps/bootstrap/js/bootstrap-collapse.js"></script>
+<script src="deps/bootstrap/js/bootstrap-carousel.js"></script>
+<script src="deps/bootstrap/js/bootstrap-typeahead.js"></script>
 <!-- backbone and underscore --> 
-<script src="http://localhost:8081/deps/documentcloud/underscore.js"></script>
-<script src="http://localhost:8081/deps/documentcloud/backbone.js"></script>
+<script src="deps/documentcloud/underscore.js"></script>
+<script src="deps/documentcloud/backbone.js"></script>
 <!-- chrjs files for talking to tiddlyweb -->
 <script src="http://tiddlyspace.com/bags/tiddlyspace/tiddlers/chrjs"></script>
 <!--<script src="http://tiddlyspace.com/bags/common/tiddlers/chrjs.users"></script>-->
 <!-- requirejs -->
-<script src="http://localhost:8081/deps/requirejs/require.js"></script>
+<script src="deps/requirejs/require.js"></script>
 <script type="text/javascript">
     require.config({        
         baseUrl: 'build/js/'
