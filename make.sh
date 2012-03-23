@@ -1,5 +1,5 @@
-COFFEE=/Users/neumark/.npm/coffee-script/1.2.0/package/bin/coffee
-RJS=/Users/neumark/.npm/requirejs/1.0.7/package/bin/r.js
+COFFEE=coffee
+RJS=lib/r.js
 
 $COFFEE -o src/js -c src/coffee/*
 node $RJS -o src/js/app.build.js
