@@ -19,95 +19,204 @@
 
 (function() {
   var __slice = Array.prototype.slice,
-    __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
+    __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
+    __hasProp = Object.prototype.hasOwnProperty,
+    __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor; child.__super__ = parent.prototype; return child; };
 
   define([], function() {
-    return {
-      NAV: (function() {
+    var corelib;
+    corelib = {};
+    corelib.NAV = (function() {
 
-        _Class.prototype.doc = "A NAV has 3 parts:\n- name              unique id (within namespace) - string\n- attr              attributes - object (dictionary)\n- value             the actual value - any truthy javascript value";
+      _Class.prototype.doc = "A NAV has 3 parts:\n- name              unique id (within namespace) - string\n- attr              attributes - object (dictionary)\n- value             the actual value - any truthy javascript value";
 
-        function _Class() {
-          var nav, _ref;
-          nav = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
-          _ref = (function() {
-            var _ref, _ref2, _ref3, _ref4, _ref5, _ref6;
-            switch (nav != null ? nav.length : void 0) {
-              case 1:
-                if ((((_ref = nav[0]) != null ? _ref.length : void 0) != null) === 3) {
-                  return nav[0];
-                } else {
-                  return [(_ref2 = nav[0]) != null ? _ref2.name : void 0, (_ref3 = nav[0]) != null ? _ref3.attr : void 0, (_ref4 = nav[0]) != null ? _ref4.value : void 0];
-                }
-                break;
-              case 2:
-                return [nav != null ? nav[0] : void 0, nav != null ? (_ref5 = nav[1]) != null ? _ref5.attr : void 0 : void 0, nav != null ? (_ref6 = nav[1]) != null ? _ref6.value : void 0 : void 0];
-              case 3:
-                return nav;
-              default:
-                return [];
-            }
-          })(), this.name = _ref[0], this.attr = _ref[1], this.value = _ref[2];
-          if ((!(this.name != null)) || (!(this.attr != null)) || (!this.value)) {
-            throw new Error("Bad NAV format");
+      function _Class() {
+        var nav, _ref;
+        nav = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
+        _ref = (function() {
+          var _ref, _ref2, _ref3, _ref4, _ref5, _ref6;
+          switch (nav != null ? nav.length : void 0) {
+            case 1:
+              if ((((_ref = nav[0]) != null ? _ref.length : void 0) != null) === 3) {
+                return nav[0];
+              } else {
+                return [(_ref2 = nav[0]) != null ? _ref2.name : void 0, (_ref3 = nav[0]) != null ? _ref3.attr : void 0, (_ref4 = nav[0]) != null ? _ref4.value : void 0];
+              }
+              break;
+            case 2:
+              return [nav != null ? nav[0] : void 0, nav != null ? (_ref5 = nav[1]) != null ? _ref5.attr : void 0 : void 0, nav != null ? (_ref6 = nav[1]) != null ? _ref6.value : void 0 : void 0];
+            case 3:
+              return nav;
+            default:
+              return [];
           }
-          if ((typeof this.attr) !== "object") {
-            throw new Error("NAV attr field must be an object");
+        })(), this.name = _ref[0], this.attr = _ref[1], this.value = _ref[2];
+        if ((!(this.name != null)) || (!(this.attr != null)) || (!this.value)) {
+          throw new Error("Bad NAV format");
+        }
+        if ((typeof this.attr) !== "object") {
+          throw new Error("NAV attr field must be an object");
+        }
+      }
+
+      _Class.prototype.hasAttributes = function(attrList) {
+        var f, missing;
+        missing = (function() {
+          var _i, _len, _results;
+          _results = [];
+          for (_i = 0, _len = attrList.length; _i < _len; _i++) {
+            f = attrList[_i];
+            if (!(this.attr[f] != null)) _results.push(f);
           }
+          return _results;
+        }).call(this);
+        return missing.length === 0;
+      };
+
+      return _Class;
+
+    })();
+    corelib.Promise = (function() {
+
+      function _Class(spec) {
+        var _ref;
+        this.spec = spec != null ? spec : {};
+        this.fulfill = __bind(this.fulfill, this);
+        this.value = null;
+        this.made = new Date();
+        _.extend(this, Backbone.Events);
+        if ('value' in this.spec) {
+          this.fulfill((_ref = this.spec.isSuccess) != null ? _ref : true, this.spec.value);
         }
+      }
 
-        _Class.prototype.hasAttributes = function(attrList) {
-          var f, missing;
-          missing = (function() {
-            var _i, _len, _results;
-            _results = [];
-            for (_i = 0, _len = attrList.length; _i < _len; _i++) {
-              f = attrList[_i];
-              if (!(this.attr[f] != null)) _results.push(f);
-            }
-            return _results;
-          }).call(this);
-          return missing.length === 0;
-        };
+      _Class.prototype.fulfill = function(isSuccess, value) {
+        this.isSuccess = isSuccess;
+        this.value = value;
+        this.fulfilled = new Date();
+        return this.trigger((this.isSuccess ? "success" : "failure"), this.value);
+      };
 
-        return _Class;
-
-      })(),
-      Promise: (function() {
-
-        function _Class(spec) {
-          this.spec = spec != null ? spec : {};
-          this.fulfill = __bind(this.fulfill, this);
-          this.value = null;
-          this.made = new Date();
-          _.extend(this, Backbone.Events);
-        }
-
-        _Class.prototype.fulfill = function() {
-          var isSuccess, value;
-          isSuccess = arguments[0], value = 2 <= arguments.length ? __slice.call(arguments, 1) : [];
-          this.isSuccess = isSuccess;
-          this.value = value;
-          this.fulfilled = new Date();
-          return this.trigger((this.isSuccess ? "success" : "failure"), this.value);
-        };
-
-        return _Class;
-
-      })(),
-      compile: function(src) {
-        if (src.length === 0) {
-          return src;
+      _Class.prototype.afterSuccess = function(cb) {
+        if (this.isSuccess === true) {
+          return cb(this.value);
         } else {
-          return CoffeeScript.compile(src, {
-            'bare': true
-          });
+          return this.on("success", cb);
         }
-      },
-      execJS: function(jsSrc) {
-        return window.eval(jsSrc.replace(/\n/g, "") + "\n");
+      };
+
+      _Class.prototype.afterFailure = function(cb) {
+        if (this.isSuccess === false) {
+          return cb(this.value);
+        } else {
+          return this.on("failure", cb);
+        }
+      };
+
+      _Class.prototype.afterFulfilled = function(cb) {
+        if (this.fulfilled != null) {
+          return cb(this.value);
+        } else {
+          return this.on("success failure", cb);
+        }
+      };
+
+      _Class.prototype.apply = function(fun, that, spec) {
+        var appliedPromise;
+        appliedPromise = new corelib.Promise(spec);
+        this.afterFailure(function() {
+          return appliedPromise.fulfill(false, this.value);
+        });
+        this.afterSuccess(function() {
+          try {
+            return appliedPromise.fulfill(true, fun.apply(that, [val]));
+          } catch (e) {
+            return appliedPromise.fulfill(false, e);
+          }
+        });
+        return appliedPromise;
+      };
+
+      return _Class;
+
+    })();
+    corelib.PromiseChain = (function(_super) {
+
+      __extends(_Class, _super);
+
+      function _Class(initialPromiseOrValue, spec) {
+        var fun;
+        this.initialPromiseOrValue = initialPromiseOrValue;
+        if (spec == null) spec = {};
+        this.chain = [];
+        fun = {
+          processValue: function(val) {
+            val = (function() {
+              if (spec.valueTransform != null) {
+                try {
+                  return corelib.promiseApply(spec.valueTransform, spec.that, val, spec.newPromiseSpec);
+                } catch (e) {
+                  this.fulfill(false, e);
+                  return null;
+                }
+              } else {
+                return val;
+              }
+            }).call(this);
+            if (val instanceof corelib.Promise) {
+              return fun.addPromise(val);
+            } else {
+              return this.fulfill(true, val);
+            }
+          },
+          addPromise: function(promise) {
+            var _this = this;
+            this.chain.push(promise);
+            promise.on("failure", function() {
+              return _this.fulfill(false);
+            });
+            return promise.on("success", function(val) {
+              return fun.processValue(val);
+            });
+          }
+        };
+        fun.processValue(this.initialPromiseOrValue);
+      }
+
+      return _Class;
+
+    })(corelib.Promise);
+    corelib.promiseApply = function(fun, that, val, spec) {
+      var success, value, _ref;
+      if (val instanceof corelib.Promise) {
+        return val.apply(fun, that, spec);
+      } else {
+        _ref = (function() {
+          try {
+            return [true, fun.apply(that, [val])];
+          } catch (e) {
+            return [false, e];
+          }
+        })(), success = _ref[0], value = _ref[1];
+        return new corelib.Promise({
+          isSuccess: success,
+          value: value
+        });
       }
     };
+    corelib.compile = function(src) {
+      if (src.length === 0) {
+        return src;
+      } else {
+        return CoffeeScript.compile(src, {
+          'bare': true
+        });
+      }
+    };
+    corelib.execJS = function(jsSrc) {
+      return window.eval(jsSrc.replace(/\n/g, "") + "\n");
+    };
+    return corelib;
   });
 
 }).call(this);

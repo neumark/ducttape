@@ -15,90 +15,6 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 
-   cmd.coffee - The DuctTape command interpreter.
-*/
-
-(function() {
-  var __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
-    __slice = Array.prototype.slice;
-
-  define('cmd',[], function() {
-    return function(dtObj) {
-      var Cmd, badCommand;
-      badCommand = function(name) {
-        return function() {
-          return "No such command: " + name;
-        };
-      };
-      return Cmd = (function() {
-
-        function Cmd() {
-          this.exec = __bind(this.exec, this);          this.cmdStore = {
-            v: {
-              attr: {
-                description: "Get a DuctTape system variable."
-              },
-              value: function(varName) {
-                if (varName in dtObj) {
-                  return dtObj[varName];
-                } else {
-                  throw new Error("No such system variable: " + varName);
-                }
-              }
-            },
-            o: {
-              attr: {
-                description: "Get a DuctTape object from the package manager."
-              },
-              value: function(fullName) {
-                var tmp;
-                tmp = fullName.split(':');
-                return dtObj.internals.pkgmgr.load(tmp[0], tmp[1]);
-              }
-            }
-          };
-        }
-
-        Cmd.prototype.exec = function() {
-          var args, command, fn, ret, tmp, _ref;
-          command = arguments[0], args = 2 <= arguments.length ? __slice.call(arguments, 1) : [];
-          if ((command != null) && ("string" === typeof command)) {
-            if (args.length === 0) {
-              tmp = command.split(' ');
-              command = tmp[0];
-              args = tmp.slice(1);
-            }
-            fn = (_ref = this.cmdStore[command]) != null ? _ref.value : void 0;
-            return (fn != null ? fn : badCommand(command)).apply(this, args);
-          } else {
-            return ret = "Sorry, can't help you with that! No action registered for value '" + command + "'!";
-          }
-        };
-
-        return Cmd;
-
-      })();
-    };
-  });
-
-}).call(this);
-
-
-/*
-   Copyright 2012 Peter Neumark
-
-   Licensed under the Apache License, Version 2.0 (the "License");
-   you may not use this file except in compliance with the License.
-   You may obtain a copy of the License at
-
-       http://www.apache.org/licenses/LICENSE-2.0
-
-   Unless required by applicable law or agreed to in writing, software
-   distributed under the License is distributed on an "AS IS" BASIS,
-   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-   See the License for the specific language governing permissions and
-   limitations under the License.
-
    keybindings.coffee - Defines and triggers keybindings.
 */
 
@@ -178,95 +94,204 @@
 
 (function() {
   var __slice = Array.prototype.slice,
-    __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
+    __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
+    __hasProp = Object.prototype.hasOwnProperty,
+    __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor; child.__super__ = parent.prototype; return child; };
 
   define('corelib',[], function() {
-    return {
-      NAV: (function() {
+    var corelib;
+    corelib = {};
+    corelib.NAV = (function() {
 
-        _Class.prototype.doc = "A NAV has 3 parts:\n- name              unique id (within namespace) - string\n- attr              attributes - object (dictionary)\n- value             the actual value - any truthy javascript value";
+      _Class.prototype.doc = "A NAV has 3 parts:\n- name              unique id (within namespace) - string\n- attr              attributes - object (dictionary)\n- value             the actual value - any truthy javascript value";
 
-        function _Class() {
-          var nav, _ref;
-          nav = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
-          _ref = (function() {
-            var _ref, _ref2, _ref3, _ref4, _ref5, _ref6;
-            switch (nav != null ? nav.length : void 0) {
-              case 1:
-                if ((((_ref = nav[0]) != null ? _ref.length : void 0) != null) === 3) {
-                  return nav[0];
-                } else {
-                  return [(_ref2 = nav[0]) != null ? _ref2.name : void 0, (_ref3 = nav[0]) != null ? _ref3.attr : void 0, (_ref4 = nav[0]) != null ? _ref4.value : void 0];
-                }
-                break;
-              case 2:
-                return [nav != null ? nav[0] : void 0, nav != null ? (_ref5 = nav[1]) != null ? _ref5.attr : void 0 : void 0, nav != null ? (_ref6 = nav[1]) != null ? _ref6.value : void 0 : void 0];
-              case 3:
-                return nav;
-              default:
-                return [];
-            }
-          })(), this.name = _ref[0], this.attr = _ref[1], this.value = _ref[2];
-          if ((!(this.name != null)) || (!(this.attr != null)) || (!this.value)) {
-            throw new Error("Bad NAV format");
+      function _Class() {
+        var nav, _ref;
+        nav = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
+        _ref = (function() {
+          var _ref, _ref2, _ref3, _ref4, _ref5, _ref6;
+          switch (nav != null ? nav.length : void 0) {
+            case 1:
+              if ((((_ref = nav[0]) != null ? _ref.length : void 0) != null) === 3) {
+                return nav[0];
+              } else {
+                return [(_ref2 = nav[0]) != null ? _ref2.name : void 0, (_ref3 = nav[0]) != null ? _ref3.attr : void 0, (_ref4 = nav[0]) != null ? _ref4.value : void 0];
+              }
+              break;
+            case 2:
+              return [nav != null ? nav[0] : void 0, nav != null ? (_ref5 = nav[1]) != null ? _ref5.attr : void 0 : void 0, nav != null ? (_ref6 = nav[1]) != null ? _ref6.value : void 0 : void 0];
+            case 3:
+              return nav;
+            default:
+              return [];
           }
-          if ((typeof this.attr) !== "object") {
-            throw new Error("NAV attr field must be an object");
+        })(), this.name = _ref[0], this.attr = _ref[1], this.value = _ref[2];
+        if ((!(this.name != null)) || (!(this.attr != null)) || (!this.value)) {
+          throw new Error("Bad NAV format");
+        }
+        if ((typeof this.attr) !== "object") {
+          throw new Error("NAV attr field must be an object");
+        }
+      }
+
+      _Class.prototype.hasAttributes = function(attrList) {
+        var f, missing;
+        missing = (function() {
+          var _i, _len, _results;
+          _results = [];
+          for (_i = 0, _len = attrList.length; _i < _len; _i++) {
+            f = attrList[_i];
+            if (!(this.attr[f] != null)) _results.push(f);
           }
+          return _results;
+        }).call(this);
+        return missing.length === 0;
+      };
+
+      return _Class;
+
+    })();
+    corelib.Promise = (function() {
+
+      function _Class(spec) {
+        var _ref;
+        this.spec = spec != null ? spec : {};
+        this.fulfill = __bind(this.fulfill, this);
+        this.value = null;
+        this.made = new Date();
+        _.extend(this, Backbone.Events);
+        if ('value' in this.spec) {
+          this.fulfill((_ref = this.spec.isSuccess) != null ? _ref : true, this.spec.value);
         }
+      }
 
-        _Class.prototype.hasAttributes = function(attrList) {
-          var f, missing;
-          missing = (function() {
-            var _i, _len, _results;
-            _results = [];
-            for (_i = 0, _len = attrList.length; _i < _len; _i++) {
-              f = attrList[_i];
-              if (!(this.attr[f] != null)) _results.push(f);
-            }
-            return _results;
-          }).call(this);
-          return missing.length === 0;
-        };
+      _Class.prototype.fulfill = function(isSuccess, value) {
+        this.isSuccess = isSuccess;
+        this.value = value;
+        this.fulfilled = new Date();
+        return this.trigger((this.isSuccess ? "success" : "failure"), this.value);
+      };
 
-        return _Class;
-
-      })(),
-      Promise: (function() {
-
-        function _Class(spec) {
-          this.spec = spec != null ? spec : {};
-          this.fulfill = __bind(this.fulfill, this);
-          this.value = null;
-          this.made = new Date();
-          _.extend(this, Backbone.Events);
-        }
-
-        _Class.prototype.fulfill = function() {
-          var isSuccess, value;
-          isSuccess = arguments[0], value = 2 <= arguments.length ? __slice.call(arguments, 1) : [];
-          this.isSuccess = isSuccess;
-          this.value = value;
-          this.fulfilled = new Date();
-          return this.trigger((this.isSuccess ? "success" : "failure"), this.value);
-        };
-
-        return _Class;
-
-      })(),
-      compile: function(src) {
-        if (src.length === 0) {
-          return src;
+      _Class.prototype.afterSuccess = function(cb) {
+        if (this.isSuccess === true) {
+          return cb(this.value);
         } else {
-          return CoffeeScript.compile(src, {
-            'bare': true
-          });
+          return this.on("success", cb);
         }
-      },
-      execJS: function(jsSrc) {
-        return window.eval(jsSrc.replace(/\n/g, "") + "\n");
+      };
+
+      _Class.prototype.afterFailure = function(cb) {
+        if (this.isSuccess === false) {
+          return cb(this.value);
+        } else {
+          return this.on("failure", cb);
+        }
+      };
+
+      _Class.prototype.afterFulfilled = function(cb) {
+        if (this.fulfilled != null) {
+          return cb(this.value);
+        } else {
+          return this.on("success failure", cb);
+        }
+      };
+
+      _Class.prototype.apply = function(fun, that, spec) {
+        var appliedPromise;
+        appliedPromise = new corelib.Promise(spec);
+        this.afterFailure(function() {
+          return appliedPromise.fulfill(false, this.value);
+        });
+        this.afterSuccess(function() {
+          try {
+            return appliedPromise.fulfill(true, fun.apply(that, [val]));
+          } catch (e) {
+            return appliedPromise.fulfill(false, e);
+          }
+        });
+        return appliedPromise;
+      };
+
+      return _Class;
+
+    })();
+    corelib.PromiseChain = (function(_super) {
+
+      __extends(_Class, _super);
+
+      function _Class(initialPromiseOrValue, spec) {
+        var fun;
+        this.initialPromiseOrValue = initialPromiseOrValue;
+        if (spec == null) spec = {};
+        this.chain = [];
+        fun = {
+          processValue: function(val) {
+            val = (function() {
+              if (spec.valueTransform != null) {
+                try {
+                  return corelib.promiseApply(spec.valueTransform, spec.that, val, spec.newPromiseSpec);
+                } catch (e) {
+                  this.fulfill(false, e);
+                  return null;
+                }
+              } else {
+                return val;
+              }
+            }).call(this);
+            if (val instanceof corelib.Promise) {
+              return fun.addPromise(val);
+            } else {
+              return this.fulfill(true, val);
+            }
+          },
+          addPromise: function(promise) {
+            var _this = this;
+            this.chain.push(promise);
+            promise.on("failure", function() {
+              return _this.fulfill(false);
+            });
+            return promise.on("success", function(val) {
+              return fun.processValue(val);
+            });
+          }
+        };
+        fun.processValue(this.initialPromiseOrValue);
+      }
+
+      return _Class;
+
+    })(corelib.Promise);
+    corelib.promiseApply = function(fun, that, val, spec) {
+      var success, value, _ref;
+      if (val instanceof corelib.Promise) {
+        return val.apply(fun, that, spec);
+      } else {
+        _ref = (function() {
+          try {
+            return [true, fun.apply(that, [val])];
+          } catch (e) {
+            return [false, e];
+          }
+        })(), success = _ref[0], value = _ref[1];
+        return new corelib.Promise({
+          isSuccess: success,
+          value: value
+        });
       }
     };
+    corelib.compile = function(src) {
+      if (src.length === 0) {
+        return src;
+      } else {
+        return CoffeeScript.compile(src, {
+          'bare': true
+        });
+      }
+    };
+    corelib.execJS = function(jsSrc) {
+      return window.eval(jsSrc.replace(/\n/g, "") + "\n");
+    };
+    return corelib;
   });
 
 }).call(this);
@@ -858,11 +883,18 @@
         }
 
         PkgMgr.prototype.pkgDef = function(pkgSpec) {
-          var pkg;
+          var initFun, pkg, _ref;
           pkg = new Pkg(pkgSpec);
           if (this.store[pkg.name] != null) throw new Error("PkgExists");
-          this.store[pkg.name] = pkg;
-          return true;
+          initFun = (_ref = pkg.attr.init) != null ? _ref : function() {
+            return true;
+          };
+          if (initFun()) {
+            this.store[pkg.name] = pkg;
+            return true;
+          } else {
+            return false;
+          }
         };
 
         PkgMgr.prototype.pkgDefinedGuard = function(pkgName, fn) {
@@ -1153,21 +1185,188 @@
      whatever you like.
    * Commands: commands to navigate and manipulate the filesystem:
      mount, unmount, ls, pwd, cd
-   * The FSILib object, which provides the FSI API for modules whishing to
+   * The lib object, which provides the FSI API for modules whishing to
      implement access to a particular service.
 */
 
 (function() {
+  var __hasProp = Object.prototype.hasOwnProperty,
+    __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor; child.__super__ = parent.prototype; return child; };
 
   define('fs',['corelib'], function(corelib) {
+    var separator;
+    separator = "/";
     return function(dt) {
-      var mkSessionData, pkg, session;
-      session = dt.pkgGet('core', 'session').value;
-      mkSessionData = function(path, obj) {
-        return {
-          currentPath: path,
-          currentObject: obj
-        };
+      var fsState, lib, pkg, pkgInit, rootNode, _ref;
+      fsState = (_ref = dt.pkgGet('core', 'internals').value.fs) != null ? _ref : {};
+      lib = null;
+      lib = {
+        PathExprEx: (function(_super) {
+
+          __extends(_Class, _super);
+
+          function _Class(msg, obj, childName, originalEx) {
+            this.msg = msg;
+            this.obj = obj;
+            this.childName = childName;
+            this.originalEx = originalEx != null ? originalEx : null;
+            _Class.__super__.constructor.call(this, this.msg);
+          }
+
+          return _Class;
+
+        })(Error),
+        PathExpr: (function() {
+
+          function _Class(strExpr) {
+            this.strExpr = strExpr;
+            this.keyList = strExpr.split(separator);
+          }
+
+          _Class.prototype.evaluate = function() {
+            var chain, currentObject, walk;
+            walk = null;
+            walk = function(keyList, obj) {
+              var child, currentKey, nodeSet, _ref2;
+              currentKey = keyList.shift();
+              nodeSet = (obj != null ? (_ref2 = obj.attr) != null ? _ref2.children : void 0 : void 0) != null;
+              if (!(nodeSet != null)) {
+                throw new lib.PathExprEx("Object has no children", obj, currentKey, this.strExpr);
+              }
+              child = nodeSet.get(currentKey);
+              if (!(child != null)) {
+                throw new lib.PathExprEx("Parent does not have a unique child by that name", obj, currentKey, this.strExpr);
+              }
+              if (keyList.length > 0) {
+                return walk(keyList, child);
+              } else {
+                return child;
+              }
+            };
+            currentObject = this.keyList.length > 0 && keyList[0].length === 0 ? (keyList.shift(), fsState.root) : fsState.co;
+            return chain = new corelib.PromiseChain(currentObject, {
+              valueTransform: walk
+            });
+          };
+
+          return _Class;
+
+        })(),
+        Node: (function(_super) {
+
+          __extends(_Class, _super);
+
+          function _Class(name, parent) {
+            this.name = name;
+            if (parent == null) parent = null;
+            if (this.attr == null) this.attr = {};
+            if (parent != null) this.attr.parent = parent;
+          }
+
+          _Class.prototype.fullname = function() {
+            return lib.makeFullName((this.attr.parent != null ? this.attr.parent.fullname() : ""), this.name);
+          };
+
+          return _Class;
+
+        })(corelib.NAV),
+        NodeSet: (function() {
+
+          function _Class(childList) {
+            var nodeData, _i, _len, _ref2;
+            this.nodeDict = {};
+            this.length = 0;
+            _ref2 = childList != null ? childList : [];
+            for (_i = 0, _len = _ref2.length; _i < _len; _i++) {
+              nodeData = _ref2[_i];
+              this.addNode(nodeData);
+            }
+          }
+
+          _Class.prototype.addNode = function(nodeData, useFullName) {
+            var name, tmp;
+            if (useFullName == null) useFullName = false;
+            name = useFullName ? nodeData.value.fullname() : nodeData.key;
+            if (!this.nodeDict.hasOwnProperty(name)) {
+              this.nodeDict[name] = nodeData;
+              this.length++;
+              return true;
+            } else {
+              if (!useFullName) {
+                this.length--;
+                tmp = this.nodeDict[name];
+                delete this.nodeDict[name];
+                this.addNode(tmp, true);
+                return this.addNode(nodeData, true);
+              } else {
+                return false;
+              }
+            }
+          };
+
+          _Class.prototype.keys = function() {
+            return Object.keys(nodeDict);
+          };
+
+          _Class.prototype.map = function(fn) {
+            var key, value, _ref2, _results;
+            _ref2 = this.nodeDict;
+            _results = [];
+            for (key in _ref2) {
+              if (!__hasProp.call(_ref2, key)) continue;
+              value = _ref2[key];
+              _results.push(fn(key, value));
+            }
+            return _results;
+          };
+
+          _Class.prototype.get = function(key) {
+            var _ref2;
+            return (_ref2 = this.nodeDict[key]) != null ? _ref2.value : void 0;
+          };
+
+          return _Class;
+
+        })(),
+        splitFullName: function(fullName) {
+          var keyPart, parts, val;
+          parts = fullName.split(separator);
+          keyPart = parts.pop();
+          return val = {
+            ns: parts.join(separator),
+            key: keyPart
+          };
+        },
+        makeFullName: function(ns, key) {
+          return ns + separator + key;
+        }
+      };
+      lib.__defineGetter__('separator', function() {
+        return separator;
+      });
+      fsState.path = new lib.PathExpr("/");
+      rootNode = new ((function(_super) {
+
+        __extends(_Class, _super);
+
+        function _Class() {
+          _Class.__super__.constructor.call(this, "");
+          this.value = true;
+          this.attr = {
+            parent: null,
+            description: "Root node of ducttape filesystem.",
+            children: new lib.NodeSet([], this)
+          };
+        }
+
+        return _Class;
+
+      })(lib.Node))();
+      pkgInit = function() {
+        var internals;
+        internals = dt.pkgGet('core', 'internals').value;
+        if (internals.fs == null) internals.fs = fsState;
+        return true;
       };
       return pkg = {
         name: "fs",
@@ -1175,17 +1374,27 @@
           description: "FileSystem inteface package",
           author: "Peter Neumark",
           version: "1.0",
-          url: "https://github.com/neumark/ducttape"
+          url: "https://github.com/neumark/ducttape",
+          init: pkgInit
         },
         value: {
+          root: {
+            attr: {
+              description: "Root node of the ducttape filesystem."
+            },
+            value: rootNode
+          },
           mount: {
             attr: {
               description: "Attach new FS adaptor.",
               makePublic: true
             },
-            value: function(root) {
-              var _ref;
-              return (_ref = session.fs) != null ? _ref : session.fs = mkSessionData([], root);
+            value: function(mountPoint, fsType, options) {
+              if (options == null) options = {};
+              return rootNode.attr.children.addNode({
+                key: mountPoint,
+                value: dt.pkgGet(fsType, 'makeMountPoint').value(mountPoint, rootNode, options)
+              });
             }
           },
           pwd: {
@@ -1194,8 +1403,8 @@
               makePublic: true
             },
             value: function() {
-              var _ref, _ref2;
-              return ((_ref = (_ref2 = session.fs) != null ? _ref2.currentPath : void 0) != null ? _ref : []).join('/');
+              var _ref2, _ref3;
+              return ((_ref2 = (_ref3 = session.fs) != null ? _ref3.currentPath : void 0) != null ? _ref2 : []).join('/');
             }
           },
           co: {
@@ -1204,8 +1413,8 @@
               makePublic: true
             },
             value: function() {
-              var _ref, _ref2;
-              return (_ref = session.fs) != null ? (_ref2 = _ref.currentObject) != null ? _ref2.contents() : void 0 : void 0;
+              var _ref2, _ref3;
+              return (_ref2 = session.fs) != null ? (_ref3 = _ref2.currentObject) != null ? _ref3.contents() : void 0 : void 0;
             }
           },
           ls: {
@@ -1214,9 +1423,15 @@
               makePublic: true
             },
             value: function() {
-              var _ref, _ref2;
-              return (_ref = session.fs) != null ? (_ref2 = _ref.currentObject) != null ? _ref2.children() : void 0 : void 0;
+              var _ref2, _ref3;
+              return (_ref2 = session.fs) != null ? (_ref3 = _ref2.currentObject) != null ? _ref3.children() : void 0 : void 0;
             }
+          },
+          lib: {
+            attr: {
+              description: "Library of fs-related functions and classes."
+            },
+            value: lib
           }
         }
       };
@@ -1523,7 +1738,7 @@
 
 (function() {
 
-  define('ducttape',['cmd', 'keybindings', 'ui', 'pkgmgr', 'objectviewer', 'fs', 'shellutils', 'help'], function(Cmd, KeyBindings, ui, PkgMgr, objectviewer, fs, shellUtils, help) {
+  define('ducttape',['keybindings', 'ui', 'pkgmgr', 'objectviewer', 'fs', 'shellutils', 'help'], function(KeyBindings, ui, PkgMgr, objectviewer, fs, shellUtils, help) {
     var DuctTape, dt, dtobj, _ref;
     DuctTape = (function() {
 
@@ -1538,9 +1753,7 @@
         if ((_base3 = this.config).showGeneratedJS == null) {
           _base3.showGeneratedJS = false;
         }
-        this.internals = {
-          cmd: new (Cmd(this))()
-        };
+        this.internals = {};
         this.session = {
           history: [],
           keybindings: new KeyBindings()
@@ -1552,7 +1765,7 @@
     })();
     dtobj = new DuctTape((_ref = window.ducttape_config) != null ? _ref : {});
     dt = function() {
-      return dtobj.internals.cmd.exec.apply(dtobj.cmd, arguments);
+      return true;
     };
     dtobj.internals.pkgmgr = new (PkgMgr(dt))();
     dtobj.internals.pkgmgr.pkgDef({
@@ -1575,6 +1788,12 @@
             description: "Reference to config object"
           },
           value: dtobj.config
+        },
+        internals: {
+          attr: {
+            description: "Reference to internals object"
+          },
+          value: dtobj.internals
         },
         exec: {
           attr: {

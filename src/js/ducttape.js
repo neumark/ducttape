@@ -19,7 +19,7 @@
 
 (function() {
 
-  define(['cmd', 'keybindings', 'ui', 'pkgmgr', 'objectviewer', 'fs', 'shellutils', 'help'], function(Cmd, KeyBindings, ui, PkgMgr, objectviewer, fs, shellUtils, help) {
+  define(['keybindings', 'ui', 'pkgmgr', 'objectviewer', 'fs', 'shellutils', 'help'], function(KeyBindings, ui, PkgMgr, objectviewer, fs, shellUtils, help) {
     var DuctTape, dt, dtobj, _ref;
     DuctTape = (function() {
 
@@ -34,9 +34,7 @@
         if ((_base3 = this.config).showGeneratedJS == null) {
           _base3.showGeneratedJS = false;
         }
-        this.internals = {
-          cmd: new (Cmd(this))()
-        };
+        this.internals = {};
         this.session = {
           history: [],
           keybindings: new KeyBindings()
@@ -48,7 +46,7 @@
     })();
     dtobj = new DuctTape((_ref = window.ducttape_config) != null ? _ref : {});
     dt = function() {
-      return dtobj.internals.cmd.exec.apply(dtobj.cmd, arguments);
+      return true;
     };
     dtobj.internals.pkgmgr = new (PkgMgr(dt))();
     dtobj.internals.pkgmgr.pkgDef({
@@ -71,6 +69,12 @@
             description: "Reference to config object"
           },
           value: dtobj.config
+        },
+        internals: {
+          attr: {
+            description: "Reference to internals object"
+          },
+          value: dtobj.internals
         },
         exec: {
           attr: {

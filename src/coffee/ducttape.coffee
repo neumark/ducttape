@@ -17,57 +17,68 @@
 
 ###
 
-define ['cmd', 'keybindings', 'ui', 'pkgmgr', 'objectviewer', 'fs', 'shellutils', 'help'], (Cmd, KeyBindings, ui, PkgMgr, objectviewer, fs, shellUtils, help) ->
-    class DuctTape
-        constructor: (@config) ->
-            # sanitize configuration:
-            @config ?= {}
-            @config.globalRef ?= "\u0111"
-            @config.initial_buffer ?= ""
-            @config.showGeneratedJS ?= false
-            # fields:
-            @internals =
-                cmd: new (Cmd(@))()
-            @session =
-                history: []
-                keybindings: new KeyBindings()
+define [
+    'keybindings'
+    'ui'
+    'pkgmgr'
+    'objectviewer'
+    'fs'
+    'shellutils'
+    'help'
+    ], (KeyBindings, ui, PkgMgr, objectviewer, fs, shellUtils, help) ->
+        class DuctTape
+            constructor: (@config) ->
+                # sanitize configuration:
+                @config ?= {}
+                @config.globalRef ?= "\u0111"
+                @config.initial_buffer ?= ""
+                @config.showGeneratedJS ?= false
+                # fields:
+                @internals = {}
+                @session =
+                    history: []
+                    keybindings: new KeyBindings()
 
-    # instantiate our DuctTape class
-    dtobj = new DuctTape(window.ducttape_config ? {})
+        # instantiate our DuctTape class
+        dtobj = new DuctTape(window.ducttape_config ? {})
 
-    # main DuctTape function
-    dt = -> dtobj.internals.cmd.exec.apply dtobj.cmd, arguments
-    dtobj.internals.pkgmgr = new (PkgMgr(dt))()
+        # main DuctTape function
+        dt = -> true
+        dtobj.internals.pkgmgr = new (PkgMgr(dt))()
 
-    # load builtin packages:
-    dtobj.internals.pkgmgr.pkgDef
-        name: 'core'
-        attr:
-            author: 'Peter Neumark'
-            url: 'https://github.com/neumark/ducttape'
-            version: '1.0'
-            description: 'DuctTape internals.'
-        value:
-            session:
-                attr:
-                    description: "Reference to session object"
-                value: dtobj.session 
-            config:
-                attr:
-                    description: "Reference to config object"
-                value: dtobj.config
-            exec:
-                attr:
-                    description: "Parse and execute a command"
-                value: dt
-    dtobj.internals.pkgmgr.pkgDef objectviewer dt
-    dtobj.internals.pkgmgr.pkgDef ui dt
-    dtobj.internals.pkgmgr.pkgDef fs dt
-    dtobj.internals.pkgmgr.pkgDef shellUtils dt
-    dtobj.internals.pkgmgr.pkgDef help dt
+        # load builtin packages:
+        dtobj.internals.pkgmgr.pkgDef
+            name: 'core'
+            attr:
+                author: 'Peter Neumark'
+                url: 'https://github.com/neumark/ducttape'
+                version: '1.0'
+                description: 'DuctTape internals.'
+            value:
+                session:
+                    attr:
+                        description: "Reference to session object"
+                    value: dtobj.session 
+                config:
+                    attr:
+                        description: "Reference to config object"
+                    value: dtobj.config
+                internals:
+                    attr:
+                        description: "Reference to internals object"
+                    value: dtobj.internals
+                exec:
+                    attr:
+                        description: "Parse and execute a command"
+                    value: dt
+        dtobj.internals.pkgmgr.pkgDef objectviewer dt
+        dtobj.internals.pkgmgr.pkgDef ui dt
+        dtobj.internals.pkgmgr.pkgDef fs dt
+        dtobj.internals.pkgmgr.pkgDef shellUtils dt
+        dtobj.internals.pkgmgr.pkgDef help dt
 
-    dt.toHTML = -> dt.pkgGet('help', 'help').value 'intro'
+        dt.toHTML = -> dt.pkgGet('help', 'help').value 'intro'
 
-    # Registers global reference
-    window[dtobj.config.globalRef] = dt
-    dt
+        # Registers global reference
+        window[dtobj.config.globalRef] = dt
+        dt

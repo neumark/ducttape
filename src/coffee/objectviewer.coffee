@@ -60,7 +60,6 @@ define [], ->
                 obj? 
             objectViewer: (obj) ->
                 # TODO: handle Array, Date, Regexp and a couple other builtin objects
-                # If dt.ov is overwritten, ov.cache will not be used...
                 refname = "#{ dt.symbol() }.ov.cache[#{ov.objectViewer.cache.length}]"
                 ov.objectViewer.cache.push(obj)
                 mk_node = (key, value, visible = true) ->

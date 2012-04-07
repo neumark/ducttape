@@ -93,12 +93,14 @@
     require.config({        
         baseUrl: 'build/js/'
     });
-    require(["ducttape", "fs_tiddlyweb"], function(dt, fs_tiddlyweb) {  
-        dt.definePackage(fs_tiddlyweb(dt));
+    require(["ducttape", "tiddlyweb"], function(dt, tiddlyweb) {  
+        dt.pkgDef(tiddlyweb(dt));
         $(function() {
             dt.init();
             $('#interactions').append('<span>ready</span>');
-            dt('o fs:mount').value(dt('o fs_tiddlyweb:root').value('https://secure1457.hostgator.com/~neumark/tw/index.fcgi'));
+            dt.pkgGet('fs','mount').value('test', 'tiddlyweb', {
+                url: 'https://secure1457.hostgator.com/~neumark/tw/index.fcgi'
+            });
         });
     });
 </script>

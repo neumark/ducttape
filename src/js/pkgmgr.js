@@ -162,11 +162,18 @@
         }
 
         PkgMgr.prototype.pkgDef = function(pkgSpec) {
-          var pkg;
+          var initFun, pkg, _ref;
           pkg = new Pkg(pkgSpec);
           if (this.store[pkg.name] != null) throw new Error("PkgExists");
-          this.store[pkg.name] = pkg;
-          return true;
+          initFun = (_ref = pkg.attr.init) != null ? _ref : function() {
+            return true;
+          };
+          if (initFun()) {
+            this.store[pkg.name] = pkg;
+            return true;
+          } else {
+            return false;
+          }
         };
 
         PkgMgr.prototype.pkgDefinedGuard = function(pkgName, fn) {

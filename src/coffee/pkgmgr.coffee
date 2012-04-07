@@ -114,8 +114,12 @@ define ['corelib'], (corelib) ->
             pkgDef: (pkgSpec) =>
                 pkg = new Pkg pkgSpec
                 if @store[pkg.name]? then throw new Error "PkgExists"
-                @store[pkg.name] = pkg
-                true
+                initFun = pkg.attr.init ? -> true
+                if initFun()
+                    @store[pkg.name] = pkg
+                    true
+                else
+                    false
             pkgDefinedGuard: (pkgName, fn) ->
                 if not @store[pkgName]? then throw new Error "UndefinedPackage"
                 fn.call @

@@ -22,15 +22,104 @@
      whatever you like.
    * Commands: commands to navigate and manipulate the filesystem:
      mount, unmount, ls, pwd, cd
-   * The FSILib object, which provides the FSI API for modules whishing to
+   * The lib object, which provides the FSI API for modules whishing to
      implement access to a particular service.
 ###
 define ['corelib'], (corelib) ->
+    separator = "/"
     (dt) ->
-        session = dt.pkgGet('core', 'session').value
-        mkSessionData = (path, obj) ->
-            currentPath: path
-            currentObject: obj
+        fsState = dt.pkgGet('core', 'internals').value.fs ? {}
+        lib = null
+        lib = 
+            PathExprEx: class extends Error
+                constructor: (@msg, @obj, @childName, @originalEx=null) ->
+                    super(@msg);
+            PathExpr: class
+                constructor: (@strExpr) ->
+                    @keyList = strExpr.split separator
+                evaluate: ->
+                    walk = null
+                    walk = (keyList, obj) ->
+                        currentKey = keyList.shift()
+                        nodeSet = obj?.attr?.children?
+                        if not nodeSet? then throw new lib.PathExprEx "Object has no children", obj, currentKey, @strExpr
+                        child = nodeSet.get currentKey
+                        if not child? 
+                            throw new lib.PathExprEx "Parent does not have a unique child by that name", obj, currentKey, @strExpr
+                        if keyList.length > 0 then walk(keyList, child) else child
+                    currentObject = 
+                        if @keyList.length > 0 && keyList[0].length == 0
+                            keyList.shift()
+                            fsState.root
+                        else
+                            fsState.co
+                    chain = new corelib.PromiseChain currentObject, {valueTransform: walk}
+            Node: class extends corelib.NAV
+                constructor: (@name, parent=null) ->
+                    @attr ?= {}
+                    if parent? then @attr.parent = parent
+                fullname: ->
+                    lib.makeFullName (if @attr.parent? then @attr.parent.fullname() else ""), @name
+            NodeSet: class
+                constructor: (childList) ->
+                    #nodeDict maps full names to objects
+                    @nodeDict = {}
+                    @length = 0
+                    @addNode nodeData for nodeData in (childList ? [])
+                addNode: (nodeData, useFullName = false) -> 
+                    name = 
+                        if useFullName
+                            nodeData.value.fullname()
+                        else
+                            # TODO: check if nodeData.key is a valid name (eg. contains no separator characters).
+                            nodeData.key
+                    if !@nodeDict.hasOwnProperty name
+                        @nodeDict[name] = nodeData
+                        @length++
+                        true
+                    else
+                        if !useFullName
+                            # refer to duplicates by their full name
+                            @length--
+                            tmp = @nodeDict[name] 
+                            delete @nodeDict[name]    
+                            @addNode tmp, true
+                            @addNode nodeData, true
+                        else
+                            false
+                keys: -> Object.keys nodeDict
+                map: (fn) -> (fn(key, value) for own key, value of @nodeDict)
+                get: (key) -> @nodeDict[key]?.value
+                #TODO: toHTML should not be in this file...
+                #toHTML: ->
+                #    div = $ "<div />"
+                #    for own key, value of nodeDict
+                #        div.addChild "<span>#{ key }</span>"
+                #    div
+            splitFullName: (fullName) ->
+                parts = fullName.split separator
+                keyPart = parts.pop()
+                return val = 
+                    ns: parts.join separator
+                    key: keyPart
+            makeFullName: (ns, key) -> ns + separator + key
+        # Make separator read-only.
+        lib.__defineGetter__ 'separator', -> separator
+        fsState.path = new lib.PathExpr "/"
+        rootNode = new (
+                class extends lib.Node
+                    constructor:  ->
+                        super ""
+                        @value = true
+                        @attr = 
+                            parent: null
+                            description: "Root node of ducttape filesystem."
+                            children: new lib.NodeSet [], @
+            )()
+        pkgInit = ->
+            internals = dt.pkgGet('core', 'internals').value
+            internals.fs ?= fsState
+            true
         pkg =
             name: "fs"
             attr:
@@ -38,14 +127,21 @@ define ['corelib'], (corelib) ->
                 author: "Peter Neumark"
                 version: "1.0"
                 url: "https://github.com/neumark/ducttape"
+                init: pkgInit
             value:
+                root:
+                    attr: 
+                        description: "Root node of the ducttape filesystem."
+                    value: rootNode
                 mount:
                     attr:
                         description: "Attach new FS adaptor."
                         makePublic: true
-                    value: (root) ->
-                        # TODO: mount shouldn't always apply to '/'
-                        session.fs ?= mkSessionData([], root)
+                    value: (mountPoint, fsType, options = {}) ->
+                        rootNode.attr.children.addNode({
+                            key: mountPoint
+                            value: dt.pkgGet(fsType, 'makeMountPoint').value mountPoint, rootNode, options
+                        })
                 pwd:
                     attr:
                         description: "Print current directory."
@@ -65,4 +161,8 @@ define ['corelib'], (corelib) ->
                         makePublic: true
                     value: ->
                         session.fs?.currentObject?.children()
+                lib:
+                    attr:
+                        description: "Library of fs-related functions and classes."
+                    value: lib
                    
