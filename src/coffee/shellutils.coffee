@@ -33,7 +33,7 @@ define [], ->
                         description: 'Displays the last executed command and result.'
                         makePublic: true
                     value: ->
-                        h = dt.getPkg('core','session').value
+                        h = dt.pkgGet('core','session').value.history
                         if h.length > 0 then h[h.length - 1] else "This is the first command."
                 clear:
                     attr:

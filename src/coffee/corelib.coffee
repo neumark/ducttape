@@ -69,32 +69,40 @@ define [], ->
                         appliedPromise.fulfill false, e
                 appliedPromise
 
-    corelib.PromiseChain =
+    corelib.ContinuationChain =
             class extends corelib.Promise
-                constructor: (@initialPromiseOrValue, spec = {}) -> 
+                constructor: (initialCont, spec) -> 
+                    super spec
                     # chain is for debugging only, the actual "chaining"
                     # of promises is done through the event handlers.
                     @chain = []
                     fun =
-                        processValue: (val) ->
-                            val = if spec.valueTransform? 
-                                    try
-                                        corelib.promiseApply spec.valueTransform, spec.that, val, spec.newPromiseSpec
-                                    catch e
-                                        @fulfill false, e
-                                        null
-                                else val
-                            if val instanceof corelib.Promise
-                                fun.addPromise val
+                        applyFun: (contFn, input) =>
+                            try
+                                fun.processContinuation contFn.apply null, [input]
+                            catch e
+                                @fulfill false, e
+                    
+                        processContinuation: (cont) =>
+                            # For valid continuations, cont is type [function, *]
+                            # If the first parameter is a boolean, fulfill the continuationChain.
+                            if typeof cont[0] == "boolean"
+                                if cont[1] instanceof corelib.Promise
+                                    cont[1].afterFulfilled (val) => @fulfill (cont[0] && @isSuccess), val
+                                else
+                                    @fulfill.apply @, cont
+                            else if typeof cont[0] == "function"
+                                @chain.push cont
+                                # execute the continuation, or process asnynchronously if its a promise
+                                [contFn, input] = cont
+                                if input instanceof corelib.Promise
+                                    input.afterSuccess  (val) -> fun.applyFun(contFn, val)
+                                    input.afterFailure  -> (err) => @fulfill false, err
+                                else
+                                    fun.applyFun contFn, input
                             else
-                                @fulfill true, val
-                        addPromise: (promise) ->
-                            @chain.push promise
-                            # The failure of any promise in the chain means failure
-                            # for the entire chain.
-                            promise.on "failure", => @fulfill false
-                            promise.on "success", (val) => fun.processValue val
-                    fun.processValue @initialPromiseOrValue
+                                throw new Error "continuationChain: invalid continuation format!"
+                    fun.processContinuation initialCont
     # Always returns a promise to the result of the function
     corelib.promiseApply = (fun, that, val, spec) ->
         if val instanceof corelib.Promise

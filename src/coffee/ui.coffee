@@ -28,11 +28,9 @@ define ['corelib'], (corelib) ->
         corelib.Promise::toHTML = ->
             # TODO: touch up loading msg:
             div = $ '<div class="eval_result"><span>loading...<span></div>'
-            replaceContents = (values...) =>
+            @afterFulfilled (val) =>  
                 div.children().remove()
-                if values.length == 0 then values = values[0]
-                ui.display values, false, div
-            if @value? then replaceContents(@value) else @on "success failure", => replaceContents(@value)
+                ui.display val, false, div
             div
 
         class HistoryBrowser

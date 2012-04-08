@@ -215,47 +215,55 @@
       return _Class;
 
     })();
-    corelib.PromiseChain = (function(_super) {
+    corelib.ContinuationChain = (function(_super) {
 
       __extends(_Class, _super);
 
-      function _Class(initialPromiseOrValue, spec) {
-        var fun;
-        this.initialPromiseOrValue = initialPromiseOrValue;
-        if (spec == null) spec = {};
+      function _Class(initialCont, spec) {
+        var fun,
+          _this = this;
+        _Class.__super__.constructor.call(this, spec);
         this.chain = [];
         fun = {
-          processValue: function(val) {
-            val = (function() {
-              if (spec.valueTransform != null) {
-                try {
-                  return corelib.promiseApply(spec.valueTransform, spec.that, val, spec.newPromiseSpec);
-                } catch (e) {
-                  this.fulfill(false, e);
-                  return null;
-                }
-              } else {
-                return val;
-              }
-            }).call(this);
-            if (val instanceof corelib.Promise) {
-              return fun.addPromise(val);
-            } else {
-              return this.fulfill(true, val);
+          applyFun: function(contFn, input) {
+            try {
+              return fun.processContinuation(contFn.apply(null, [input]));
+            } catch (e) {
+              return _this.fulfill(false, e);
             }
           },
-          addPromise: function(promise) {
-            var _this = this;
-            this.chain.push(promise);
-            promise.on("failure", function() {
-              return _this.fulfill(false);
-            });
-            return promise.on("success", function(val) {
-              return fun.processValue(val);
-            });
+          processContinuation: function(cont) {
+            var contFn, input;
+            if (typeof cont[0] === "boolean") {
+              if (cont[1] instanceof corelib.Promise) {
+                return cont[1].afterFulfilled(function(val) {
+                  return _this.fulfill(cont[0] && _this.isSuccess, val);
+                });
+              } else {
+                return _this.fulfill.apply(_this, cont);
+              }
+            } else if (typeof cont[0] === "function") {
+              _this.chain.push(cont);
+              contFn = cont[0], input = cont[1];
+              if (input instanceof corelib.Promise) {
+                input.afterSuccess(function(val) {
+                  return fun.applyFun(contFn, val);
+                });
+                return input.afterFailure(function() {
+                  var _this = this;
+                  return function(err) {
+                    return _this.fulfill(false, err);
+                  };
+                });
+              } else {
+                return fun.applyFun(contFn, input);
+              }
+            } else {
+              throw new Error("continuationChain: invalid continuation format!");
+            }
           }
         };
-        fun.processValue(this.initialPromiseOrValue);
+        fun.processContinuation(initialCont);
       }
 
       return _Class;
@@ -316,8 +324,8 @@
 */
 
 (function() {
-  var __slice = Array.prototype.slice,
-    __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
+  var __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
+    __slice = Array.prototype.slice;
 
   define('ui',['corelib'], function(corelib) {
     return function(dt) {
@@ -326,23 +334,13 @@
       session = dt.pkgGet('core', 'session').value;
       show = dt.pkgGet('objectViewer', 'show').value;
       corelib.Promise.prototype.toHTML = function() {
-        var div, replaceContents,
+        var div,
           _this = this;
         div = $('<div class="eval_result"><span>loading...<span></div>');
-        replaceContents = function() {
-          var values;
-          values = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
+        this.afterFulfilled(function(val) {
           div.children().remove();
-          if (values.length === 0) values = values[0];
-          return ui.display(values, false, div);
-        };
-        if (this.value != null) {
-          replaceContents(this.value);
-        } else {
-          this.on("success failure", function() {
-            return replaceContents(_this.value);
-          });
-        }
+          return ui.display(val, false, div);
+        });
         return div;
       };
       HistoryBrowser = (function() {
@@ -1198,6 +1196,7 @@
     separator = "/";
     return function(dt) {
       var fsState, lib, pkg, pkgInit, rootNode, _ref;
+      rootNode = null;
       fsState = (_ref = dt.pkgGet('core', 'internals').value.fs) != null ? _ref : {};
       lib = null;
       lib = {
@@ -1224,29 +1223,30 @@
           }
 
           _Class.prototype.evaluate = function() {
-            var chain, currentObject, walk;
-            walk = null;
-            walk = function(keyList, obj) {
-              var child, currentKey, nodeSet, _ref2;
-              currentKey = keyList.shift();
-              nodeSet = (obj != null ? (_ref2 = obj.attr) != null ? _ref2.children : void 0 : void 0) != null;
-              if (!(nodeSet != null)) {
-                throw new lib.PathExprEx("Object has no children", obj, currentKey, this.strExpr);
-              }
-              child = nodeSet.get(currentKey);
-              if (!(child != null)) {
-                throw new lib.PathExprEx("Parent does not have a unique child by that name", obj, currentKey, this.strExpr);
-              }
-              if (keyList.length > 0) {
-                return walk(keyList, child);
-              } else {
-                return child;
+            var chain, currentObject, fun,
+              _this = this;
+            fun = {
+              getChildSet: function(obj) {
+                var currentKey, nodeSet, _ref2;
+                currentKey = _this.keyList[0];
+                nodeSet = obj != null ? (_ref2 = obj.attr) != null ? _ref2.children : void 0 : void 0;
+                if (!(nodeSet != null)) {
+                  throw new lib.PathExprEx("Object has no children", obj, currentKey, _this.strExpr);
+                }
+                return [(currentKey === "") && (_this.keyList.length === 1) ? true : fun.selectChild, nodeSet];
+              },
+              selectChild: function(nodeSet) {
+                var child, currentKey;
+                currentKey = _this.keyList.shift();
+                child = nodeSet.get(currentKey);
+                if (!(child != null)) {
+                  throw new lib.PathExprEx("NodeSet does not have a unique child by that name", nodeSet, currentKey, _this.strExpr);
+                }
+                return [_this.keyList.length === 0 ? true : fun.getChildSet, child];
               }
             };
-            currentObject = this.keyList.length > 0 && keyList[0].length === 0 ? (keyList.shift(), fsState.root) : fsState.co;
-            return chain = new corelib.PromiseChain(currentObject, {
-              valueTransform: walk
-            });
+            currentObject = this.keyList.length > 0 && this.keyList[0].length === 0 ? (this.keyList.shift(), rootNode) : fsState.co;
+            return chain = new corelib.ContinuationChain([fun.getChildSet, currentObject]);
           };
 
           return _Class;
@@ -1345,7 +1345,7 @@
         return separator;
       });
       fsState.path = new lib.PathExpr("/");
-      rootNode = new ((function(_super) {
+      rootNode = fsState.co = new ((function(_super) {
 
         __extends(_Class, _super);
 
@@ -1355,7 +1355,7 @@
           this.attr = {
             parent: null,
             description: "Root node of ducttape filesystem.",
-            children: new lib.NodeSet([], this)
+            children: new lib.NodeSet([])
           };
         }
 
@@ -1415,6 +1415,16 @@
             value: function() {
               var _ref2, _ref3;
               return (_ref2 = session.fs) != null ? (_ref3 = _ref2.currentObject) != null ? _ref3.contents() : void 0 : void 0;
+            }
+          },
+          get: {
+            attr: {
+              description: "Fetch an object from the filesystem."
+            },
+            value: function(path) {
+              var pathExpr;
+              pathExpr = new lib.PathExpr(path);
+              return pathExpr.evaluate();
             }
           },
           ls: {
@@ -1482,7 +1492,7 @@
             },
             value: function() {
               var h;
-              h = dt.getPkg('core', 'session').value;
+              h = dt.pkgGet('core', 'session').value.history;
               if (h.length > 0) {
                 return h[h.length - 1];
               } else {

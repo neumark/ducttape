@@ -28,6 +28,7 @@
 define ['corelib'], (corelib) ->
     separator = "/"
     (dt) ->
+        rootNode = null
         fsState = dt.pkgGet('core', 'internals').value.fs ? {}
         lib = null
         lib = 
@@ -38,22 +39,31 @@ define ['corelib'], (corelib) ->
                 constructor: (@strExpr) ->
                     @keyList = strExpr.split separator
                 evaluate: ->
-                    walk = null
-                    walk = (keyList, obj) ->
-                        currentKey = keyList.shift()
-                        nodeSet = obj?.attr?.children?
-                        if not nodeSet? then throw new lib.PathExprEx "Object has no children", obj, currentKey, @strExpr
-                        child = nodeSet.get currentKey
-                        if not child? 
-                            throw new lib.PathExprEx "Parent does not have a unique child by that name", obj, currentKey, @strExpr
-                        if keyList.length > 0 then walk(keyList, child) else child
+                    fun =
+                        getChildSet: (obj) =>
+                            currentKey = @keyList[0]
+                            nodeSet = obj?.attr?.children
+                            if not nodeSet? then throw new lib.PathExprEx "Object has no children", obj, currentKey, @strExpr
+                            [
+                                if (currentKey == "") and (@keyList.length == 1) then true else fun.selectChild
+                                nodeSet
+                            ]
+                        selectChild: (nodeSet) =>
+                            currentKey = @keyList.shift()
+                            child = nodeSet.get currentKey
+                            if not child? 
+                                throw new lib.PathExprEx "NodeSet does not have a unique child by that name", nodeSet, currentKey, @strExpr
+                            [
+                                if @keyList.length == 0 then true else fun.getChildSet
+                                child
+                            ]
                     currentObject = 
-                        if @keyList.length > 0 && keyList[0].length == 0
-                            keyList.shift()
-                            fsState.root
+                        if @keyList.length > 0 && @keyList[0].length == 0
+                            @keyList.shift()
+                            rootNode
                         else
                             fsState.co
-                    chain = new corelib.PromiseChain currentObject, {valueTransform: walk}
+                    chain = new corelib.ContinuationChain [fun.getChildSet, currentObject]
             Node: class extends corelib.NAV
                 constructor: (@name, parent=null) ->
                     @attr ?= {}
@@ -106,7 +116,7 @@ define ['corelib'], (corelib) ->
         # Make separator read-only.
         lib.__defineGetter__ 'separator', -> separator
         fsState.path = new lib.PathExpr "/"
-        rootNode = new (
+        rootNode = fsState.co = new (
                 class extends lib.Node
                     constructor:  ->
                         super ""
@@ -114,7 +124,7 @@ define ['corelib'], (corelib) ->
                         @attr = 
                             parent: null
                             description: "Root node of ducttape filesystem."
-                            children: new lib.NodeSet [], @
+                            children: new lib.NodeSet []
             )()
         pkgInit = ->
             internals = dt.pkgGet('core', 'internals').value
@@ -154,7 +164,12 @@ define ['corelib'], (corelib) ->
                         makePublic: true
                     value: ->
                         session.fs?.currentObject?.contents()
-
+                get:
+                    attr:
+                        description: "Fetch an object from the filesystem."
+                    value: (path) ->
+                        pathExpr = new lib.PathExpr path
+                        pathExpr.evaluate()
                 ls:
                     attr:
                         description: "Lists children of current object."
