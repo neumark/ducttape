@@ -1,4 +1,4 @@
-/*
+###
    Copyright 2012 Peter Neumark
 
    Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,16 +12,18 @@
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
    limitations under the License.
-*/
 
-({
-    appDir: "../",
-    baseUrl: "js",
-    dir: "../../build",
-    optimize: "none",
-    modules: [
-        {
-            name: "ducttape"
-        }
-    ]
-})
+   dtview.coffee - Presentation-related functions and classes.
+
+###
+
+define ['corelib'], (corelib) ->
+    (dt) ->
+        # Display the "loading..." message until fulfillment of promise
+        corelib.Promise::toHTML = ->
+            # TODO: touch up loading msg:
+            div = $ '<div class="eval_result"><span>loading...<span></div>'
+            @afterFulfilled (val) =>  
+                div.children().remove()
+                ui.display val, false, div
+            div

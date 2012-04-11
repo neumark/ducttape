@@ -89,20 +89,19 @@
 <!--<script src="http://tiddlyspace.com/bags/common/tiddlers/chrjs.users"></script>-->
 <!-- requirejs -->
 <script src="deps/requirejs/require.js"></script>
-<script type="text/javascript">
-    require.config({        
-        baseUrl: 'build/js/'
-    });
-    require(["ducttape", "tiddlyweb"], function(dt, tiddlyweb) {  
-        dt.pkgDef(tiddlyweb(dt));
-        $(function() {
-            dt.init();
-            $('#interactions').append('<span>ready</span>');
-            dt.pkgGet('fs','mount').value('test', 'tiddlyweb', {
-                url: 'https://secure1457.hostgator.com/~neumark/tw/index.fcgi'
-            });
-        });
-    });
+<script type="text/coffeescript">
+    require.config baseUrl: 'build/js/'
+    require(
+        [
+            "ducttape"
+            "tiddlyweb"
+        ], (dt, tiddlyweb) -> 
+            dt.pkgDef(tiddlyweb(dt));
+            $ ->
+                dt.init();
+                $('#interactions').append('<span>ready</span>');
+                dt.pkgGet('fs','mount').value('test', 'tiddlyweb', url: 'http://tiddlyspace.com')
+    )
 </script>
 <!-- Google Analytics for tracking usage -->
 <script type="text/javascript">

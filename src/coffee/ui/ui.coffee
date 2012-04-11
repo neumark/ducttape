@@ -23,16 +23,6 @@ define ['corelib'], (corelib) ->
         session = dt.pkgGet('core', 'session').value
         show = dt.pkgGet('objectViewer', 'show').value
 
-        # Corelib does not have a reference to dt, so we add the class's toHTML method here.
-        # Display the "loading..." message until fulfillment of promise
-        corelib.Promise::toHTML = ->
-            # TODO: touch up loading msg:
-            div = $ '<div class="eval_result"><span>loading...<span></div>'
-            @afterFulfilled (val) =>  
-                div.children().remove()
-                ui.display val, false, div
-            div
-
         class HistoryBrowser
             constructor: (@ui) ->
                 @editBuffer = @ui.editor.getSession().getValue()

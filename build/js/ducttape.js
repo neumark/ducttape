@@ -333,16 +333,6 @@
       config = dt.pkgGet('core', 'config').value;
       session = dt.pkgGet('core', 'session').value;
       show = dt.pkgGet('objectViewer', 'show').value;
-      corelib.Promise.prototype.toHTML = function() {
-        var div,
-          _this = this;
-        div = $('<div class="eval_result"><span>loading...<span></div>');
-        this.afterFulfilled(function(val) {
-          div.children().remove();
-          return ui.display(val, false, div);
-        });
-        return div;
-      };
       HistoryBrowser = (function() {
 
         function HistoryBrowser(ui) {
@@ -1743,12 +1733,50 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 
+   dtview.coffee - Presentation-related functions and classes.
+*/
+
+(function() {
+
+  define('dtview',['corelib'], function(corelib) {
+    return function(dt) {
+      return corelib.Promise.prototype.toHTML = function() {
+        var div,
+          _this = this;
+        div = $('<div class="eval_result"><span>loading...<span></div>');
+        this.afterFulfilled(function(val) {
+          div.children().remove();
+          return ui.display(val, false, div);
+        });
+        return div;
+      };
+    };
+  });
+
+}).call(this);
+
+
+/*
+   Copyright 2012 Peter Neumark
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
    ducttape.coffee - main source file, defines the ducttape function.
 */
 
 (function() {
 
-  define('ducttape',['keybindings', 'ui', 'pkgmgr', 'objectviewer', 'fs', 'shellutils', 'help'], function(KeyBindings, ui, PkgMgr, objectviewer, fs, shellUtils, help) {
+  define('ducttape',['keybindings', 'ui', 'pkgmgr', 'objectviewer', 'fs', 'shellutils', 'help', 'dtview'], function(KeyBindings, ui, PkgMgr, objectviewer, fs, shellUtils, help, dtview) {
     var DuctTape, dt, dtobj, _ref;
     DuctTape = (function() {
 
@@ -1822,6 +1850,7 @@
       return dt.pkgGet('help', 'help').value('intro');
     };
     window[dtobj.config.globalRef] = dt;
+    dtview(dt);
     return dt;
   });
 

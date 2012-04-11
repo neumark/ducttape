@@ -25,7 +25,8 @@ define [
     'fs'
     'shellutils'
     'help'
-    ], (KeyBindings, ui, PkgMgr, objectviewer, fs, shellUtils, help) ->
+    'dtview'
+    ], (KeyBindings, ui, PkgMgr, objectviewer, fs, shellUtils, help, dtview) ->
         class DuctTape
             constructor: (@config) ->
                 # sanitize configuration:
@@ -81,4 +82,7 @@ define [
 
         # Registers global reference
         window[dtobj.config.globalRef] = dt
+
+        # Add presentation methods from dtview
+        dtview dt
         dt
