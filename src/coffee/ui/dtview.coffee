@@ -25,5 +25,12 @@ define ['corelib'], (corelib) ->
             div = $ '<div class="eval_result"><span>loading...<span></div>'
             @afterFulfilled (val) =>  
                 div.children().remove()
-                ui.display val, false, div
+                dt.pkgGet('ui','display').value val, false, div
             div
+
+        dt.pkgGet('fs','lib').value.Node::toHTML = -> 
+            $ "<div>#{ @name }</div>"
+
+        dt.pkgGet('fs','lib').value.NodeSet::toHTML = -> 
+            tbody = (@map (key, value) -> "<tr><td>#{ key }</td></tr>").join("")
+            $ "<table>#{ tbody }</table>"

@@ -85,7 +85,7 @@
 <script src="deps/documentcloud/underscore.js"></script>
 <script src="deps/documentcloud/backbone.js"></script>
 <!-- chrjs files for talking to tiddlyweb -->
-<script src="http://tiddlyspace.com/bags/tiddlyspace/tiddlers/chrjs"></script>
+<!-- <script src="http://tiddlyspace.com/bags/tiddlyspace/tiddlers/chrjs"></script> -->
 <!--<script src="http://tiddlyspace.com/bags/common/tiddlers/chrjs.users"></script>-->
 <!-- requirejs -->
 <script src="deps/requirejs/require.js"></script>
@@ -100,7 +100,7 @@
             $ ->
                 dt.init();
                 $('#interactions').append('<span>ready</span>');
-                dt.pkgGet('fs','mount').value('test', 'tiddlyweb', url: 'http://tiddlyspace.com')
+                dt.pkgGet('fs','mount').value('tiddlyspace', 'tiddlyweb', url: 'http://tiddlyspace.com')
     )
 </script>
 <!-- Google Analytics for tracking usage -->

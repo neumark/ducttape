@@ -1,5 +1,5 @@
 COFFEE=coffee
-RJS=lib/r.js
+RJS=deps/requirejs/r.js
 
 $COFFEE -o src/js -c `find src/coffee/ -name "*.coffee"`
 $COFFEE -o src/js -c src/coffee/presentation/*.coffee

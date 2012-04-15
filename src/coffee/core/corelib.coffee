@@ -61,10 +61,10 @@ define [], ->
                 if @fulfilled? then cb(@value) else @on("success failure", cb)
             apply: (fun, that, spec) ->
                 appliedPromise = new corelib.Promise spec
-                @afterFailure -> appliedPromise.fulfill false, @value
-                @afterSuccess ->
+                @afterFailure => appliedPromise.fulfill false, @value
+                @afterSuccess =>
                     try
-                        appliedPromise.fulfill true, fun.apply that, [val]
+                        appliedPromise.fulfill true, fun.apply that, [@value]
                     catch e
                         appliedPromise.fulfill false, e
                 appliedPromise

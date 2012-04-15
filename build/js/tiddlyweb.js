@@ -28,13 +28,20 @@
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor; child.__super__ = parent.prototype; return child; },
     __slice = Array.prototype.slice;
 
-  define(['corelib'], function(corelib) {
+  define(['corelib', 'http://mutable-state.tiddlyspace.com/mutable-state.js'], function(corelib, with_mutable_state) {
     return function(dt) {
       var fslib, makeMountPoint, pkg;
       fslib = dt.pkgGet('fs', 'lib').value;
       makeMountPoint = function(mountName, mountParent, options) {
-        var Root, SecondLevel, TWObj, TiddlerWrapper, TopLevel, host, twebRoot;
+        var Root, SecondLevel, TWObj, TiddlerWrapper, TopLevel, host, tiddylweb, twebPromise, twebRoot;
         host = options.url;
+        tiddylweb = null;
+        twebPromise = new corelib.Promise();
+        with_mutable_state(function(t) {
+          var tiddlyweb;
+          tiddlyweb = t;
+          return twebPromise.fulfill(true, t);
+        });
         TWObj = (function(_super) {
 
           __extends(TWObj, _super);
@@ -45,11 +52,15 @@
             this.request = __bind(this.request, this);
             TWObj.__super__.constructor.call(this, name, parent);
             if (this.obj == null) {
-              this.obj = new tiddlyweb[this.attr.type](this.name, host, filters);
+              this.obj = this.mkTwebObj(this.attr.type, this.name, filters);
             }
             this.contentObj = null;
             this.childList = null;
           }
+
+          TWObj.prototype.mkTwebObj = function(type, name, filters) {
+            return new this.tw[type](name, host, filters);
+          };
 
           TWObj.prototype.request = function(that, ajaxFun, attribute, transform) {
             var promise,
@@ -91,43 +102,57 @@
           function TopLevel(name, parent) {
             var _this = this;
             this.attr = {
-              type: 'Collection'
+              type: 'Collection',
+              children: function() {
+                return _this.request(_this.obj, _this.obj.get, 'childList', function(val) {
+                  var i;
+                  return new fslib.NodeSet((function() {
+                    var _i, _len, _results;
+                    _results = [];
+                    for (_i = 0, _len = val.length; _i < _len; _i++) {
+                      i = val[_i];
+                      _results.push({
+                        key: i,
+                        value: new SecondLevel(i, this.getType(), this)
+                      });
+                    }
+                    return _results;
+                  }).call(_this));
+                });
+              }
             };
-            this.attr.__defineSetter__('children', function() {
-              throw new Error('NotImplemented');
-            });
-            this.attr.__defineGetter__('children', function() {
-              var ns, t;
-              t = (function() {
-                switch (this.name) {
-                  case 'bags':
-                    return 'Bag';
-                  case 'recipes':
-                    return 'Recipe';
-                  default:
-                    throw new Error('Unknown top level child: ' + this.name);
-                }
-              }).call(_this);
-              ns = _this.fullname();
-              return _this.request(_this.obj, _this.obj.get, 'childList', function(val) {
-                var i;
-                return new fslib.NodeSet((function() {
-                  var _i, _len, _results;
-                  _results = [];
-                  for (_i = 0, _len = val.length; _i < _len; _i++) {
-                    i = val[_i];
-                    _results.push({
-                      key: i,
-                      value: new SecondLevel(i, t, this)
-                    });
-                  }
-                  return _results;
-                }).call(_this));
-              });
-            });
             this.value = true;
             TopLevel.__super__.constructor.call(this, name, parent);
           }
+
+          TopLevel.prototype.getType = function() {
+            switch (this.name) {
+              case 'bags':
+                return 'Bag';
+              case 'recipes':
+                return 'Recipe';
+              default:
+                throw new Error('Unknown top level child: ' + this.name);
+            }
+          };
+
+          TopLevel.prototype.createChild = function(name, desc, policy, recipe) {
+            var creationPromise, newObj;
+            newObj = this.mkTwebObj(this.getType(), name);
+            if (desc != null) newObj.desc = desc;
+            if (policy != null) newObj.policy = $.extend(newObj.policy, policy);
+            if (recipe != null) newObj.recipe = recipe;
+            creationPromise = new corelib.Promise();
+            newObj.put(function(obj) {
+              return creationPromise.fulfill(true, obj);
+            });
+            (function() {
+              var err;
+              err = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
+              return creationPromise.fulfill(false, err);
+            });
+            return creationPromise;
+          };
 
           return TopLevel;
 
@@ -145,30 +170,27 @@
               return _this.request(_this.obj, _this.obj.get, 'contentObj');
             });
             this.attr = {
-              type: type
+              type: type,
+              children: function() {
+                return _this.request(_this.obj.tiddlers(), function(cb1, cb2) {
+                  return _this.obj.tiddlers().get(cb1, cb2, "fat=1");
+                }, 'childList', function(tiddlerList) {
+                  var tiddler;
+                  return new fslib.NodeSet((function() {
+                    var _i, _len, _results;
+                    _results = [];
+                    for (_i = 0, _len = tiddlerList.length; _i < _len; _i++) {
+                      tiddler = tiddlerList[_i];
+                      _results.push({
+                        key: tiddler.title,
+                        value: new TiddlerWrapper(tiddler, this)
+                      });
+                    }
+                    return _results;
+                  }).call(this));
+                });
+              }
             };
-            this.attr.__defineSetter__('children', function() {
-              throw new Error('NotImplemented');
-            });
-            this.attr.__defineGetter__('children', function() {
-              return _this.request(_this.obj.tiddlers(), function(cb1, cb2) {
-                return _this.obj.tiddlers().get(cb1, cb2, "fat=1");
-              }, 'childList', function(tiddlerList) {
-                var tiddler;
-                return new fslib.NodeSet((function() {
-                  var _i, _len, _results;
-                  _results = [];
-                  for (_i = 0, _len = tiddlerList.length; _i < _len; _i++) {
-                    tiddler = tiddlerList[_i];
-                    _results.push({
-                      key: tiddler.title,
-                      value: new TiddlerWrapper(tiddler, this)
-                    });
-                  }
-                  return _results;
-                }).call(this));
-              });
-            });
             SecondLevel.__super__.constructor.call(this, name, parent);
           }
 
@@ -196,14 +218,12 @@
 
           __extends(Root, _super);
 
-          function Root() {
-            var i;
+          function Root(tw) {
+            var i,
+              _this = this;
+            TWObj.prototype.tw = tw;
             this.name = mountName;
-            this.attr = {
-              type: 'root',
-              parent: mountParent
-            };
-            this.attr.children = new fslib.NodeSet((function() {
+            this.childSet = new fslib.NodeSet((function() {
               var _i, _len, _ref, _results;
               _ref = ['bags', 'recipes'];
               _results = [];
@@ -216,13 +236,22 @@
               }
               return _results;
             }).call(this));
+            this.attr = {
+              type: 'root',
+              parent: mountParent,
+              children: function() {
+                return _this.childSet;
+              }
+            };
             this.value = true;
           }
 
           return Root;
 
         })(TWObj);
-        return twebRoot = new Root();
+        return twebRoot = twebPromise.apply(function(tiddlyweb) {
+          return new Root(tiddlyweb);
+        });
       };
       return pkg = {
         name: "tiddlyweb",

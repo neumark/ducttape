@@ -42,7 +42,7 @@ define ['corelib'], (corelib) ->
                     fun =
                         getChildSet: (obj) =>
                             currentKey = @keyList[0]
-                            nodeSet = obj?.attr?.children
+                            nodeSet = obj?.attr?.children() 
                             if not nodeSet? then throw new lib.PathExprEx "Object has no children", obj, currentKey, @strExpr
                             [
                                 if (currentKey == "") and (@keyList.length == 1) then true else fun.selectChild
@@ -68,8 +68,10 @@ define ['corelib'], (corelib) ->
                 constructor: (@name, parent=null) ->
                     @attr ?= {}
                     if parent? then @attr.parent = parent
-                fullname: ->
-                    lib.makeFullName (if @attr.parent? then @attr.parent.fullname() else ""), @name
+                    @attr.fullname ?= =>
+                        lib.makeFullName (if @attr.parent?.attr?.fullname? then @attr.parent.attr.fullname() else ""), @name
+                createChild: ->
+                    throw new Error "Cannot create new child"
             NodeSet: class
                 constructor: (childList) ->
                     #nodeDict maps full names to objects
@@ -79,7 +81,7 @@ define ['corelib'], (corelib) ->
                 addNode: (nodeData, useFullName = false) -> 
                     name = 
                         if useFullName
-                            nodeData.value.fullname()
+                            nodeData.value.attr.fullname()
                         else
                             # TODO: check if nodeData.key is a valid name (eg. contains no separator characters).
                             nodeData.key
@@ -100,12 +102,6 @@ define ['corelib'], (corelib) ->
                 keys: -> Object.keys nodeDict
                 map: (fn) -> (fn(key, value) for own key, value of @nodeDict)
                 get: (key) -> @nodeDict[key]?.value
-                #TODO: toHTML should not be in this file...
-                #toHTML: ->
-                #    div = $ "<div />"
-                #    for own key, value of nodeDict
-                #        div.addChild "<span>#{ key }</span>"
-                #    div
             splitFullName: (fullName) ->
                 parts = fullName.split separator
                 keyPart = parts.pop()
@@ -115,7 +111,7 @@ define ['corelib'], (corelib) ->
             makeFullName: (ns, key) -> ns + separator + key
         # Make separator read-only.
         lib.__defineGetter__ 'separator', -> separator
-        fsState.path = new lib.PathExpr "/"
+        childrenOfRoot = new lib.NodeSet []
         rootNode = fsState.co = new (
                 class extends lib.Node
                     constructor:  ->
@@ -124,7 +120,7 @@ define ['corelib'], (corelib) ->
                         @attr = 
                             parent: null
                             description: "Root node of ducttape filesystem."
-                            children: new lib.NodeSet []
+                            children: -> childrenOfRoot 
             )()
         pkgInit = ->
             internals = dt.pkgGet('core', 'internals').value
@@ -148,7 +144,7 @@ define ['corelib'], (corelib) ->
                         description: "Attach new FS adaptor."
                         makePublic: true
                     value: (mountPoint, fsType, options = {}) ->
-                        rootNode.attr.children.addNode({
+                        rootNode.attr.children().addNode({
                             key: mountPoint
                             value: dt.pkgGet(fsType, 'makeMountPoint').value mountPoint, rootNode, options
                         })
@@ -156,14 +152,21 @@ define ['corelib'], (corelib) ->
                     attr:
                         description: "Print current directory."
                         makePublic: true
-                    value: -> (session.fs?.currentPath ? []).join('/')
-
+                    value: -> 
+                        dt.pkgGet('core', 'internals').value.fs?.co.attr.fullname()
                 co:
                     attr:
-                        description: "Displays current object."
+                        description: "Sets or returns current object."
                         makePublic: true
-                    value: ->
-                        session.fs?.currentObject?.contents()
+                    value: (newCo) ->
+                        fs = dt.pkgGet('core', 'internals').value.fs
+                        if newCo? 
+                            corelib.promiseApply \
+                                (node) -> fs.co = node,
+                                null,
+                                newCo
+                        else
+                            fs.co
                 get:
                     attr:
                         description: "Fetch an object from the filesystem."
@@ -175,7 +178,14 @@ define ['corelib'], (corelib) ->
                         description: "Lists children of current object."
                         makePublic: true
                     value: ->
-                        session.fs?.currentObject?.children()
+                        dt.pkgGet('core', 'internals').value.fs?.co?.attr.children()
+                mk:
+                    attr:
+                        description: "Create a new object as a child of the current object (if possible)."
+                        makePublic: true
+                    value: ->
+                        co = dt.pkgGet('core', 'internals').value.fs?.co
+                        if co?.createChild? then co.createChild.apply co, arguments else null
                 lib:
                     attr:
                         description: "Library of fs-related functions and classes."

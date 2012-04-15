@@ -197,14 +197,15 @@
       };
 
       _Class.prototype.apply = function(fun, that, spec) {
-        var appliedPromise;
+        var appliedPromise,
+          _this = this;
         appliedPromise = new corelib.Promise(spec);
         this.afterFailure(function() {
-          return appliedPromise.fulfill(false, this.value);
+          return appliedPromise.fulfill(false, _this.value);
         });
         this.afterSuccess(function() {
           try {
-            return appliedPromise.fulfill(true, fun.apply(that, [val]));
+            return appliedPromise.fulfill(true, fun.apply(that, [_this.value]));
           } catch (e) {
             return appliedPromise.fulfill(false, e);
           }
@@ -1185,7 +1186,7 @@
     var separator;
     separator = "/";
     return function(dt) {
-      var fsState, lib, pkg, pkgInit, rootNode, _ref;
+      var childrenOfRoot, fsState, lib, pkg, pkgInit, rootNode, _ref;
       rootNode = null;
       fsState = (_ref = dt.pkgGet('core', 'internals').value.fs) != null ? _ref : {};
       lib = null;
@@ -1219,7 +1220,7 @@
               getChildSet: function(obj) {
                 var currentKey, nodeSet, _ref2;
                 currentKey = _this.keyList[0];
-                nodeSet = obj != null ? (_ref2 = obj.attr) != null ? _ref2.children : void 0 : void 0;
+                nodeSet = obj != null ? (_ref2 = obj.attr) != null ? _ref2.children() : void 0 : void 0;
                 if (!(nodeSet != null)) {
                   throw new lib.PathExprEx("Object has no children", obj, currentKey, _this.strExpr);
                 }
@@ -1247,14 +1248,22 @@
           __extends(_Class, _super);
 
           function _Class(name, parent) {
+            var _base,
+              _this = this;
             this.name = name;
             if (parent == null) parent = null;
             if (this.attr == null) this.attr = {};
             if (parent != null) this.attr.parent = parent;
+            if ((_base = this.attr).fullname == null) {
+              _base.fullname = function() {
+                var _ref2, _ref3;
+                return lib.makeFullName((((_ref2 = _this.attr.parent) != null ? (_ref3 = _ref2.attr) != null ? _ref3.fullname : void 0 : void 0) != null ? _this.attr.parent.attr.fullname() : ""), _this.name);
+              };
+            }
           }
 
-          _Class.prototype.fullname = function() {
-            return lib.makeFullName((this.attr.parent != null ? this.attr.parent.fullname() : ""), this.name);
+          _Class.prototype.createChild = function() {
+            throw new Error("Cannot create new child");
           };
 
           return _Class;
@@ -1276,7 +1285,7 @@
           _Class.prototype.addNode = function(nodeData, useFullName) {
             var name, tmp;
             if (useFullName == null) useFullName = false;
-            name = useFullName ? nodeData.value.fullname() : nodeData.key;
+            name = useFullName ? nodeData.value.attr.fullname() : nodeData.key;
             if (!this.nodeDict.hasOwnProperty(name)) {
               this.nodeDict[name] = nodeData;
               this.length++;
@@ -1334,7 +1343,7 @@
       lib.__defineGetter__('separator', function() {
         return separator;
       });
-      fsState.path = new lib.PathExpr("/");
+      childrenOfRoot = new lib.NodeSet([]);
       rootNode = fsState.co = new ((function(_super) {
 
         __extends(_Class, _super);
@@ -1345,7 +1354,9 @@
           this.attr = {
             parent: null,
             description: "Root node of ducttape filesystem.",
-            children: new lib.NodeSet([])
+            children: function() {
+              return childrenOfRoot;
+            }
           };
         }
 
@@ -1381,7 +1392,7 @@
             },
             value: function(mountPoint, fsType, options) {
               if (options == null) options = {};
-              return rootNode.attr.children.addNode({
+              return rootNode.attr.children().addNode({
                 key: mountPoint,
                 value: dt.pkgGet(fsType, 'makeMountPoint').value(mountPoint, rootNode, options)
               });
@@ -1393,18 +1404,25 @@
               makePublic: true
             },
             value: function() {
-              var _ref2, _ref3;
-              return ((_ref2 = (_ref3 = session.fs) != null ? _ref3.currentPath : void 0) != null ? _ref2 : []).join('/');
+              var _ref2;
+              return (_ref2 = dt.pkgGet('core', 'internals').value.fs) != null ? _ref2.co.attr.fullname() : void 0;
             }
           },
           co: {
             attr: {
-              description: "Displays current object.",
+              description: "Sets or returns current object.",
               makePublic: true
             },
-            value: function() {
-              var _ref2, _ref3;
-              return (_ref2 = session.fs) != null ? (_ref3 = _ref2.currentObject) != null ? _ref3.contents() : void 0 : void 0;
+            value: function(newCo) {
+              var fs;
+              fs = dt.pkgGet('core', 'internals').value.fs;
+              if (newCo != null) {
+                return corelib.promiseApply(function(node) {
+                  return fs.co = node;
+                }, null, newCo);
+              } else {
+                return fs.co;
+              }
             }
           },
           get: {
@@ -1424,7 +1442,22 @@
             },
             value: function() {
               var _ref2, _ref3;
-              return (_ref2 = session.fs) != null ? (_ref3 = _ref2.currentObject) != null ? _ref3.children() : void 0 : void 0;
+              return (_ref2 = dt.pkgGet('core', 'internals').value.fs) != null ? (_ref3 = _ref2.co) != null ? _ref3.attr.children() : void 0 : void 0;
+            }
+          },
+          mk: {
+            attr: {
+              description: "Create a new object as a child of the current object (if possible).",
+              makePublic: true
+            },
+            value: function() {
+              var co, _ref2;
+              co = (_ref2 = dt.pkgGet('core', 'internals').value.fs) != null ? _ref2.co : void 0;
+              if ((co != null ? co.createChild : void 0) != null) {
+                return co.createChild.apply(co, arguments);
+              } else {
+                return null;
+              }
             }
           },
           lib: {
@@ -1740,15 +1773,25 @@
 
   define('dtview',['corelib'], function(corelib) {
     return function(dt) {
-      return corelib.Promise.prototype.toHTML = function() {
+      corelib.Promise.prototype.toHTML = function() {
         var div,
           _this = this;
         div = $('<div class="eval_result"><span>loading...<span></div>');
         this.afterFulfilled(function(val) {
           div.children().remove();
-          return ui.display(val, false, div);
+          return dt.pkgGet('ui', 'display').value(val, false, div);
         });
         return div;
+      };
+      dt.pkgGet('fs', 'lib').value.Node.prototype.toHTML = function() {
+        return $("<div>" + this.name + "</div>");
+      };
+      return dt.pkgGet('fs', 'lib').value.NodeSet.prototype.toHTML = function() {
+        var tbody;
+        tbody = (this.map(function(key, value) {
+          return "<tr><td>" + key + "</td></tr>";
+        })).join("");
+        return $("<table>" + tbody + "</table>");
       };
     };
   });

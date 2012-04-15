@@ -20,18 +20,24 @@
    successful (because ducttape is hosted from the same domain, CORS or an
    iframe hack).
 ###
-
-define ['corelib'], (corelib) ->
+# The mutable-state dependancy is a hack to make CRUD operations work on tiddlyspace!
+define ['corelib', 'http://mutable-state.tiddlyspace.com/mutable-state.js'], (corelib, with_mutable_state) ->
     (dt) ->
         fslib = dt.pkgGet('fs','lib').value
         makeMountPoint = (mountName, mountParent, options) ->
             host = options.url
+            tiddylweb = null
+            twebPromise = new corelib.Promise()
+            with_mutable_state (t) -> 
+                tiddlyweb = t
+                twebPromise.fulfill true, t
             class TWObj extends fslib.Node
                 constructor: (name, parent=null, filters=null) ->
                     super name, parent
-                    @obj ?= new (tiddlyweb[@attr.type])(@name, host, filters)
+                    @obj ?= @mkTwebObj @attr.type, @name, filters
                     @contentObj = null
                     @childList = null
+                mkTwebObj: (type, name, filters) -> new (@tw[type])(name, host, filters)
                 request: (that, ajaxFun, attribute, transform = (x)->x) =>
                     if @[attribute]? then @[attribute] else 
                         promise = new corelib.Promise
@@ -50,43 +56,52 @@ define ['corelib'], (corelib) ->
 
             class TopLevel extends TWObj # bags, recipes 
                 constructor: (name, parent) -> 
-                    @attr = type: 'Collection'
-                    @attr.__defineSetter__ 'children', -> throw new Error 'NotImplemented'
-                    @attr.__defineGetter__ 'children', =>
-                        t = switch @name
-                            when 'bags' then 'Bag'
-                            when 'recipes' then 'Recipe'
-                            else
-                                throw new Error 'Unknown top level child: ' + @name
-                        ns = @fullname()
-                        @request @obj, @obj.get, 'childList', (val) =>
-                            new fslib.NodeSet ({
-                                    key: i
-                                    value: new SecondLevel(i, t, @)
-                                } for i in val)
+                    @attr = 
+                        type: 'Collection'
+                        children: =>
+                            @request @obj, @obj.get, 'childList', (val) =>
+                                new fslib.NodeSet ({
+                                        key: i
+                                        value: new SecondLevel(i, @getType(), @)
+                                    } for i in val)
                     @value = true
                     super(name, parent)
-
+                getType: ->
+                    switch @name
+                        when 'bags' then 'Bag'
+                        when 'recipes' then 'Recipe'
+                        else
+                            throw new Error 'Unknown top level child: ' + @name
+                createChild: (name, desc, policy, recipe) ->
+                    newObj = @mkTwebObj @getType(), name
+                    if desc? then newObj.desc = desc
+                    if policy? then newObj.policy = $.extend newObj.policy, policy
+                    if recipe? then newObj.recipe = recipe
+                    creationPromise = new corelib.Promise()
+                    newObj.put \
+                            (obj) -> creationPromise.fulfill true, obj
+                            (err...) -> creationPromise.fulfill false, err
+                    creationPromise
+ 
             class SecondLevel extends TWObj # a Bag or Recipe
                 constructor: (name, type, parent) -> 
                     # Define a setter for the value property
                     @__defineSetter__ 'value', -> throw new Error 'NotImplemented'
                     @__defineGetter__ "value", =>
                         @request @obj, @obj.get, 'contentObj'
-                    @attr = type: type
-                    @attr.__defineSetter__ 'children', -> throw new Error 'NotImplemented'
-                    @attr.__defineGetter__ 'children', => 
-                        @request(
-                            @obj.tiddlers()
-                            (cb1, cb2) => @obj.tiddlers().get cb1, cb2, "fat=1"
-                            'childList',
-                            (tiddlerList) -> new fslib.NodeSet(({
-                                    key: tiddler.title
-                                    value: new TiddlerWrapper(tiddler, @)
-                                } for tiddler in tiddlerList))
-                        )
+                    @attr = 
+                        type: type
+                        children: => 
+                            @request \
+                                @obj.tiddlers(),
+                                (cb1, cb2) => @obj.tiddlers().get cb1, cb2, "fat=1",
+                                'childList',
+                                (tiddlerList) -> new fslib.NodeSet(({
+                                        key: tiddler.title
+                                        value: new TiddlerWrapper(tiddler, @)
+                                    } for tiddler in tiddlerList))
                     super(name, parent)
-
+                   
             class TiddlerWrapper extends TWObj
                 constructor: (@tiddler, @parent) ->
                     @name = @tiddler.title
@@ -97,18 +112,19 @@ define ['corelib'], (corelib) ->
                     # TODO: revisions, fields, tags could be further children
 
             class Root extends TWObj
-                constructor: ->
+                constructor: (tw) ->
+                    TWObj::tw = tw
                     @name = mountName
-                    @attr = 
-                        type: 'root'
-                        parent: mountParent
-                    @attr.children = new fslib.NodeSet ({
+                    @childSet = new fslib.NodeSet ({
                             value: new TopLevel(i, @),
                             key: i
                         } for i in ['bags', 'recipes'])
+                    @attr = 
+                        type: 'root'
+                        parent: mountParent
+                        children: => @childSet 
                     @value = true
-            twebRoot = new Root()
-
+            twebRoot = twebPromise.apply (tiddlyweb) -> new Root(tiddlyweb)
         pkg =
             name: "tiddlyweb"
             attr:
