@@ -62,6 +62,17 @@
             return new this.tw[type](name, host, filters);
           };
 
+          TWObj.prototype.destroy = function() {
+            var promise;
+            promise = new corelib.Promise();
+            this.obj["delete"]((function(status) {
+              return promise.fulfill(true, status);
+            }), (function(err) {
+              return promise.fulfill(false, err);
+            }));
+            return promise;
+          };
+
           TWObj.prototype.request = function(that, ajaxFun, attribute, transform) {
             var promise,
               _this = this;

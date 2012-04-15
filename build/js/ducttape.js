@@ -1460,6 +1460,17 @@
               }
             }
           },
+          rm: {
+            attr: {
+              description: "Delete an object",
+              makePublic: true
+            },
+            value: function(nodeName) {
+              return pkg.value.get.value(nodeName).afterSuccess(function(node) {
+                return node.destroy();
+              });
+            }
+          },
           lib: {
             attr: {
               description: "Library of fs-related functions and classes."

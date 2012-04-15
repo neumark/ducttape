@@ -186,6 +186,12 @@ define ['corelib'], (corelib) ->
                     value: ->
                         co = dt.pkgGet('core', 'internals').value.fs?.co
                         if co?.createChild? then co.createChild.apply co, arguments else null
+                rm:
+                    attr:
+                        description: "Delete an object"
+                        makePublic: true
+                    value: (nodeName) ->
+                        pkg.value.get.value(nodeName).afterSuccess (node) -> node.destroy()
                 lib:
                     attr:
                         description: "Library of fs-related functions and classes."

@@ -38,6 +38,14 @@ define ['corelib', 'http://mutable-state.tiddlyspace.com/mutable-state.js'], (co
                     @contentObj = null
                     @childList = null
                 mkTwebObj: (type, name, filters) -> new (@tw[type])(name, host, filters)
+                destroy: -> 
+                    promise = new corelib.Promise()
+                    # TODO: update nodelist if delete is successful
+                    # TODO: give decent error msg otherwise
+                    @obj.delete \
+                        ((status) -> promise.fulfill true, status),
+                        ((err) -> promise.fulfill false, err)
+                    promise    
                 request: (that, ajaxFun, attribute, transform = (x)->x) =>
                     if @[attribute]? then @[attribute] else 
                         promise = new corelib.Promise
