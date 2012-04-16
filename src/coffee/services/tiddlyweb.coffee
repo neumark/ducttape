@@ -89,6 +89,7 @@ define ['corelib', 'http://mutable-state.tiddlyspace.com/mutable-state.js'], (co
                     newObj.put \
                             (obj) -> creationPromise.fulfill true, obj
                             (err...) -> creationPromise.fulfill false, err
+                    # TODO: add newObj to child set.
                     creationPromise
  
             class SecondLevel extends TWObj # a Bag or Recipe
@@ -109,6 +110,20 @@ define ['corelib', 'http://mutable-state.tiddlyspace.com/mutable-state.js'], (co
                                         value: new TiddlerWrapper(tiddler, @)
                                     } for tiddler in tiddlerList))
                     super(name, parent)
+                createChild: (name, text, tags, fields) ->
+                    # TODO: if @ is a recipe, we should add tiddler to last bag in recipe
+                    if @attr.type != 'Bag' then throw new Error 'Cannot create child here.'
+                    newObj = @mkTwebObj 'Tiddler', name
+                    newObj.bag = @obj
+                    newObj.text = text
+                    if tags? then newObj.tags = tags
+                    if fields? then newObj.fields = $.extend newObj.fields, fields
+                    creationPromise = new corelib.Promise()
+                    newObj.put \
+                            (obj) -> creationPromise.fulfill true, obj
+                            (err...) -> creationPromise.fulfill false, err
+                    # TODO: add newObj to child set.
+                    creationPromise
                    
             class TiddlerWrapper extends TWObj
                 constructor: (@tiddler, @parent) ->

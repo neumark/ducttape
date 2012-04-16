@@ -205,6 +205,28 @@
             SecondLevel.__super__.constructor.call(this, name, parent);
           }
 
+          SecondLevel.prototype.createChild = function(name, text, tags, fields) {
+            var creationPromise, newObj;
+            if (this.attr.type !== 'Bag') {
+              throw new Error('Cannot create child here.');
+            }
+            newObj = this.mkTwebObj('Tiddler', name);
+            newObj.bag = this.obj;
+            newObj.text = text;
+            if (tags != null) newObj.tags = tags;
+            if (fields != null) newObj.fields = $.extend(newObj.fields, fields);
+            creationPromise = new corelib.Promise();
+            newObj.put(function(obj) {
+              return creationPromise.fulfill(true, obj);
+            });
+            (function() {
+              var err;
+              err = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
+              return creationPromise.fulfill(false, err);
+            });
+            return creationPromise;
+          };
+
           return SecondLevel;
 
         })(TWObj);

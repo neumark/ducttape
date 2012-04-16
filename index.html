@@ -14,6 +14,7 @@
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
    limitations under the License.
+
 -->
 <head>
   <meta http-equiv="content-type" content="text/html;charset=UTF-8" />
@@ -58,6 +59,8 @@
 <script src="deps/jquery/jquery-1.7.1.js" type="text/javascript" charset="utf-8"></script>
 <script type="text/javascript" src="deps/jquery/jstree/jquery.jstree.js"></script>
 <!-- ace-related scripts -->
+<!-- NOTE: github serves files over http, so if you're using https, you will need to copy the web workers to your server! -->
+<!-- <script src="deps/ace/ace-uncompressed-noconflict.js" data-ace-base="./" type="text/javascript" charset="utf-8"></script>-->
 <script src="deps/ace/ace-uncompressed-noconflict.js" type="text/javascript" charset="utf-8"></script>
 <script src="deps/ace/mode-coffee-uncompressed-noconflict.js" type="text/javascript" charset="utf-8"></script>
 <!-- coffeescript compiler -->
@@ -75,30 +78,39 @@
 <script src="deps/bootstrap/js/bootstrap-collapse.js"></script>
 <script src="deps/bootstrap/js/bootstrap-carousel.js"></script>
 <script src="deps/bootstrap/js/bootstrap-typeahead.js"></script>
+<!-- backbone and underscore --> 
+<script src="deps/documentcloud/underscore.js"></script>
+<script src="deps/documentcloud/backbone.js"></script>
+<!-- requirejs -->
 <script src="deps/requirejs/require.js"></script>
+<script type="text/coffeescript">
+    require.config baseUrl: 'build/js/'
+    require(
+        [
+            "ducttape"
+            "tiddlyweb"
+        ], (dt, tiddlyweb) -> 
+            dt.pkgDef(tiddlyweb(dt));
+            $ ->
+                dt.init();
+                dt.pkgGet('ui','lib').value.run dt.symbol()+'.help "intro"'
+                dt.pkgGet('fs','mount').value('tiddlyspace', 'tiddlyweb', url: 'http://tiddlyspace.com')
+    )
+</script>
+<!-- Google Analytics for tracking usage -->
 <script type="text/javascript">
-    require.config({        
-        baseUrl: "build/js/"
-    });
-    require(["ducttape"], function(dt) {  
-        $(function() {
-            dt.init();
-            dt('o ui:lib').value.run(dt.symbol() +'.help "intro"');
-        });
-    });
-  // google analytics 
-  var _gaq = _gaq || [];
-  _gaq.push(['_setAccount', 'UA-29307183-1']);
-  _gaq.push(['_setDomainName', 'github.com']);
-  _gaq.push(['_setAllowLinker', true]);
-  _gaq.push(['_trackPageview']);
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-29307183-1']);
+_gaq.push(['_setDomainName', 'github.com']);
+_gaq.push(['_setAllowLinker', true]);
+_gaq.push(['_trackPageview']);
 
-  (function() {
-    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
-    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
-    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
-  })();
-
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
 </script>
 </body>
 </html>
+
