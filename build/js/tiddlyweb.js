@@ -28,9 +28,10 @@
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor; child.__super__ = parent.prototype; return child; },
     __slice = Array.prototype.slice;
 
-  define(['build/js/corelib.js', 'http://mutable-state.tiddlyspace.com/mutable-state.js'], function(corelib, with_mutable_state) {
+  define(['http://mutable-state.tiddlyspace.com/mutable-state.js'], function(with_mutable_state) {
     return function(dt) {
-      var fslib, makeMountPoint, pkg;
+      var corelib, fslib, makeMountPoint, pkg;
+      corelib = dt.pkgGet('core', 'internals').value.corelib;
       fslib = dt.pkgGet('fs', 'lib').value;
       makeMountPoint = function(mountName, mountParent, options) {
         var Root, SecondLevel, TWObj, TiddlerWrapper, TopLevel, host, tiddylweb, twebPromise, twebRoot;

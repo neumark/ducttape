@@ -18,6 +18,7 @@
 ###
 
 define [
+    'corelib',
     'keybindings'
     'ui'
     'pkgmgr'
@@ -26,7 +27,7 @@ define [
     'shellutils'
     'help'
     'dtview'
-    ], (KeyBindings, ui, PkgMgr, objectviewer, fs, shellUtils, help, dtview) ->
+    ], (corelib, KeyBindings, ui, PkgMgr, objectviewer, fs, shellUtils, help, dtview) ->
         class DuctTape
             constructor: (@config) ->
                 # sanitize configuration:
@@ -35,7 +36,7 @@ define [
                 @config.initial_buffer ?= ""
                 @config.showGeneratedJS ?= false
                 # fields:
-                @internals = {}
+                @internals = corelib: corelib
                 @session =
                     history: []
                     keybindings: new KeyBindings()

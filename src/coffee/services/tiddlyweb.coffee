@@ -21,8 +21,9 @@
    iframe hack).
 ###
 # The mutable-state dependancy is a hack to make CRUD operations work on tiddlyspace!
-define ['build/js/corelib.js', 'http://mutable-state.tiddlyspace.com/mutable-state.js'], (corelib, with_mutable_state) ->
+define ['http://mutable-state.tiddlyspace.com/mutable-state.js'], (with_mutable_state) ->
     (dt) ->
+        corelib = dt.pkgGet('core','internals').value.corelib
         fslib = dt.pkgGet('fs','lib').value
         makeMountPoint = (mountName, mountParent, options) ->
             host = options.url
