@@ -7,3 +7,6 @@ build/build.txt
 build/js/*
 !build/js/ducttape.js
 !build/js/tiddlyweb.js
+!build/js/corelib.js
+
+src/js/*
