@@ -35,49 +35,60 @@ define ['corelib'], (corelib) ->
             PathExprEx: class extends Error
                 constructor: (@msg, @obj, @childName, @originalEx=null) ->
                     super(@msg);
-            PathExpr: class
-                constructor: (@strExpr) ->
-                    @keyList = strExpr.split separator
-                evaluate: ->
-                    fun =
-                        getChildSet: (obj) =>
-                            currentKey = @keyList[0]
-                            nodeSet = obj?.attr?.children() 
-                            if not nodeSet? then throw new lib.PathExprEx "Object has no children", obj, currentKey, @strExpr
-                            [
-                                if (currentKey == "") and (@keyList.length == 1) then true else fun.selectChild
-                                nodeSet
-                            ]
-                        selectChild: (nodeSet) =>
-                            currentKey = @keyList.shift()
-                            child = nodeSet.get currentKey
-                            if not child? 
-                                throw new lib.PathExprEx "NodeSet does not have a unique child by that name", nodeSet, currentKey, @strExpr
-                            [
-                                if @keyList.length == 0 then true else fun.getChildSet
-                                child
-                            ]
-                    currentObject = 
-                        if @keyList.length > 0 && @keyList[0].length == 0
-                            @keyList.shift()
-                            rootNode
-                        else
-                            fsState.co
-                    chain = new corelib.ContinuationChain [fun.getChildSet, currentObject]
+            pathExpr: (strExpr) ->
+                keyList = strExpr.split separator
+                fun =
+                    getChildSet: (obj) =>
+                        currentKey = keyList[0]
+                        nodeSet = obj?.attr?.children() 
+                        if not nodeSet? then throw new lib.PathExprEx "Object has no children", obj, currentKey, strExpr
+                        [
+                            if (currentKey == "") and (keyList.length == 1) then true else fun.selectChild
+                            nodeSet
+                        ]
+                    selectChild: (nodeSet) =>
+                        currentKey = keyList.shift()
+                        child = nodeSet.get currentKey
+                        if not child? 
+                            throw new lib.PathExprEx "NodeSet does not have a unique child by that name", nodeSet, currentKey, strExpr
+                        [
+                            if keyList.length == 0 then true else fun.getChildSet
+                            child
+                        ]
+                currentObject = 
+                    if keyList.length > 0 && keyList[0].length == 0
+                        keyList.shift()
+                        rootNode
+                    else
+                        fsState.co
+                chain = 
+                    if keyList.length > 0
+                        new corelib.ContinuationChain [fun.getChildSet, currentObject]
+                    else
+                        new corelib.Promise value: currentObject
             Node: class extends corelib.NAV
-                constructor: (@name, parent=null) ->
-                    @attr ?= {}
-                    if parent? then @attr.parent = parent
-                    @attr.fullname ?= =>
-                        lib.makeFullName (if @attr.parent?.attr?.fullname? then @attr.parent.attr.fullname() else ""), @name
-                createChild: ->
-                    throw new Error "Cannot create new child"
+                    constructor: (@name, parent=null) ->
+                        @attr ?= {}
+                        if parent? then @attr.parent = parent
+                        @attr.fullname ?= =>
+                            lib.makeFullName (if @attr.parent?.attr?.fullname? then @attr.parent.attr.fullname() else ""), @name
+                    createChild: ->
+                        throw new Error "Cannot create new child"
             NodeSet: class
                 constructor: (childList) ->
                     #nodeDict maps full names to objects
                     @nodeDict = {}
                     @length = 0
                     @addNode nodeData for nodeData in (childList ? [])
+                removeNode: (key) ->
+                    # TODO: if there were duplicates and after removal
+                    # this is no longer true, update the remaining key to be just name instead of fullpath.
+                    if key of @nodeDict
+                        delete @nodeDict[key]
+                        @length--
+                        true
+                    else
+                        false
                 addNode: (nodeData, useFullName = false) -> 
                     name = 
                         if useFullName
@@ -109,18 +120,30 @@ define ['corelib'], (corelib) ->
                     ns: parts.join separator
                     key: keyPart
             makeFullName: (ns, key) -> ns + separator + key
+            eval: (expr) ->
+                if typeof(expr) == "string" then pathExpr = lib.pathExpr path else expr
         # Make separator read-only.
         lib.__defineGetter__ 'separator', -> separator
-        childrenOfRoot = new lib.NodeSet []
         rootNode = fsState.co = new (
                 class extends lib.Node
                     constructor:  ->
                         super ""
+                        childrenOfRoot = new lib.NodeSet []
                         @value = true
                         @attr = 
                             parent: null
                             description: "Root node of ducttape filesystem."
                             children: -> childrenOfRoot 
+                    createChild: (name, spec) ->
+                        newMountPromise = dt.pkgGet(spec.type, 'makeMountPoint').value name, @, spec
+                        @attr.children().addNode({
+                            key: name
+                            value: newMountPromise
+                        })
+                        # TODO: If the promise fails, remove newMountPromise from child set of root.
+                        newMountPromise.afterFailure (t) ->
+                            @attr.children().removeNode name
+                        newMountPromise
             )()
         pkgInit = ->
             internals = dt.pkgGet('core', 'internals').value
@@ -139,18 +162,9 @@ define ['corelib'], (corelib) ->
                     attr: 
                         description: "Root node of the ducttape filesystem."
                     value: rootNode
-                mount:
-                    attr:
-                        description: "Attach new FS adaptor."
-                        makePublic: true
-                    value: (mountPoint, fsType, options = {}) ->
-                        rootNode.attr.children().addNode({
-                            key: mountPoint
-                            value: dt.pkgGet(fsType, 'makeMountPoint').value mountPoint, rootNode, options
-                        })
                 pwd:
                     attr:
-                        description: "Print current directory."
+                        description: "Print current object's full name."
                         makePublic: true
                     value: -> 
                         dt.pkgGet('core', 'internals').value.fs?.co.attr.fullname()
@@ -160,40 +174,34 @@ define ['corelib'], (corelib) ->
                         makePublic: true
                     value: (newCo) ->
                         fs = dt.pkgGet('core', 'internals').value.fs
-                        if newCo? 
-                            corelib.promiseApply \
-                                (node) -> fs.co = node,
-                                null,
-                                newCo
-                        else
-                            fs.co
+                        if newCo? then fs.co = newCo else fs.co
                 get:
                     attr:
                         description: "Fetch an object from the filesystem."
-                    value: (path) ->
-                        pathExpr = new lib.PathExpr path
-                        pathExpr.evaluate()
+                    value: lib.pathExpr
                 ls:
                     attr:
                         description: "Lists children of current object."
                         makePublic: true
-                    value: ->
-                        dt.pkgGet('core', 'internals').value.fs?.co?.attr.children()
+                    value: (expr) ->
+                        node = if expr? then lib.pathExpr expr else dt.pkgGet('core', 'internals').value.fs?.co
+                        node?.attr?.children()
                 mk:
                     attr:
                         description: "Create a new object as a child of the current object (if possible)."
                         makePublic: true
-                    value: ->
-                        co = dt.pkgGet('core', 'internals').value.fs?.co
-                        if co?.createChild? then co.createChild.apply co, arguments else null
+                    value: (name, spec) ->
+                        nameParts = lib.splitFullName name
+                        parent = lib.pathExpr nameParts.ns
+                        parent.apply (p) -> 
+                            if p?.createChild? then p.createChild.apply p, [nameParts.key, spec] else throw new Error "cannot create child here."
                 rm:
                     attr:
                         description: "Delete an object"
                         makePublic: true
                     value: (nodeName) ->
-                        pkg.value.get.value(nodeName).afterSuccess (node) -> node.destroy()
+                        lib.pathExpr.apply (node) -> node.destroy()
                 lib:
                     attr:
                         description: "Library of fs-related functions and classes."
                     value: lib
-                   

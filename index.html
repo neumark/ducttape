@@ -94,7 +94,7 @@
             $ ->
                 dt.init();
                 dt.pkgGet('ui','lib').value.run dt.symbol()+'.help "intro"'
-                dt.pkgGet('fs','mount').value('tiddlyspace', 'tiddlyweb', url: 'http://tiddlyspace.com')
+                dt.pkgGet('fs','mk').value '/tiddlyspace', {type: 'tiddlyweb', url: 'http://tiddlyspace.com'}
     )
 </script>
 <!-- Google Analytics for tracking usage -->

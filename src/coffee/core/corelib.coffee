@@ -104,7 +104,7 @@ define [], ->
                                 throw new Error "continuationChain: invalid continuation format!"
                     fun.processContinuation initialCont
     # Always returns a promise to the result of the function
-    corelib.promiseApply = (fun, that, val, spec) ->
+    corelib.promiseApply = (fun, val, that, spec) ->
         if val instanceof corelib.Promise
             val.apply fun, that, spec
         else
@@ -117,6 +117,13 @@ define [], ->
                 isSuccess: success 
                 value: value
             )
+    corelib.Stream = class
+        constructor: -> @flush()
+        append: (data) -> @records.push data
+        flush: -> @records = []
+        map: (fun, that) -> _.map(@records, fun, that)
+
+
     corelib.compile = (src) ->
         if src.length == 0 then src else CoffeeScript.compile(src, {'bare': on})
     corelib.execJS = (jsSrc) -> window.eval jsSrc.replace(/\n/g, "") + "\n"

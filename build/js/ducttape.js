@@ -196,7 +196,7 @@
       return _Class;
 
     })(corelib.Promise);
-    corelib.promiseApply = function(fun, that, val, spec) {
+    corelib.promiseApply = function(fun, val, that, spec) {
       var success, value, _ref;
       if (val instanceof corelib.Promise) {
         return val.apply(fun, that, spec);
@@ -214,6 +214,27 @@
         });
       }
     };
+    corelib.Stream = (function() {
+
+      function _Class() {
+        this.flush();
+      }
+
+      _Class.prototype.append = function(data) {
+        return this.records.push(data);
+      };
+
+      _Class.prototype.flush = function() {
+        return this.records = [];
+      };
+
+      _Class.prototype.map = function(fun, that) {
+        return _.map(this.records, fun, that);
+      };
+
+      return _Class;
+
+    })();
     corelib.compile = function(src) {
       if (src.length === 0) {
         return src;
@@ -1186,7 +1207,7 @@
     var separator;
     separator = "/";
     return function(dt) {
-      var childrenOfRoot, fsState, lib, pkg, pkgInit, rootNode, _ref;
+      var fsState, lib, pkg, pkgInit, rootNode, _ref;
       rootNode = null;
       fsState = (_ref = dt.pkgGet('core', 'internals').value.fs) != null ? _ref : {};
       lib = null;
@@ -1206,43 +1227,35 @@
           return _Class;
 
         })(Error),
-        PathExpr: (function() {
-
-          function _Class(strExpr) {
-            this.strExpr = strExpr;
-            this.keyList = strExpr.split(separator);
-          }
-
-          _Class.prototype.evaluate = function() {
-            var chain, currentObject, fun,
-              _this = this;
-            fun = {
-              getChildSet: function(obj) {
-                var currentKey, nodeSet, _ref2;
-                currentKey = _this.keyList[0];
-                nodeSet = obj != null ? (_ref2 = obj.attr) != null ? _ref2.children() : void 0 : void 0;
-                if (!(nodeSet != null)) {
-                  throw new lib.PathExprEx("Object has no children", obj, currentKey, _this.strExpr);
-                }
-                return [(currentKey === "") && (_this.keyList.length === 1) ? true : fun.selectChild, nodeSet];
-              },
-              selectChild: function(nodeSet) {
-                var child, currentKey;
-                currentKey = _this.keyList.shift();
-                child = nodeSet.get(currentKey);
-                if (!(child != null)) {
-                  throw new lib.PathExprEx("NodeSet does not have a unique child by that name", nodeSet, currentKey, _this.strExpr);
-                }
-                return [_this.keyList.length === 0 ? true : fun.getChildSet, child];
+        pathExpr: function(strExpr) {
+          var chain, currentObject, fun, keyList,
+            _this = this;
+          keyList = strExpr.split(separator);
+          fun = {
+            getChildSet: function(obj) {
+              var currentKey, nodeSet, _ref2;
+              currentKey = keyList[0];
+              nodeSet = obj != null ? (_ref2 = obj.attr) != null ? _ref2.children() : void 0 : void 0;
+              if (!(nodeSet != null)) {
+                throw new lib.PathExprEx("Object has no children", obj, currentKey, strExpr);
               }
-            };
-            currentObject = this.keyList.length > 0 && this.keyList[0].length === 0 ? (this.keyList.shift(), rootNode) : fsState.co;
-            return chain = new corelib.ContinuationChain([fun.getChildSet, currentObject]);
+              return [(currentKey === "") && (keyList.length === 1) ? true : fun.selectChild, nodeSet];
+            },
+            selectChild: function(nodeSet) {
+              var child, currentKey;
+              currentKey = keyList.shift();
+              child = nodeSet.get(currentKey);
+              if (!(child != null)) {
+                throw new lib.PathExprEx("NodeSet does not have a unique child by that name", nodeSet, currentKey, strExpr);
+              }
+              return [keyList.length === 0 ? true : fun.getChildSet, child];
+            }
           };
-
-          return _Class;
-
-        })(),
+          currentObject = keyList.length > 0 && keyList[0].length === 0 ? (keyList.shift(), rootNode) : fsState.co;
+          return chain = keyList.length > 0 ? new corelib.ContinuationChain([fun.getChildSet, currentObject]) : new corelib.Promise({
+            value: currentObject
+          });
+        },
         Node: (function(_super) {
 
           __extends(_Class, _super);
@@ -1281,6 +1294,16 @@
               this.addNode(nodeData);
             }
           }
+
+          _Class.prototype.removeNode = function(key) {
+            if (key in this.nodeDict) {
+              delete this.nodeDict[key];
+              this.length--;
+              return true;
+            } else {
+              return false;
+            }
+          };
 
           _Class.prototype.addNode = function(nodeData, useFullName) {
             var name, tmp;
@@ -1338,18 +1361,27 @@
         },
         makeFullName: function(ns, key) {
           return ns + separator + key;
+        },
+        eval: function(expr) {
+          var pathExpr;
+          if (typeof expr === "string") {
+            return pathExpr = lib.pathExpr(path);
+          } else {
+            return expr;
+          }
         }
       };
       lib.__defineGetter__('separator', function() {
         return separator;
       });
-      childrenOfRoot = new lib.NodeSet([]);
       rootNode = fsState.co = new ((function(_super) {
 
         __extends(_Class, _super);
 
         function _Class() {
+          var childrenOfRoot;
           _Class.__super__.constructor.call(this, "");
+          childrenOfRoot = new lib.NodeSet([]);
           this.value = true;
           this.attr = {
             parent: null,
@@ -1359,6 +1391,19 @@
             }
           };
         }
+
+        _Class.prototype.createChild = function(name, spec) {
+          var newMountPromise;
+          newMountPromise = dt.pkgGet(spec.type, 'makeMountPoint').value(name, this, spec);
+          this.attr.children().addNode({
+            key: name,
+            value: newMountPromise
+          });
+          newMountPromise.afterFailure(function(t) {
+            return this.attr.children().removeNode(name);
+          });
+          return newMountPromise;
+        };
 
         return _Class;
 
@@ -1385,22 +1430,9 @@
             },
             value: rootNode
           },
-          mount: {
-            attr: {
-              description: "Attach new FS adaptor.",
-              makePublic: true
-            },
-            value: function(mountPoint, fsType, options) {
-              if (options == null) options = {};
-              return rootNode.attr.children().addNode({
-                key: mountPoint,
-                value: dt.pkgGet(fsType, 'makeMountPoint').value(mountPoint, rootNode, options)
-              });
-            }
-          },
           pwd: {
             attr: {
-              description: "Print current directory.",
+              description: "Print current object's full name.",
               makePublic: true
             },
             value: function() {
@@ -1417,9 +1449,7 @@
               var fs;
               fs = dt.pkgGet('core', 'internals').value.fs;
               if (newCo != null) {
-                return corelib.promiseApply(function(node) {
-                  return fs.co = node;
-                }, null, newCo);
+                return fs.co = newCo;
               } else {
                 return fs.co;
               }
@@ -1429,20 +1459,17 @@
             attr: {
               description: "Fetch an object from the filesystem."
             },
-            value: function(path) {
-              var pathExpr;
-              pathExpr = new lib.PathExpr(path);
-              return pathExpr.evaluate();
-            }
+            value: lib.pathExpr
           },
           ls: {
             attr: {
               description: "Lists children of current object.",
               makePublic: true
             },
-            value: function() {
-              var _ref2, _ref3;
-              return (_ref2 = dt.pkgGet('core', 'internals').value.fs) != null ? (_ref3 = _ref2.co) != null ? _ref3.attr.children() : void 0 : void 0;
+            value: function(expr) {
+              var node, _ref2, _ref3;
+              node = expr != null ? lib.pathExpr(expr) : (_ref2 = dt.pkgGet('core', 'internals').value.fs) != null ? _ref2.co : void 0;
+              return node != null ? (_ref3 = node.attr) != null ? _ref3.children() : void 0 : void 0;
             }
           },
           mk: {
@@ -1450,14 +1477,17 @@
               description: "Create a new object as a child of the current object (if possible).",
               makePublic: true
             },
-            value: function() {
-              var co, _ref2;
-              co = (_ref2 = dt.pkgGet('core', 'internals').value.fs) != null ? _ref2.co : void 0;
-              if ((co != null ? co.createChild : void 0) != null) {
-                return co.createChild.apply(co, arguments);
-              } else {
-                return null;
-              }
+            value: function(name, spec) {
+              var nameParts, parent;
+              nameParts = lib.splitFullName(name);
+              parent = lib.pathExpr(nameParts.ns);
+              return parent.apply(function(p) {
+                if ((p != null ? p.createChild : void 0) != null) {
+                  return p.createChild.apply(p, [nameParts.key, spec]);
+                } else {
+                  throw new Error("cannot create child here.");
+                }
+              });
             }
           },
           rm: {
@@ -1466,7 +1496,7 @@
               makePublic: true
             },
             value: function(nodeName) {
-              return pkg.value.get.value(nodeName).afterSuccess(function(node) {
+              return lib.pathExpr.apply(function(node) {
                 return node.destroy();
               });
             }
