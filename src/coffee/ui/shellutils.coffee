@@ -42,11 +42,6 @@ define [], ->
                     value: ->
                         $('#interactions').children().remove()
                         null
-                symbol:
-                    attr:
-                        description: 'Returns global name of DuctTape function.'
-                        makePublic: true
-                    value: -> dt.pkgGet('core','config').value.globalRef + ''
                 history:
                     attr:
                         description: 'Prints history of formerly executed commands.'

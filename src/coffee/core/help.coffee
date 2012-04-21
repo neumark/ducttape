@@ -74,7 +74,7 @@ define ['corelib'], (corelib) ->
                     attr:
                         description: 'Utility function for listing help sections.'
                     value: ->
-                            dom = $ converter.makeHtml ("*   [\u0111.help '#{ key }'](/pseudoURL/run \"#{ key }\")" for own key of pkg.value.helpStore.value).join("\n")
+                            dom = $ converter.makeHtml ("*   [#{ dt.symbol() }.help '#{ key }'](/pseudoURL/run \"#{ key }\")" for own key of pkg.value.helpStore.value).join("\n")
                             fixLinks dom
                             dom
                 displayMarkDown:
@@ -88,14 +88,14 @@ define ['corelib'], (corelib) ->
                         main:
                             """
                             # DuctTape help #
-                            this is the _main_ section, which can be reached via [\u0111.help()](/pseudoURL/run) or [\u0111.help main](/pseudoURL/run).
+                            this is the _main_ section, which can be reached via [#{ dt.symbol() }.help()](/pseudoURL/run) or [#{ dt.symbol() }.help main](/pseudoURL/run).
 
                             ## Available help sections  
-                            [(\u0111 'o help:listSections').value()](/pseudoURL/replace)
+                            [(#{ dt.symbol() }.pkgGet('help','listSections').value()](/pseudoURL/replace)
                             ## Help for a function or object
-                            For any DuctTape function or object, view the related documentation by typing **\u0111.help _function_**
+                            For any DuctTape function or object, view the related documentation by typing **#{ dt.symbol() }.help _function_**
 
-                            Example: [\u0111.help \u0111.show](/pseudoURL/run)
+                            Example: [#{ dt.symbol() }.help #{ dt.symbol() }.show](/pseudoURL/run)
 
                             """
                         intro:
@@ -106,8 +106,8 @@ define ['corelib'], (corelib) ->
                             ## Getting Started ##
                             Any valid CoffeeScript expression typed into the console will be translated to JavaScript and executed.
                             DuctTape will display the result.
-                            The [\u0111.help()](/pseudoURL/run) function can be used to get help about objects included in DuctTape.
-                            For example, [\u0111.help \u0111.show](/pseudoURL/run) will describe the _show_ command.
+                            The [#{ dt.symbol() }.help()](/pseudoURL/run) function can be used to get help about objects included in DuctTape.
+                            For example, [#{ dt.symbol() }.help #{ dt.symbol() }.show](/pseudoURL/run) will describe the _show_ command.
 
                             ## Key bindings ##
 
@@ -116,7 +116,7 @@ define ['corelib'], (corelib) ->
                             <tr><td>Enter  </td><td>Executes current statement.</td></tr>
                             <tr><td>Shift+Enter &nbsp;</td><td> Start a new line (multiline expressions are allowed).</td></tr>
                             <tr><td>F2  </td><td>Toggles display of generated JavaScript source.</td></tr>
-                            <tr><td>Alt+D  </td><td>Insert the <i>DuctTape symbol</i> (\u0111).</td></tr>
+                            <tr><td>Alt+D  </td><td>Insert the <i>DuctTape symbol</i> (#{ dt.symbol() }).</td></tr>
                             <tr><td>up  </td><td>Browse command history (go back).</td></tr>
                             <tr><td>down  </td><td>Browse command history (go forward).</td></tr>
                             </tbody></table>
@@ -124,15 +124,15 @@ define ['corelib'], (corelib) ->
                             ## Useful functions ##
                             DuctTape comes with a few convenience functions to make your life easier:
                             
-                            [\u0111.history()](/pseudoURL/run): List previous commands.
+                            [#{ dt.symbol() }.history()](/pseudoURL/run): List previous commands.
 
-                            [\u0111.last()](/pseudoURL/run): Get the last command issued, along with its result.
+                            [#{ dt.symbol() }.last()](/pseudoURL/run): Get the last command issued, along with its result.
 
-                            [\u0111.clear()](/pseudoURL/run): Erase the result of previous commands.
+                            [#{ dt.symbol() }.clear()](/pseudoURL/run): Erase the result of previous commands.
 
-                            [\u0111.ov window](/pseudoURL/run): Browse any javascript object (in this case, _window_).
+                            [#{ dt.symbol() }.ov window](/pseudoURL/run): Browse any javascript object (in this case, _window_).
 
-                            To view the list of all currently loaded packages and their contents, run [\u0111.listPackages()](/pseudoURL/run).
+                            To view the list of all currently loaded packages and their contents, run [#{ dt.symbol() }.listPackages()](/pseudoURL/run).
 
                             ## DuctTape is extensible ##
                             Thanks to it's modular architecture, anyone can add commands to DuctTape.

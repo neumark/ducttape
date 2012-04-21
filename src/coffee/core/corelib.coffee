@@ -117,12 +117,18 @@ define [], ->
                 isSuccess: success 
                 value: value
             )
-    corelib.Stream = class
-        constructor: -> @flush()
-        append: (data) -> @records.push data
-        flush: -> @records = []
-        map: (fun, that) -> _.map(@records, fun, that)
 
+    corelib.Stream = class
+        constructor: (@records = []) -> 
+            _.extend @, Backbone.Events
+            @__defineGetter__ "length", => @records.length
+        append: (data) -> 
+            @records.push data
+            @trigger 'append', data
+        flush: -> 
+            @records = []
+            @trigger 'flush'
+        map: (fun, that) -> _.map(@records, fun, that)
 
     corelib.compile = (src) ->
         if src.length == 0 then src else CoffeeScript.compile(src, {'bare': on})

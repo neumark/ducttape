@@ -216,16 +216,23 @@
     };
     corelib.Stream = (function() {
 
-      function _Class() {
-        this.flush();
+      function _Class(records) {
+        var _this = this;
+        this.records = records != null ? records : [];
+        _.extend(this, Backbone.Events);
+        this.__defineGetter__("length", function() {
+          return _this.records.length;
+        });
       }
 
       _Class.prototype.append = function(data) {
-        return this.records.push(data);
+        this.records.push(data);
+        return this.trigger('append', data);
       };
 
       _Class.prototype.flush = function() {
-        return this.records = [];
+        this.records = [];
+        return this.trigger('flush');
       };
 
       _Class.prototype.map = function(fun, that) {
@@ -448,11 +455,11 @@
             }
           });
           bind({
-            description: 'Insert DuctTape symbol (\u0111).',
+            description: "Insert DuctTape symbol (" + (dt.symbol()) + ").",
             keyCode: 68,
             altKey: true,
             action: function() {
-              _this.editor.insert('\u0111');
+              _this.editor.insert(dt.symbol());
               return true;
             }
           });
@@ -1363,9 +1370,8 @@
           return ns + separator + key;
         },
         eval: function(expr) {
-          var pathExpr;
           if (typeof expr === "string") {
-            return pathExpr = lib.pathExpr(path);
+            return lib.pathExpr(expr);
           } else {
             return expr;
           }
@@ -1449,7 +1455,7 @@
               var fs;
               fs = dt.pkgGet('core', 'internals').value.fs;
               if (newCo != null) {
-                return fs.co = newCo;
+                return fs.co = lib.eval(newCo);
               } else {
                 return fs.co;
               }
@@ -1467,9 +1473,19 @@
               makePublic: true
             },
             value: function(expr) {
-              var node, _ref2, _ref3;
-              node = expr != null ? lib.pathExpr(expr) : (_ref2 = dt.pkgGet('core', 'internals').value.fs) != null ? _ref2.co : void 0;
-              return node != null ? (_ref3 = node.attr) != null ? _ref3.children() : void 0 : void 0;
+              var nodePromise;
+              nodePromise = lib.eval(expr != null ? expr : "");
+              return nodePromise.apply(function(parent) {
+                var _ref2;
+                return (function() {
+                  var _ref3;
+                  if ((_ref2 = parent != null ? (_ref3 = parent.attr) != null ? _ref3.children() : void 0 : void 0) != null) {
+                    return _ref2;
+                  } else {
+                    throw new Error("parent has no children");
+                  }
+                })();
+              });
             }
           },
           mk: {
@@ -1496,9 +1512,9 @@
               makePublic: true
             },
             value: function(nodeName) {
-              return lib.pathExpr.apply(function(node) {
+              return corelib.promiseApply((function(node) {
                 return node.destroy();
-              });
+              }), lib.eval(nodeName));
             }
           },
           lib: {
@@ -1572,15 +1588,6 @@
             value: function() {
               $('#interactions').children().remove();
               return null;
-            }
-          },
-          symbol: {
-            attr: {
-              description: 'Returns global name of DuctTape function.',
-              makePublic: true
-            },
-            value: function() {
-              return dt.pkgGet('core', 'config').value.globalRef + '';
             }
           },
           history: {
@@ -1761,7 +1768,7 @@
                 _results = [];
                 for (key in _ref) {
                   if (!__hasProp.call(_ref, key)) continue;
-                  _results.push("*   [\u0111.help '" + key + "'](/pseudoURL/run \"" + key + "\")");
+                  _results.push("*   [" + (dt.symbol()) + ".help '" + key + "'](/pseudoURL/run \"" + key + "\")");
                 }
                 return _results;
               })()).join("\n")));
@@ -1780,8 +1787,8 @@
               description: 'Help contents stored in this object. Should be JSON.stringify-able.'
             },
             value: {
-              main: "# DuctTape help #\nthis is the _main_ section, which can be reached via [\u0111.help()](/pseudoURL/run) or [\u0111.help main](/pseudoURL/run).\n\n## Available help sections  \n[(\u0111 'o help:listSections').value()](/pseudoURL/replace)\n## Help for a function or object\nFor any DuctTape function or object, view the related documentation by typing **\u0111.help _function_**\n\nExample: [\u0111.help \u0111.show](/pseudoURL/run)\n",
-              intro: "# Welcome to DuctTape #\n_DuctTape_ is an [open source](https://github.com/neumark/ducttape) [CoffeeScript](http://coffeescript.org) [REPL](http://en.wikipedia.org/wiki/REPL) for the web.\n\n## Getting Started ##\nAny valid CoffeeScript expression typed into the console will be translated to JavaScript and executed.\nDuctTape will display the result.\nThe [\u0111.help()](/pseudoURL/run) function can be used to get help about objects included in DuctTape.\nFor example, [\u0111.help \u0111.show](/pseudoURL/run) will describe the _show_ command.\n\n## Key bindings ##\n\n<table><thead><tr><td><b>Key</b></td><td><b>Action</b></td></tr></thead>\n<tbody>\n<tr><td>Enter  </td><td>Executes current statement.</td></tr>\n<tr><td>Shift+Enter &nbsp;</td><td> Start a new line (multiline expressions are allowed).</td></tr>\n<tr><td>F2  </td><td>Toggles display of generated JavaScript source.</td></tr>\n<tr><td>Alt+D  </td><td>Insert the <i>DuctTape symbol</i> (\u0111).</td></tr>\n<tr><td>up  </td><td>Browse command history (go back).</td></tr>\n<tr><td>down  </td><td>Browse command history (go forward).</td></tr>\n</tbody></table>\n\n## Useful functions ##\nDuctTape comes with a few convenience functions to make your life easier:\n\n[\u0111.history()](/pseudoURL/run): List previous commands.\n\n[\u0111.last()](/pseudoURL/run): Get the last command issued, along with its result.\n\n[\u0111.clear()](/pseudoURL/run): Erase the result of previous commands.\n\n[\u0111.ov window](/pseudoURL/run): Browse any javascript object (in this case, _window_).\n\nTo view the list of all currently loaded packages and their contents, run [\u0111.listPackages()](/pseudoURL/run).\n\n## DuctTape is extensible ##\nThanks to it's modular architecture, anyone can add commands to DuctTape.\nWrite your own custom packages, and use DuctTape for whatever you want!\n\n## Get Involved! ##\nDo you enjoy using DuctTape, have feature requests or need help developing custom packages?\n\nLet me know! You can find me on [GitHub](https://github.com/neumark).\n\n**Have fun!**\n"
+              main: "# DuctTape help #\nthis is the _main_ section, which can be reached via [" + (dt.symbol()) + ".help()](/pseudoURL/run) or [" + (dt.symbol()) + ".help main](/pseudoURL/run).\n\n## Available help sections  \n[(" + (dt.symbol()) + ".pkgGet('help','listSections').value()](/pseudoURL/replace)\n## Help for a function or object\nFor any DuctTape function or object, view the related documentation by typing **" + (dt.symbol()) + ".help _function_**\n\nExample: [" + (dt.symbol()) + ".help " + (dt.symbol()) + ".show](/pseudoURL/run)\n",
+              intro: "# Welcome to DuctTape #\n_DuctTape_ is an [open source](https://github.com/neumark/ducttape) [CoffeeScript](http://coffeescript.org) [REPL](http://en.wikipedia.org/wiki/REPL) for the web.\n\n## Getting Started ##\nAny valid CoffeeScript expression typed into the console will be translated to JavaScript and executed.\nDuctTape will display the result.\nThe [" + (dt.symbol()) + ".help()](/pseudoURL/run) function can be used to get help about objects included in DuctTape.\nFor example, [" + (dt.symbol()) + ".help " + (dt.symbol()) + ".show](/pseudoURL/run) will describe the _show_ command.\n\n## Key bindings ##\n\n<table><thead><tr><td><b>Key</b></td><td><b>Action</b></td></tr></thead>\n<tbody>\n<tr><td>Enter  </td><td>Executes current statement.</td></tr>\n<tr><td>Shift+Enter &nbsp;</td><td> Start a new line (multiline expressions are allowed).</td></tr>\n<tr><td>F2  </td><td>Toggles display of generated JavaScript source.</td></tr>\n<tr><td>Alt+D  </td><td>Insert the <i>DuctTape symbol</i> (" + (dt.symbol()) + ").</td></tr>\n<tr><td>up  </td><td>Browse command history (go back).</td></tr>\n<tr><td>down  </td><td>Browse command history (go forward).</td></tr>\n</tbody></table>\n\n## Useful functions ##\nDuctTape comes with a few convenience functions to make your life easier:\n\n[" + (dt.symbol()) + ".history()](/pseudoURL/run): List previous commands.\n\n[" + (dt.symbol()) + ".last()](/pseudoURL/run): Get the last command issued, along with its result.\n\n[" + (dt.symbol()) + ".clear()](/pseudoURL/run): Erase the result of previous commands.\n\n[" + (dt.symbol()) + ".ov window](/pseudoURL/run): Browse any javascript object (in this case, _window_).\n\nTo view the list of all currently loaded packages and their contents, run [" + (dt.symbol()) + ".listPackages()](/pseudoURL/run).\n\n## DuctTape is extensible ##\nThanks to it's modular architecture, anyone can add commands to DuctTape.\nWrite your own custom packages, and use DuctTape for whatever you want!\n\n## Get Involved! ##\nDo you enjoy using DuctTape, have feature requests or need help developing custom packages?\n\nLet me know! You can find me on [GitHub](https://github.com/neumark).\n\n**Have fun!**\n"
             }
           }
         }
@@ -1868,7 +1875,7 @@
         var _base, _base2, _base3;
         this.config = config;
         if (this.config == null) this.config = {};
-        if ((_base = this.config).globalRef == null) _base.globalRef = "\u0111";
+        if ((_base = this.config).globalRef == null) _base.globalRef = "\u0110";
         if ((_base2 = this.config).initial_buffer == null) {
           _base2.initial_buffer = "";
         }
@@ -1876,7 +1883,10 @@
           _base3.showGeneratedJS = false;
         }
         this.internals = {
-          corelib: corelib
+          corelib: corelib,
+          mainFun: function() {
+            return true;
+          }
         };
         this.session = {
           history: [],
@@ -1889,7 +1899,7 @@
     })();
     dtobj = new DuctTape((_ref = window.ducttape_config) != null ? _ref : {});
     dt = function() {
-      return true;
+      return dtobj.internals.mainFun.apply(dt, arguments);
     };
     dtobj.internals.pkgmgr = new (PkgMgr(dt))();
     dtobj.internals.pkgmgr.pkgDef({
@@ -1924,6 +1934,15 @@
             description: "Parse and execute a command"
           },
           value: dt
+        },
+        symbol: {
+          attr: {
+            description: 'Returns global name of DuctTape function.',
+            makePublic: true
+          },
+          value: function() {
+            return dtobj.config.globalRef + '';
+          }
         }
       }
     });
@@ -1934,6 +1953,9 @@
     dtobj.internals.pkgmgr.pkgDef(help(dt));
     dt.toHTML = function() {
       return dt.pkgGet('help', 'help').value('intro');
+    };
+    dtobj.internals.mainFun = function(expr) {
+      return dt.pkgGet('fs', 'lib').value.eval(expr);
     };
     window[dtobj.config.globalRef] = dt;
     dtview(dt);

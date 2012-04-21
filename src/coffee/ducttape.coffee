@@ -32,11 +32,13 @@ define [
             constructor: (@config) ->
                 # sanitize configuration:
                 @config ?= {}
-                @config.globalRef ?= "\u0111"
+                @config.globalRef ?= "\u0110"
                 @config.initial_buffer ?= ""
                 @config.showGeneratedJS ?= false
                 # fields:
-                @internals = corelib: corelib
+                @internals = 
+                    corelib: corelib
+                    mainFun: -> true 
                 @session =
                     history: []
                     keybindings: new KeyBindings()
@@ -45,7 +47,7 @@ define [
         dtobj = new DuctTape(window.ducttape_config ? {})
 
         # main DuctTape function
-        dt = -> true
+        dt = -> dtobj.internals.mainFun.apply dt, arguments
         dtobj.internals.pkgmgr = new (PkgMgr(dt))()
 
         # load builtin packages:
@@ -73,6 +75,12 @@ define [
                     attr:
                         description: "Parse and execute a command"
                     value: dt
+                symbol:
+                    attr:
+                        description: 'Returns global name of DuctTape function.'
+                        makePublic: true
+                    value: -> dtobj.config.globalRef + ''
+
         dtobj.internals.pkgmgr.pkgDef objectviewer dt
         dtobj.internals.pkgmgr.pkgDef ui dt
         dtobj.internals.pkgmgr.pkgDef fs dt
@@ -80,6 +88,7 @@ define [
         dtobj.internals.pkgmgr.pkgDef help dt
 
         dt.toHTML = -> dt.pkgGet('help', 'help').value 'intro'
+        dtobj.internals.mainFun = (expr) -> dt.pkgGet('fs','lib').value.eval expr
 
         # Registers global reference
         window[dtobj.config.globalRef] = dt

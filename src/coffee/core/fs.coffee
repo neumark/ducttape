@@ -121,7 +121,7 @@ define ['corelib'], (corelib) ->
                     key: keyPart
             makeFullName: (ns, key) -> ns + separator + key
             eval: (expr) ->
-                if typeof(expr) == "string" then pathExpr = lib.pathExpr path else expr
+                if typeof(expr) == "string" then lib.pathExpr expr else expr
         # Make separator read-only.
         lib.__defineGetter__ 'separator', -> separator
         rootNode = fsState.co = new (
@@ -174,7 +174,7 @@ define ['corelib'], (corelib) ->
                         makePublic: true
                     value: (newCo) ->
                         fs = dt.pkgGet('core', 'internals').value.fs
-                        if newCo? then fs.co = newCo else fs.co
+                        if newCo? then fs.co = lib.eval newCo else fs.co
                 get:
                     attr:
                         description: "Fetch an object from the filesystem."
@@ -184,8 +184,8 @@ define ['corelib'], (corelib) ->
                         description: "Lists children of current object."
                         makePublic: true
                     value: (expr) ->
-                        node = if expr? then lib.pathExpr expr else dt.pkgGet('core', 'internals').value.fs?.co
-                        node?.attr?.children()
+                        nodePromise = lib.eval (expr ? "")
+                        nodePromise.apply (parent) -> parent?.attr?.children() ? throw new Error "parent has no children"
                 mk:
                     attr:
                         description: "Create a new object as a child of the current object (if possible)."
@@ -200,7 +200,7 @@ define ['corelib'], (corelib) ->
                         description: "Delete an object"
                         makePublic: true
                     value: (nodeName) ->
-                        lib.pathExpr.apply (node) -> node.destroy()
+                        corelib.promiseApply ((node) -> node.destroy()), lib.eval nodeName 
                 lib:
                     attr:
                         description: "Library of fs-related functions and classes."

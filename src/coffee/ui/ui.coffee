@@ -87,11 +87,11 @@ define ['corelib'], (corelib) ->
                             @scrollToBottom()
                         true
                 bind 
-                    description: 'Insert DuctTape symbol (\u0111).'
+                    description: "Insert DuctTape symbol (#{ dt.symbol() })."
                     keyCode: 68
                     altKey: true
                     action: =>
-                        @editor.insert '\u0111'
+                        @editor.insert dt.symbol()
                         true
                 bind 
                     description: 'Toggle generated javascript window.'
