@@ -64,14 +64,18 @@
           };
 
           TWObj.prototype.destroy = function() {
-            var promise;
-            promise = new corelib.Promise();
-            this.obj["delete"]((function(status) {
-              return promise.fulfill(true, status);
-            }), (function(err) {
-              return promise.fulfill(false, err);
+            new corelib.PromiseChain(corelib.promiseApply(function(obj) {
+              var p;
+              p = new corelib.Promise();
+              obj["delete"](function(status) {
+                return p.fulfill(true, status);
+              });
+              (function(err) {
+                return p.fulfill(false, err);
+              });
+              return p;
             }));
-            return promise;
+            return [this.obj];
           };
 
           TWObj.prototype.request = function(that, ajaxFun, attribute, transform) {
@@ -148,21 +152,21 @@
             }
           };
 
-          TopLevel.prototype.createChild = function(name, desc, policy, recipe) {
+          TopLevel.prototype.createChild = function(name, spec) {
             var creationPromise, newObj;
+            if (spec == null) spec = {};
             newObj = this.mkTwebObj(this.getType(), name);
-            if (desc != null) newObj.desc = desc;
-            if (policy != null) newObj.policy = $.extend(newObj.policy, policy);
-            if (recipe != null) newObj.recipe = recipe;
+            if (spec.desc != null) newObj.desc = spec.desc;
+            if (spec.policy != null) {
+              newObj.policy = $.extend(newObj.policy, spec.policy);
+            }
+            if (spec.recipe != null) newObj.recipe = spec.recipe;
             creationPromise = new corelib.Promise();
-            newObj.put(function(obj) {
+            newObj.put((function(obj) {
               return creationPromise.fulfill(true, obj);
-            });
-            (function() {
-              var err;
-              err = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
+            }), (function(err) {
               return creationPromise.fulfill(false, err);
-            });
+            }));
             return creationPromise;
           };
 
@@ -206,25 +210,25 @@
             SecondLevel.__super__.constructor.call(this, name, parent);
           }
 
-          SecondLevel.prototype.createChild = function(name, text, tags, fields) {
+          SecondLevel.prototype.createChild = function(name, spec) {
             var creationPromise, newObj;
+            if (spec == null) spec = {};
             if (this.attr.type !== 'Bag') {
               throw new Error('Cannot create child here.');
             }
             newObj = this.mkTwebObj('Tiddler', name);
             newObj.bag = this.obj;
-            newObj.text = text;
-            if (tags != null) newObj.tags = tags;
-            if (fields != null) newObj.fields = $.extend(newObj.fields, fields);
+            newObj.text = spec.text;
+            if (spec.tags != null) newObj.tags = spec.tags;
+            if (spec.fields != null) {
+              newObj.fields = $.extend(newObj.fields, spec.fields);
+            }
             creationPromise = new corelib.Promise();
-            newObj.put(function(obj) {
+            newObj.put((function(obj) {
               return creationPromise.fulfill(true, obj);
-            });
-            (function() {
-              var err;
-              err = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
+            }), (function(err) {
               return creationPromise.fulfill(false, err);
-            });
+            }));
             return creationPromise;
           };
 

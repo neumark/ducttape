@@ -50,17 +50,24 @@ define [], ->
                 @made = new Date()
                 _.extend @, Backbone.Events
                 if 'value' of @spec then @fulfill (@spec.isSuccess ? true), @spec.value
+                if @spec.afterSuccess? then @afterSuccess @spec.afterSuccess
+                if @spec.afterFailure? then @afterFailure @spec.afterFailure
+                if @spec.afterFulfilled? then @afterFulfilled @spec.afterFulfilled
             fulfill: (@isSuccess, @value)=>
-                @fulfilled = new Date()
-                @trigger (if @isSuccess then "success" else "failure"), @value
+                if @fulfilled? 
+                    throw new Error 'Attempt to fulfill the same promise twice.'
+                else
+                    @fulfilled = new Date()
+                    @trigger (if @isSuccess then "success" else "failure"), @value
             afterSuccess: (cb) ->
-                if @isSuccess == true then cb(@value) else @on("success", cb)
+                if @isSuccess == true then cb @value else @on "success", cb, @
             afterFailure: (cb) ->
-                if @isSuccess == false then cb(@value) else @on("failure", cb)
+                if @isSuccess == false then cb @value else @on "failure", cb, @
             afterFulfilled: (cb) ->
-                if @fulfilled? then cb(@value) else @on("success failure", cb)
+                if @fulfilled? then cb @value else @on "success failure", cb, @
             apply: (fun, that, spec) ->
                 appliedPromise = new corelib.Promise spec
+                appliedPromise.waitingOn = @
                 @afterFailure => appliedPromise.fulfill false, @value
                 @afterSuccess =>
                     try
@@ -68,6 +75,20 @@ define [], ->
                     catch e
                         appliedPromise.fulfill false, e
                 appliedPromise
+
+    corelib.PromiseChain =
+        class extends corelib.Promise
+            constructor: (initialPromise, spec) ->
+                super spec
+                @chain = []
+                setupPromise = (p) =>
+                    @chain.push p
+                    p.afterFulfilled ->
+                        if p.isSuccess and (p.value instanceof corelib.Promise)
+                            setupPromise p.value
+                        else
+                            finalPromise.fulfill p.isSuccess, p.value
+                setupPromise initialPromise
 
     corelib.ContinuationChain =
             class extends corelib.Promise
@@ -103,20 +124,37 @@ define [], ->
                             else
                                 throw new Error "continuationChain: invalid continuation format!"
                     fun.processContinuation initialCont
-    # Always returns a promise to the result of the function
-    corelib.promiseApply = (fun, val, that, spec) ->
-        if val instanceof corelib.Promise
-            val.apply fun, that, spec
-        else
-            [success, value] = 
-                try
-                    [true, fun.apply that, [val]]
-                catch e
-                    [false, e]
-            new corelib.Promise (
-                isSuccess: success 
-                value: value
-            )
+    corelib.promiseArray = (pArray) ->
+        promise = new corelib.Promise()
+        pending = {}
+        numFulfilled = 0
+        resultArray = []
+        _.each pArray, (val, ix) -> 
+            resultArray.push \ 
+                if val instanceof corelib.Promise
+                    val.afterFulfilled ->
+                        numFulfilled++
+                        resultArray[ix] = val.value
+                        if val.isSuccess == false then promise.fulfill false, resultArray
+                        if numFulfilled == pArray.length and not promise.fulfilled
+                            promise.fulfill true, resultArray
+                    pending
+                else
+                    val
+        # fulfill if there were no promises in pArray
+        if (p for p in resultArray when p == pending).length == 0 then promise.fulfill true, resultArray
+        promise
+                            
+   # Always returns a promise to the result of the function
+    corelib.promiseApply = (fun, args, that, spec) ->
+        args ?= []
+        args.push fun
+        args.push that
+        argPromise = corelib.promiseArray args
+        argPromise.apply (val) ->
+            t = val.pop()
+            f = val.pop()
+            f.apply t, val
 
     corelib.Stream = class
         constructor: (@records = []) -> 

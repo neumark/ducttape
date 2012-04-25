@@ -40,13 +40,17 @@ define ['http://mutable-state.tiddlyspace.com/mutable-state.js'], (with_mutable_
                     @childList = null
                 mkTwebObj: (type, name, filters) -> new (@tw[type])(name, host, filters)
                 destroy: -> 
-                    promise = new corelib.Promise()
                     # TODO: update nodelist if delete is successful
                     # TODO: give decent error msg otherwise
-                    @obj.delete \
-                        ((status) -> promise.fulfill true, status),
-                        ((err) -> promise.fulfill false, err)
-                    promise    
+                    # We need to use promiseApply because @obj may be a promise.
+                    new corelib.PromiseChain corelib.promiseApply \
+                        (obj) -> 
+                            p = new corelib.Promise()
+                            obj.delete \
+                                (status) -> p.fulfill true, status
+                                (err) -> p.fulfill false, err
+                            p
+                        [@obj]
                 request: (that, ajaxFun, attribute, transform = (x)->x) =>
                     if @[attribute]? then @[attribute] else 
                         promise = new corelib.Promise
@@ -81,15 +85,15 @@ define ['http://mutable-state.tiddlyspace.com/mutable-state.js'], (with_mutable_
                         when 'recipes' then 'Recipe'
                         else
                             throw new Error 'Unknown top level child: ' + @name
-                createChild: (name, desc, policy, recipe) ->
+                createChild: (name, spec = {}) ->
                     newObj = @mkTwebObj @getType(), name
-                    if desc? then newObj.desc = desc
-                    if policy? then newObj.policy = $.extend newObj.policy, policy
-                    if recipe? then newObj.recipe = recipe
+                    if spec.desc? then newObj.desc = spec.desc
+                    if spec.policy? then newObj.policy = $.extend newObj.policy, spec.policy
+                    if spec.recipe? then newObj.recipe = spec.recipe
                     creationPromise = new corelib.Promise()
                     newObj.put \
-                            (obj) -> creationPromise.fulfill true, obj
-                            (err...) -> creationPromise.fulfill false, err
+                        ((obj) -> creationPromise.fulfill true, obj),
+                        ((err) -> creationPromise.fulfill false, err)
                     # TODO: add newObj to child set.
                     creationPromise
  
@@ -111,18 +115,18 @@ define ['http://mutable-state.tiddlyspace.com/mutable-state.js'], (with_mutable_
                                         value: new TiddlerWrapper(tiddler, @)
                                     } for tiddler in tiddlerList))
                     super(name, parent)
-                createChild: (name, text, tags, fields) ->
+                createChild: (name, spec = {}) ->
                     # TODO: if @ is a recipe, we should add tiddler to last bag in recipe
                     if @attr.type != 'Bag' then throw new Error 'Cannot create child here.'
                     newObj = @mkTwebObj 'Tiddler', name
                     newObj.bag = @obj
-                    newObj.text = text
-                    if tags? then newObj.tags = tags
-                    if fields? then newObj.fields = $.extend newObj.fields, fields
+                    newObj.text = spec.text
+                    if spec.tags? then newObj.tags = spec.tags
+                    if spec.fields? then newObj.fields = $.extend newObj.fields, spec.fields
                     creationPromise = new corelib.Promise()
                     newObj.put \
-                            (obj) -> creationPromise.fulfill true, obj
-                            (err...) -> creationPromise.fulfill false, err
+                        ((obj) -> creationPromise.fulfill true, obj),
+                        ((err) -> creationPromise.fulfill false, err)
                     # TODO: add newObj to child set.
                     creationPromise
                    

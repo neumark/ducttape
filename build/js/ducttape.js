@@ -89,20 +89,33 @@
         if ('value' in this.spec) {
           this.fulfill((_ref = this.spec.isSuccess) != null ? _ref : true, this.spec.value);
         }
+        if (this.spec.afterSuccess != null) {
+          this.afterSuccess(this.spec.afterSuccess);
+        }
+        if (this.spec.afterFailure != null) {
+          this.afterFailure(this.spec.afterFailure);
+        }
+        if (this.spec.afterFulfilled != null) {
+          this.afterFulfilled(this.spec.afterFulfilled);
+        }
       }
 
       _Class.prototype.fulfill = function(isSuccess, value) {
         this.isSuccess = isSuccess;
         this.value = value;
-        this.fulfilled = new Date();
-        return this.trigger((this.isSuccess ? "success" : "failure"), this.value);
+        if (this.fulfilled != null) {
+          throw new Error('Attempt to fulfill the same promise twice.');
+        } else {
+          this.fulfilled = new Date();
+          return this.trigger((this.isSuccess ? "success" : "failure"), this.value);
+        }
       };
 
       _Class.prototype.afterSuccess = function(cb) {
         if (this.isSuccess === true) {
           return cb(this.value);
         } else {
-          return this.on("success", cb);
+          return this.on("success", cb, this);
         }
       };
 
@@ -110,7 +123,7 @@
         if (this.isSuccess === false) {
           return cb(this.value);
         } else {
-          return this.on("failure", cb);
+          return this.on("failure", cb, this);
         }
       };
 
@@ -118,7 +131,7 @@
         if (this.fulfilled != null) {
           return cb(this.value);
         } else {
-          return this.on("success failure", cb);
+          return this.on("success failure", cb, this);
         }
       };
 
@@ -126,6 +139,7 @@
         var appliedPromise,
           _this = this;
         appliedPromise = new corelib.Promise(spec);
+        appliedPromise.waitingOn = this;
         this.afterFailure(function() {
           return appliedPromise.fulfill(false, _this.value);
         });
@@ -142,6 +156,31 @@
       return _Class;
 
     })();
+    corelib.PromiseChain = (function(_super) {
+
+      __extends(_Class, _super);
+
+      function _Class(initialPromise, spec) {
+        var setupPromise,
+          _this = this;
+        _Class.__super__.constructor.call(this, spec);
+        this.chain = [];
+        setupPromise = function(p) {
+          _this.chain.push(p);
+          return p.afterFulfilled(function() {
+            if (p.isSuccess && (p.value instanceof corelib.Promise)) {
+              return setupPromise(p.value);
+            } else {
+              return finalPromise.fulfill(p.isSuccess, p.value);
+            }
+          });
+        };
+        setupPromise(initialPromise);
+      }
+
+      return _Class;
+
+    })(corelib.Promise);
     corelib.ContinuationChain = (function(_super) {
 
       __extends(_Class, _super);
@@ -196,23 +235,47 @@
       return _Class;
 
     })(corelib.Promise);
-    corelib.promiseApply = function(fun, val, that, spec) {
-      var success, value, _ref;
-      if (val instanceof corelib.Promise) {
-        return val.apply(fun, that, spec);
-      } else {
-        _ref = (function() {
-          try {
-            return [true, fun.apply(that, [val])];
-          } catch (e) {
-            return [false, e];
+    corelib.promiseArray = function(pArray) {
+      var numFulfilled, p, pending, promise, resultArray;
+      promise = new corelib.Promise();
+      pending = {};
+      numFulfilled = 0;
+      resultArray = [];
+      _.each(pArray, function(val, ix) {
+        return resultArray.push(val instanceof corelib.Promise ? (val.afterFulfilled(function() {
+          numFulfilled++;
+          resultArray[ix] = val.value;
+          if (val.isSuccess === false) promise.fulfill(false, resultArray);
+          if (numFulfilled === pArray.length && !promise.fulfilled) {
+            return promise.fulfill(true, resultArray);
           }
-        })(), success = _ref[0], value = _ref[1];
-        return new corelib.Promise({
-          isSuccess: success,
-          value: value
-        });
+        }), pending) : val);
+      });
+      if (((function() {
+        var _i, _len, _results;
+        _results = [];
+        for (_i = 0, _len = resultArray.length; _i < _len; _i++) {
+          p = resultArray[_i];
+          if (p === pending) _results.push(p);
+        }
+        return _results;
+      })()).length === 0) {
+        promise.fulfill(true, resultArray);
       }
+      return promise;
+    };
+    corelib.promiseApply = function(fun, args, that, spec) {
+      var argPromise;
+      if (args == null) args = [];
+      args.push(fun);
+      args.push(that);
+      argPromise = corelib.promiseArray(args);
+      return argPromise.apply(function(val) {
+        var f, t;
+        t = val.pop();
+        f = val.pop();
+        return f.apply(t, val);
+      });
     };
     corelib.Stream = (function() {
 
@@ -1514,7 +1577,7 @@
             value: function(nodeName) {
               return corelib.promiseApply((function(node) {
                 return node.destroy();
-              }), lib.eval(nodeName));
+              }), [lib.eval(nodeName)]);
             }
           },
           lib: {
@@ -1824,9 +1887,14 @@
       corelib.Promise.prototype.toHTML = function() {
         var div,
           _this = this;
-        div = $('<div class="eval_result"><span>loading...<span></div>');
-        this.afterFulfilled(function(val) {
+        div = $('<div class="eval_result"><img src="img/ajax-loader.gif" /><span>loading...<span></div>');
+        this.afterSuccess(function(val) {
           div.children().remove();
+          return dt.pkgGet('ui', 'display').value(val, false, div);
+        });
+        this.afterFailure(function(val) {
+          div.children().remove();
+          div.append($('<b>There was an error. Details below:</b>'));
           return dt.pkgGet('ui', 'display').value(val, false, div);
         });
         return div;

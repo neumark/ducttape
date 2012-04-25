@@ -22,9 +22,13 @@ define ['corelib'], (corelib) ->
         # Display the "loading..." message until fulfillment of promise
         corelib.Promise::toHTML = ->
             # TODO: touch up loading msg:
-            div = $ '<div class="eval_result"><span>loading...<span></div>'
-            @afterFulfilled (val) =>  
+            div = $ '<div class="eval_result"><img src="img/ajax-loader.gif" /><span>loading...<span></div>'
+            @afterSuccess (val) =>  
                 div.children().remove()
+                dt.pkgGet('ui','display').value val, false, div
+            @afterFailure (val) =>  
+                div.children().remove()
+                div.append $ '<b>There was an error. Details below:</b>'
                 dt.pkgGet('ui','display').value val, false, div
             div
 

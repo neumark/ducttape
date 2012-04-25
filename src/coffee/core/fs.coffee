@@ -200,7 +200,7 @@ define ['corelib'], (corelib) ->
                         description: "Delete an object"
                         makePublic: true
                     value: (nodeName) ->
-                        corelib.promiseApply ((node) -> node.destroy()), lib.eval nodeName 
+                        corelib.promiseApply ((node) -> node.destroy()), [lib.eval nodeName]
                 lib:
                     attr:
                         description: "Library of fs-related functions and classes."
