@@ -122,6 +122,8 @@ define ['corelib'], (corelib) ->
             makeFullName: (ns, key) -> ns + separator + key
             eval: (expr) ->
                 if typeof(expr) == "string" then lib.pathExpr expr else expr
+            runMethod: (nodeName, methodName, args = []) ->
+                corelib.promiseApply ((node) -> node[methodName].apply node, args), [lib.eval nodeName]
         # Make separator read-only.
         lib.__defineGetter__ 'separator', -> separator
         rootNode = fsState.co = new (
@@ -199,8 +201,12 @@ define ['corelib'], (corelib) ->
                     attr:
                         description: "Delete an object"
                         makePublic: true
-                    value: (nodeName) ->
-                        corelib.promiseApply ((node) -> node.destroy()), [lib.eval nodeName]
+                    value: (nodeName) -> lib.runMethod nodeName, 'destroy'
+                save:
+                    attr:
+                        description: "Writes an object's state to backing storage."
+                        makePublic: true
+                    value: (nodeName) -> lib.runMethod nodeName, 'save'
                 lib:
                     attr:
                         description: "Library of fs-related functions and classes."

@@ -82,7 +82,11 @@
       function _Class(spec) {
         var _ref;
         this.spec = spec != null ? spec : {};
+        this.defaultHandlers = __bind(this.defaultHandlers, this);
         this.fulfill = __bind(this.fulfill, this);
+        this.debug = {
+          createdStacktrace: printStackTrace()
+        };
         this.value = null;
         this.made = new Date();
         _.extend(this, Backbone.Events);
@@ -153,6 +157,17 @@
         return appliedPromise;
       };
 
+      _Class.prototype.defaultHandlers = function() {
+        var _this = this;
+        return [
+          (function(val) {
+            return _this.fulfill(true, val);
+          }), (function(err) {
+            return _this.fulfill(false, err);
+          })
+        ];
+      };
+
       return _Class;
 
     })();
@@ -171,7 +186,7 @@
             if (p.isSuccess && (p.value instanceof corelib.Promise)) {
               return setupPromise(p.value);
             } else {
-              return finalPromise.fulfill(p.isSuccess, p.value);
+              return this.fulfill(p.isSuccess, p.value);
             }
           });
         };
@@ -1438,6 +1453,12 @@
           } else {
             return expr;
           }
+        },
+        runMethod: function(nodeName, methodName, args) {
+          if (args == null) args = [];
+          return corelib.promiseApply((function(node) {
+            return node[methodName].apply(node, args);
+          }), [lib.eval(nodeName)]);
         }
       };
       lib.__defineGetter__('separator', function() {
@@ -1575,9 +1596,16 @@
               makePublic: true
             },
             value: function(nodeName) {
-              return corelib.promiseApply((function(node) {
-                return node.destroy();
-              }), [lib.eval(nodeName)]);
+              return lib.runMethod(nodeName, 'destroy');
+            }
+          },
+          save: {
+            attr: {
+              description: "Writes an object's state to backing storage.",
+              makePublic: true
+            },
+            value: function(nodeName) {
+              return lib.runMethod(nodeName, 'save');
             }
           },
           lib: {

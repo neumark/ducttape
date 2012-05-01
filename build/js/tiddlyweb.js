@@ -25,8 +25,7 @@
 (function() {
   var __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
     __hasProp = Object.prototype.hasOwnProperty,
-    __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor; child.__super__ = parent.prototype; return child; },
-    __slice = Array.prototype.slice;
+    __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor; child.__super__ = parent.prototype; return child; };
 
   define(['http://mutable-state.tiddlyspace.com/mutable-state.js'], function(with_mutable_state) {
     return function(dt) {
@@ -79,33 +78,21 @@
           };
 
           TWObj.prototype.request = function(that, ajaxFun, attribute, transform) {
-            var promise,
-              _this = this;
+            var ajaxPromise;
             if (transform == null) {
               transform = function(x) {
                 return x;
               };
             }
-            if (this[attribute] != null) {
-              return this[attribute];
-            } else {
-              promise = new corelib.Promise({
+            if (!(this[attribute] != null)) {
+              ajaxPromise = new corelib.Promise({
                 ajaxFun: ajaxFun,
                 that: that
               });
-              promise.twRequest = ajaxFun.apply(that, [
-                function(value) {
-                  _this[attribute] = transform(value);
-                  return promise.fulfill(true, _this[attribute]);
-                }, function() {
-                  var args;
-                  args = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
-                  (dt('o ui:display')).value(args);
-                  return promise.fulfill(false, args);
-                }
-              ]);
-              return promise;
+              ajaxFun.apply(that, ajaxPromise.defaultHandlers());
+              this[attribute] = ajaxPromise.apply(transform);
             }
+            return this[attribute];
           };
 
           return TWObj;

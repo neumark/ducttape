@@ -46,6 +46,8 @@ define [], ->
         class
             constructor: (@spec = {}) ->
                 # TODO: timeout in spec
+                @debug =
+                    createdStacktrace: printStackTrace();
                 @value = null
                 @made = new Date()
                 _.extend @, Backbone.Events
@@ -75,6 +77,11 @@ define [], ->
                     catch e
                         appliedPromise.fulfill false, e
                 appliedPromise
+            defaultHandlers: =>
+                [
+                    ((val) => @fulfill true, val)
+                    ((err) => @fulfill false, err)
+                ]
 
     corelib.PromiseChain =
         class extends corelib.Promise
@@ -87,7 +94,7 @@ define [], ->
                         if p.isSuccess and (p.value instanceof corelib.Promise)
                             setupPromise p.value
                         else
-                            finalPromise.fulfill p.isSuccess, p.value
+                            @fulfill p.isSuccess, p.value
                 setupPromise initialPromise
 
     corelib.ContinuationChain =

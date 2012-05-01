@@ -52,20 +52,13 @@ define ['http://mutable-state.tiddlyspace.com/mutable-state.js'], (with_mutable_
                             p
                         [@obj]
                 request: (that, ajaxFun, attribute, transform = (x)->x) =>
-                    if @[attribute]? then @[attribute] else 
-                        promise = new corelib.Promise
+                    if !(@[attribute]?)
+                        ajaxPromise = new corelib.Promise
                             ajaxFun: ajaxFun
                             that: that
-                        promise.twRequest = ajaxFun.apply that, [
-                            (value) => 
-                                @[attribute] = transform(value)
-                                promise.fulfill true, @[attribute]
-                            (args...) => 
-                                # TODO: better error msg
-                                (dt 'o ui:display').value args
-                                promise.fulfill false, args
-                        ]
-                        promise
+                        ajaxFun.apply that, ajaxPromise.defaultHandlers()
+                        @[attribute] = ajaxPromise.apply transform
+                    @[attribute]
 
             class TopLevel extends TWObj # bags, recipes 
                 constructor: (name, parent) -> 
