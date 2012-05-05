@@ -47,18 +47,25 @@ define [], ->
             constructor: (@spec = {}) ->
                 # TODO: timeout in spec
                 @debug =
-                    createdStacktrace: printStackTrace();
+                    createdStacktrace: printStackTrace()
                 @value = null
                 @made = new Date()
                 _.extend @, Backbone.Events
+                @spec.timeout ?= 2 * 60000
                 if 'value' of @spec then @fulfill (@spec.isSuccess ? true), @spec.value
                 if @spec.afterSuccess? then @afterSuccess @spec.afterSuccess
                 if @spec.afterFailure? then @afterFailure @spec.afterFailure
                 if @spec.afterFulfilled? then @afterFulfilled @spec.afterFulfilled
+                if @spec.timeout > 0
+                    @timeoutHandle = setTimeout (=> 
+                            @timeoutOccurred = true
+                            if !@hasOwnProperty 'fulfilled' then @fulfill false, new Error "timeout"),
+                        @spec.timeout
             fulfill: (@isSuccess, @value)=>
                 if @fulfilled? 
                     throw new Error 'Attempt to fulfill the same promise twice.'
                 else
+                    @debug.fulfilledStacktrace = printStackTrace()
                     @fulfilled = new Date()
                     @trigger (if @isSuccess then "success" else "failure"), @value
             afterSuccess: (cb) ->
@@ -70,6 +77,7 @@ define [], ->
             apply: (fun, that, spec) ->
                 appliedPromise = new corelib.Promise spec
                 appliedPromise.waitingOn = @
+                appliedPromise.willApply = fun
                 @afterFailure => appliedPromise.fulfill false, @value
                 @afterSuccess =>
                     try
@@ -90,7 +98,7 @@ define [], ->
                 @chain = []
                 setupPromise = (p) =>
                     @chain.push p
-                    p.afterFulfilled ->
+                    p.afterFulfilled =>
                         if p.isSuccess and (p.value instanceof corelib.Promise)
                             setupPromise p.value
                         else
@@ -134,22 +142,30 @@ define [], ->
     corelib.promiseArray = (pArray) ->
         promise = new corelib.Promise()
         pending = {}
-        numFulfilled = 0
+        numPending = 0
         resultArray = []
+        maybeFinish = ->
+            if numPending == 0 and !promise.hasOwnProperty('fulfilled')
+                promise.fulfill true, resultArray
         _.each pArray, (val, ix) -> 
             resultArray.push \ 
-                if val instanceof corelib.Promise
-                    val.afterFulfilled ->
-                        numFulfilled++
-                        resultArray[ix] = val.value
-                        if val.isSuccess == false then promise.fulfill false, resultArray
-                        if numFulfilled == pArray.length and not promise.fulfilled
-                            promise.fulfill true, resultArray
-                    pending
+                if val instanceof corelib.Promise 
+                    if !val.hasOwnProperty('fulfilled')
+                        numPending++
+                        val.afterFulfilled ->
+                            numPending--
+                            resultArray[ix] = val.value
+                            if val.isSuccess == false then promise.fulfill false, val.value
+                            maybeFinish()
+                        pending
+                    else # the fulfilled promise case
+                        if val.isSuccess == false 
+                            promise.fulfill false, val.value
+                        else 
+                            val.value
                 else
                     val
-        # fulfill if there were no promises in pArray
-        if (p for p in resultArray when p == pending).length == 0 then promise.fulfill true, resultArray
+        maybeFinish()
         promise
                             
    # Always returns a promise to the result of the function
@@ -161,7 +177,7 @@ define [], ->
         argPromise.apply (val) ->
             t = val.pop()
             f = val.pop()
-            f.apply t, val
+            return f.apply t, val
 
     corelib.Stream = class
         constructor: (@records = []) -> 

@@ -33,8 +33,7 @@ define ['corelib'], (corelib) ->
         lib = null
         lib = 
             PathExprEx: class extends Error
-                constructor: (@msg, @obj, @childName, @originalEx=null) ->
-                    super(@msg);
+                constructor: (@message, @obj, @childName, @originalEx=null) ->
             pathExpr: (strExpr) ->
                 keyList = strExpr.split separator
                 fun =

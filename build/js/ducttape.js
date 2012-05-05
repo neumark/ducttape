@@ -80,7 +80,8 @@
     corelib.Promise = (function() {
 
       function _Class(spec) {
-        var _ref;
+        var _base, _ref,
+          _this = this;
         this.spec = spec != null ? spec : {};
         this.defaultHandlers = __bind(this.defaultHandlers, this);
         this.fulfill = __bind(this.fulfill, this);
@@ -90,6 +91,7 @@
         this.value = null;
         this.made = new Date();
         _.extend(this, Backbone.Events);
+        if ((_base = this.spec).timeout == null) _base.timeout = 2 * 60000;
         if ('value' in this.spec) {
           this.fulfill((_ref = this.spec.isSuccess) != null ? _ref : true, this.spec.value);
         }
@@ -102,6 +104,14 @@
         if (this.spec.afterFulfilled != null) {
           this.afterFulfilled(this.spec.afterFulfilled);
         }
+        if (this.spec.timeout > 0) {
+          this.timeoutHandle = setTimeout((function() {
+            _this.timeoutOccurred = true;
+            if (!_this.hasOwnProperty('fulfilled')) {
+              return _this.fulfill(false, new Error("timeout"));
+            }
+          }), this.spec.timeout);
+        }
       }
 
       _Class.prototype.fulfill = function(isSuccess, value) {
@@ -110,6 +120,7 @@
         if (this.fulfilled != null) {
           throw new Error('Attempt to fulfill the same promise twice.');
         } else {
+          this.debug.fulfilledStacktrace = printStackTrace();
           this.fulfilled = new Date();
           return this.trigger((this.isSuccess ? "success" : "failure"), this.value);
         }
@@ -144,6 +155,7 @@
           _this = this;
         appliedPromise = new corelib.Promise(spec);
         appliedPromise.waitingOn = this;
+        appliedPromise.willApply = fun;
         this.afterFailure(function() {
           return appliedPromise.fulfill(false, _this.value);
         });
@@ -186,7 +198,7 @@
             if (p.isSuccess && (p.value instanceof corelib.Promise)) {
               return setupPromise(p.value);
             } else {
-              return this.fulfill(p.isSuccess, p.value);
+              return _this.fulfill(p.isSuccess, p.value);
             }
           });
         };
@@ -251,32 +263,25 @@
 
     })(corelib.Promise);
     corelib.promiseArray = function(pArray) {
-      var numFulfilled, p, pending, promise, resultArray;
+      var maybeFinish, numPending, pending, promise, resultArray;
       promise = new corelib.Promise();
       pending = {};
-      numFulfilled = 0;
+      numPending = 0;
       resultArray = [];
-      _.each(pArray, function(val, ix) {
-        return resultArray.push(val instanceof corelib.Promise ? (val.afterFulfilled(function() {
-          numFulfilled++;
-          resultArray[ix] = val.value;
-          if (val.isSuccess === false) promise.fulfill(false, resultArray);
-          if (numFulfilled === pArray.length && !promise.fulfilled) {
-            return promise.fulfill(true, resultArray);
-          }
-        }), pending) : val);
-      });
-      if (((function() {
-        var _i, _len, _results;
-        _results = [];
-        for (_i = 0, _len = resultArray.length; _i < _len; _i++) {
-          p = resultArray[_i];
-          if (p === pending) _results.push(p);
+      maybeFinish = function() {
+        if (numPending === 0 && !promise.hasOwnProperty('fulfilled')) {
+          return promise.fulfill(true, resultArray);
         }
-        return _results;
-      })()).length === 0) {
-        promise.fulfill(true, resultArray);
-      }
+      };
+      _.each(pArray, function(val, ix) {
+        return resultArray.push(val instanceof corelib.Promise ? !val.hasOwnProperty('fulfilled') ? (numPending++, val.afterFulfilled(function() {
+          numPending--;
+          resultArray[ix] = val.value;
+          if (val.isSuccess === false) promise.fulfill(false, val.value);
+          return maybeFinish();
+        }), pending) : val.isSuccess === false ? promise.fulfill(false, val.value) : val.value : val);
+      });
+      maybeFinish();
       return promise;
     };
     corelib.promiseApply = function(fun, args, that, spec) {
@@ -1301,12 +1306,11 @@
 
           __extends(_Class, _super);
 
-          function _Class(msg, obj, childName, originalEx) {
-            this.msg = msg;
+          function _Class(message, obj, childName, originalEx) {
+            this.message = message;
             this.obj = obj;
             this.childName = childName;
             this.originalEx = originalEx != null ? originalEx : null;
-            _Class.__super__.constructor.call(this, this.msg);
           }
 
           return _Class;

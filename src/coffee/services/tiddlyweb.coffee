@@ -19,6 +19,7 @@
    Note: It is assumed that chrjs is included and that the AJAX calls will be
    successful (because ducttape is hosted from the same domain, CORS or an
    iframe hack).
+
 ###
 # The mutable-state dependancy is a hack to make CRUD operations work on tiddlyspace!
 define ['http://mutable-state.tiddlyspace.com/mutable-state.js'], (with_mutable_state) ->
@@ -42,15 +43,9 @@ define ['http://mutable-state.tiddlyspace.com/mutable-state.js'], (with_mutable_
                 destroy: -> 
                     # TODO: update nodelist if delete is successful
                     # TODO: give decent error msg otherwise
-                    # We need to use promiseApply because @obj may be a promise.
-                    new corelib.PromiseChain corelib.promiseApply \
-                        (obj) -> 
-                            p = new corelib.Promise()
-                            obj.delete \
-                                (status) -> p.fulfill true, status
-                                (err) -> p.fulfill false, err
-                            p
-                        [@obj]
+                    p = new corelib.Promise()
+                    corelib.promiseApply ((obj) -> obj.delete.apply obj, p.defaultHandlers()), [@obj]
+                    p
                 request: (that, ajaxFun, attribute, transform = (x)->x) =>
                     if !(@[attribute]?)
                         ajaxPromise = new corelib.Promise
@@ -84,17 +79,22 @@ define ['http://mutable-state.tiddlyspace.com/mutable-state.js'], (with_mutable_
                     if spec.policy? then newObj.policy = $.extend newObj.policy, spec.policy
                     if spec.recipe? then newObj.recipe = spec.recipe
                     creationPromise = new corelib.Promise()
-                    newObj.put \
-                        ((obj) -> creationPromise.fulfill true, obj),
-                        ((err) -> creationPromise.fulfill false, err)
-                    # TODO: add newObj to child set.
+                    cb_success = (obj) =>
+                        if @childList? then corelib.promiseApply (list) ->
+                                list.addNode
+                                    key: obj.name
+                                    value: obj
+                            [@childList]
+                        creationPromise.fulfill true, obj
+                    cb_failure = (err) -> creationPromise.fulfill false, err
+                    newObj.put cb_success, cb_failure
                     creationPromise
  
             class SecondLevel extends TWObj # a Bag or Recipe
                 constructor: (name, type, parent) -> 
                     # Define a setter for the value property
                     @__defineSetter__ 'value', -> throw new Error 'NotImplemented'
-                    @__defineGetter__ "value", =>
+                    @__defineGetter__ 'value', =>
                         @request @obj, @obj.get, 'contentObj'
                     @attr = 
                         type: type
@@ -117,9 +117,7 @@ define ['http://mutable-state.tiddlyspace.com/mutable-state.js'], (with_mutable_
                     if spec.tags? then newObj.tags = spec.tags
                     if spec.fields? then newObj.fields = $.extend newObj.fields, spec.fields
                     creationPromise = new corelib.Promise()
-                    newObj.put \
-                        ((obj) -> creationPromise.fulfill true, obj),
-                        ((err) -> creationPromise.fulfill false, err)
+                    newObj.put.apply newObj, creationPromise.defaultHandlers()
                     # TODO: add newObj to child set.
                     creationPromise
                    
@@ -127,10 +125,12 @@ define ['http://mutable-state.tiddlyspace.com/mutable-state.js'], (with_mutable_
                 constructor: (@tiddler, @parent) ->
                     @name = @tiddler.title
                     @attr = type: 'Tiddler'
-                    @value = @tiddler
-                    #@__defineSetter__ 'value', -> throw new Error 'NotImplemented'
-                    #@__defineGetter__ "value", => @tiddler
+                    @value = @obj = @tiddler
                     # TODO: revisions, fields, tags could be further children
+                save: ->
+                    promise = new corelib.Promise()
+                    @tiddler.put.apply @tiddler, promise.defaultHandlers()
+                    promise
 
             class Root extends TWObj
                 constructor: (tw) ->
