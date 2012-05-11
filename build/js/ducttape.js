@@ -20,7 +20,6 @@
 
 (function() {
   var __slice = Array.prototype.slice,
-    __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
     __hasProp = Object.prototype.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor; child.__super__ = parent.prototype; return child; };
 
@@ -83,8 +82,6 @@
         var _base, _ref,
           _this = this;
         this.spec = spec != null ? spec : {};
-        this.defaultHandlers = __bind(this.defaultHandlers, this);
-        this.fulfill = __bind(this.fulfill, this);
         this.debug = {
           createdStacktrace: printStackTrace()
         };
@@ -106,9 +103,12 @@
         }
         if (this.spec.timeout > 0) {
           this.timeoutHandle = setTimeout((function() {
-            _this.timeoutOccurred = true;
             if (!_this.hasOwnProperty('fulfilled')) {
-              return _this.fulfill(false, new Error("timeout"));
+              _this.timeoutOccurred = true;
+              _this.fulfill(false, new Error("timeout"));
+              return _this.fulfill = function(s, v) {
+                return console.log("attempted post-timeout fulfill of promise " + s + " " + v);
+              };
             }
           }), this.spec.timeout);
         }
@@ -151,22 +151,7 @@
       };
 
       _Class.prototype.apply = function(fun, that, spec) {
-        var appliedPromise,
-          _this = this;
-        appliedPromise = new corelib.Promise(spec);
-        appliedPromise.waitingOn = this;
-        appliedPromise.willApply = fun;
-        this.afterFailure(function() {
-          return appliedPromise.fulfill(false, _this.value);
-        });
-        this.afterSuccess(function() {
-          try {
-            return appliedPromise.fulfill(true, fun.apply(that, [_this.value]));
-          } catch (e) {
-            return appliedPromise.fulfill(false, e);
-          }
-        });
-        return appliedPromise;
+        return corelib.promiseApply(fun, [this], that, spec);
       };
 
       _Class.prototype.defaultHandlers = function() {
@@ -180,122 +165,130 @@
         ];
       };
 
+      _Class.prototype.notify = function(otherPromise) {
+        var _this = this;
+        return this.afterFulfilled(function() {
+          return otherPromise.fulfill(_this.isSuccess, _this.value);
+        });
+      };
+
       return _Class;
 
     })();
-    corelib.PromiseChain = (function(_super) {
-
-      __extends(_Class, _super);
-
-      function _Class(initialPromise, spec) {
-        var setupPromise,
-          _this = this;
-        _Class.__super__.constructor.call(this, spec);
-        this.chain = [];
-        setupPromise = function(p) {
-          _this.chain.push(p);
-          return p.afterFulfilled(function() {
-            if (p.isSuccess && (p.value instanceof corelib.Promise)) {
-              return setupPromise(p.value);
-            } else {
-              return _this.fulfill(p.isSuccess, p.value);
-            }
-          });
-        };
-        setupPromise(initialPromise);
-      }
-
-      return _Class;
-
-    })(corelib.Promise);
+    corelib.sequence = function(funs, seed, spec) {
+      var seqChain, seqContFn;
+      seqContFn = function(input) {
+        var output;
+        output = (funs.shift()).apply(null, [input]);
+        return [funs.length > 0 ? seqContFn : true, output];
+      };
+      return seqChain = new corelib.ContinuationChain([seqContFn, seed], spec);
+    };
     corelib.ContinuationChain = (function(_super) {
 
       __extends(_Class, _super);
 
       function _Class(initialCont, spec) {
-        var fun,
+        var processContinuation,
           _this = this;
         _Class.__super__.constructor.call(this, spec);
         this.chain = [];
-        fun = {
-          applyFun: function(contFn, input) {
-            try {
-              return fun.processContinuation(contFn.apply(null, [input]));
-            } catch (e) {
-              return _this.fulfill(false, e);
-            }
-          },
-          processContinuation: function(cont) {
-            var contFn, input;
-            if (typeof cont[0] === "boolean") {
-              if (cont[1] instanceof corelib.Promise) {
-                return cont[1].afterFulfilled(function(val) {
-                  return _this.fulfill(cont[0] && _this.isSuccess, val);
-                });
-              } else {
-                return _this.fulfill.apply(_this, cont);
-              }
-            } else if (typeof cont[0] === "function") {
-              _this.chain.push(cont);
-              contFn = cont[0], input = cont[1];
-              if (input instanceof corelib.Promise) {
-                input.afterSuccess(function(val) {
-                  return fun.applyFun(contFn, val);
-                });
-                return input.afterFailure(function() {
-                  var _this = this;
-                  return function(err) {
-                    return _this.fulfill(false, err);
-                  };
-                });
-              } else {
-                return fun.applyFun(contFn, input);
-              }
+        processContinuation = function(cont) {
+          _this.chain.push(cont);
+          return corelib.promiseApply((function(tag, val) {
+            var nextCont;
+            if (typeof tag === "boolean") {
+              return _this.fulfill(tag, val);
+            } else if (typeof tag === "function") {
+              nextCont = null;
+              return processContinuation(tag.apply(null, [val]));
             } else {
               throw new Error("continuationChain: invalid continuation format!");
             }
-          }
+          }), cont, null, {
+            afterFailure: _this.defaultHandlers()[1]
+          });
         };
-        fun.processContinuation(initialCont);
+        processContinuation(initialCont);
       }
 
       return _Class;
 
     })(corelib.Promise);
-    corelib.promiseArray = function(pArray) {
-      var maybeFinish, numPending, pending, promise, resultArray;
-      promise = new corelib.Promise();
+    corelib.promiseArray = function(pArray, spec) {
+      var assign, handleValue, i, maybeFinish, num, numPending, pending, promise, resultArray, _ref;
+      promise = new corelib.Promise(spec);
+      promise.pArray = pArray;
       pending = {};
-      numPending = 0;
-      resultArray = [];
+      numPending = pArray.length;
+      resultArray = (function() {
+        var _ref, _results;
+        _results = [];
+        for (num = 0, _ref = pArray.length - 1; 0 <= _ref ? num <= _ref : num >= _ref; 0 <= _ref ? num++ : num--) {
+          _results.push(pending);
+        }
+        return _results;
+      })();
+      assign = function(ix, val) {
+        resultArray[ix] = val;
+        return numPending--;
+      };
       maybeFinish = function() {
         if (numPending === 0 && !promise.hasOwnProperty('fulfilled')) {
           return promise.fulfill(true, resultArray);
         }
       };
-      _.each(pArray, function(val, ix) {
-        return resultArray.push(val instanceof corelib.Promise ? !val.hasOwnProperty('fulfilled') ? (numPending++, val.afterFulfilled(function() {
-          numPending--;
-          resultArray[ix] = val.value;
-          if (val.isSuccess === false) promise.fulfill(false, val.value);
-          return maybeFinish();
-        }), pending) : val.isSuccess === false ? promise.fulfill(false, val.value) : val.value : val);
-      });
-      maybeFinish();
+      handleValue = function(ix, val) {
+        if (val instanceof corelib.Promise) {
+          if (!val.hasOwnProperty('fulfilled')) {
+            val.afterFulfilled(function(value) {
+              return handleValue(ix, value);
+            });
+          } else {
+            if (val.isSuccess === false) {
+              promise.fulfill(false, val.value);
+            } else {
+              assign(ix, val.value);
+            }
+          }
+        } else {
+          assign(ix, val);
+        }
+        return maybeFinish();
+      };
+      for (i = 0, _ref = pArray.length - 1; 0 <= _ref ? i <= _ref : i >= _ref; 0 <= _ref ? i++ : i--) {
+        handleValue(i, pArray[i]);
+      }
       return promise;
     };
     corelib.promiseApply = function(fun, args, that, spec) {
-      var argPromise;
+      var argPromise, evaluatedPromise;
+      evaluatedPromise = new corelib.Promise(spec);
       if (args == null) args = [];
       args.push(fun);
       args.push(that);
       argPromise = corelib.promiseArray(args);
-      return argPromise.apply(function(val) {
-        var f, t;
+      argPromise.afterFailure(evaluatedPromise.defaultHandlers()[1]);
+      argPromise.afterSuccess(function(val) {
+        var evaluatedResultP, f, resultPromise, t;
         t = val.pop();
         f = val.pop();
-        return f.apply(t, val);
+        try {
+          resultPromise = f.apply(t, val);
+          evaluatedResultP = corelib.promiseArray([resultPromise]);
+          evaluatedResultP.afterFailure(function(err) {
+            return evaluatedPromise.fulfill(false, err);
+          });
+          return evaluatedResultP.afterSuccess(function(res) {
+            return evaluatedPromise.fulfill(true, res[0]);
+          });
+        } catch (e) {
+          return evaluatedPromise.fulfill(false, e);
+        }
       });
+      evaluatedPromise.waitingOn = argPromise;
+      evaluatedPromise.willApply = fun;
+      return evaluatedPromise;
     };
     corelib.Stream = (function() {
 
@@ -436,8 +429,7 @@
 */
 
 (function() {
-  var __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
-    __slice = Array.prototype.slice;
+  var __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
 
   define('ui',['corelib'], function(corelib) {
     return function(dt) {
@@ -756,19 +748,6 @@
           }
           ui.execute(expr, null, true);
           return ui.scrollToBottom();
-        },
-        asyncValue: function(loadingMsg) {
-          var div;
-          if (loadingMsg == null) loadingMsg = 'loading...';
-          div = $('<div class="eval_result"></div>');
-          ui.display(loadingMsg, $('#interactions'), div);
-          return function() {
-            var values;
-            values = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
-            div.children().remove();
-            if (values.length === 0) values = values[0];
-            return ui.display(values, false, div);
-          };
         }
       };
       return pkg = {
@@ -1388,10 +1367,12 @@
             if (key in this.nodeDict) {
               delete this.nodeDict[key];
               this.length--;
-              return true;
-            } else {
-              return false;
             }
+            return this;
+          };
+
+          _Class.prototype.removeNode = function(nodeName) {
+            return delete this.nodeDict[nodeName];
           };
 
           _Class.prototype.addNode = function(nodeData, useFullName) {
@@ -1401,18 +1382,18 @@
             if (!this.nodeDict.hasOwnProperty(name)) {
               this.nodeDict[name] = nodeData;
               this.length++;
-              return true;
             } else {
               if (!useFullName) {
                 this.length--;
                 tmp = this.nodeDict[name];
                 delete this.nodeDict[name];
                 this.addNode(tmp, true);
-                return this.addNode(nodeData, true);
+                this.addNode(nodeData, true);
               } else {
-                return false;
+
               }
             }
+            return this;
           };
 
           _Class.prototype.keys = function() {
@@ -1926,8 +1907,8 @@
         });
         this.afterFailure(function(val) {
           div.children().remove();
-          div.append($('<b>There was an error. Details below:</b>'));
-          return dt.pkgGet('ui', 'display').value(val, false, div);
+          dt.pkgGet('ui', 'display').value(val, false, div);
+          return div.append($('<b>There was an error. Details below:</b>'));
         });
         return div;
       };

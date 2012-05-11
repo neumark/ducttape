@@ -85,9 +85,9 @@ define ['corelib'], (corelib) ->
                     if key of @nodeDict
                         delete @nodeDict[key]
                         @length--
-                        true
-                    else
-                        false
+                    @
+                removeNode: (nodeName) ->
+                    delete @nodeDict[nodeName]
                 addNode: (nodeData, useFullName = false) -> 
                     name = 
                         if useFullName
@@ -98,7 +98,6 @@ define ['corelib'], (corelib) ->
                     if !@nodeDict.hasOwnProperty name
                         @nodeDict[name] = nodeData
                         @length++
-                        true
                     else
                         if !useFullName
                             # refer to duplicates by their full name
@@ -108,7 +107,7 @@ define ['corelib'], (corelib) ->
                             @addNode tmp, true
                             @addNode nodeData, true
                         else
-                            false
+                    @
                 keys: -> Object.keys nodeDict
                 map: (fn) -> (fn(key, value) for own key, value of @nodeDict)
                 get: (key) -> @nodeDict[key]?.value

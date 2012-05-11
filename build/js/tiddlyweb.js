@@ -68,7 +68,33 @@
             corelib.promiseApply((function(obj) {
               return obj["delete"].apply(obj, p.defaultHandlers());
             }), [this.obj]);
+            this.removeChild(p);
             return p;
+          };
+
+          TWObj.prototype.removeChild = function(destroyPromise) {
+            var oldChildList, _ref, _ref2,
+              _this = this;
+            if (((_ref = this.attr) != null ? (_ref2 = _ref.parent) != null ? _ref2.childList : void 0 : void 0) != null) {
+              oldChildList = this.attr.parent.childList;
+              return this.attr.parent.childList = corelib.promiseApply((function(childList) {
+                return childList.removeNode(node.name);
+              }), [oldChildList, destroyPromise]);
+            }
+          };
+
+          TWObj.prototype.insertChild = function(creationPromise) {
+            var oldChildList,
+              _this = this;
+            if (this.childList != null) {
+              oldChildList = this.childList;
+              return this.childList = corelib.promiseApply((function(obj, list) {
+                return list.addNode({
+                  key: obj.name,
+                  value: obj
+                });
+              }), [creationPromise, oldChildList]);
+            }
           };
 
           TWObj.prototype.request = function(that, ajaxFun, attribute, transform) {
@@ -134,8 +160,7 @@
           };
 
           TopLevel.prototype.createChild = function(name, spec) {
-            var cb_failure, cb_success, creationPromise, newObj,
-              _this = this;
+            var creationPromise, newObj;
             if (spec == null) spec = {};
             newObj = this.mkTwebObj(this.getType(), name);
             if (spec.desc != null) newObj.desc = spec.desc;
@@ -144,22 +169,8 @@
             }
             if (spec.recipe != null) newObj.recipe = spec.recipe;
             creationPromise = new corelib.Promise();
-            cb_success = function(obj) {
-              if (_this.childList != null) {
-                corelib.promiseApply(function(list) {
-                  return list.addNode({
-                    key: obj.name,
-                    value: obj
-                  });
-                });
-              }
-              [_this.childList];
-              return creationPromise.fulfill(true, obj);
-            };
-            cb_failure = function(err) {
-              return creationPromise.fulfill(false, err);
-            };
-            newObj.put(cb_success, cb_failure);
+            newObj.put.apply(newObj, creationPromise.defaultHandlers());
+            this.insertChild(creationPromise);
             return creationPromise;
           };
 
@@ -218,6 +229,7 @@
             }
             creationPromise = new corelib.Promise();
             newObj.put.apply(newObj, creationPromise.defaultHandlers());
+            this.insertChild(creationPromise);
             return creationPromise;
           };
 

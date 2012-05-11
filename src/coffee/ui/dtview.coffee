@@ -28,8 +28,8 @@ define ['corelib'], (corelib) ->
                 dt.pkgGet('ui','display').value val, false, div
             @afterFailure (val) =>  
                 div.children().remove()
-                div.append $ '<b>There was an error. Details below:</b>'
                 dt.pkgGet('ui','display').value val, false, div
+                div.append $ '<b>There was an error. Details below:</b>'
             div
 
         dt.pkgGet('fs','lib').value.Node::toHTML = -> 

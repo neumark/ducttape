@@ -249,13 +249,6 @@ define ['corelib'], (corelib) ->
                     $("#interactions").append div
                 ui.execute(expr, null, true)
                 ui.scrollToBottom()
-            asyncValue: (loadingMsg = 'loading...') ->
-                div = $ '<div class="eval_result"></div>'
-                ui.display loadingMsg, $('#interactions'), div
-                (values...) ->
-                    div.children().remove()
-                    if values.length == 0 then values = values[0]
-                    ui.display values, false, div
         pkg =
             name: 'ui'
             attr:

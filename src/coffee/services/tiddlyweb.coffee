@@ -41,11 +41,31 @@ define ['http://mutable-state.tiddlyspace.com/mutable-state.js'], (with_mutable_
                     @childList = null
                 mkTwebObj: (type, name, filters) -> new (@tw[type])(name, host, filters)
                 destroy: -> 
-                    # TODO: update nodelist if delete is successful
-                    # TODO: give decent error msg otherwise
                     p = new corelib.Promise()
-                    corelib.promiseApply ((obj) -> obj.delete.apply obj, p.defaultHandlers()), [@obj]
+                    corelib.promiseApply ((obj) -> 
+                        obj.delete.apply obj, p.defaultHandlers()), [@obj]
+                    @removeChild p
                     p
+                removeChild: (destroyPromise) ->
+                    if @attr?.parent?.childList? 
+                        oldChildList = @attr.parent.childList
+                        @attr.parent.childList = corelib.promiseApply \
+                            ((childList) => 
+                                childList.removeNode node.name), 
+                            # include destroyPromise in the arguments
+                            # so that the node is only removed when 
+                            # we know the deletion succeeded.
+                            [oldChildList, destroyPromise]
+
+                insertChild: (creationPromise) ->
+                    if @childList? 
+                        oldChildList = @childList
+                        @childList = corelib.promiseApply ((obj, list) =>
+                            list.addNode
+                                key: obj.name
+                                value: obj
+                            ), [creationPromise, oldChildList]
+
                 request: (that, ajaxFun, attribute, transform = (x)->x) =>
                     if !(@[attribute]?)
                         ajaxPromise = new corelib.Promise
@@ -79,15 +99,8 @@ define ['http://mutable-state.tiddlyspace.com/mutable-state.js'], (with_mutable_
                     if spec.policy? then newObj.policy = $.extend newObj.policy, spec.policy
                     if spec.recipe? then newObj.recipe = spec.recipe
                     creationPromise = new corelib.Promise()
-                    cb_success = (obj) =>
-                        if @childList? then corelib.promiseApply (list) ->
-                                list.addNode
-                                    key: obj.name
-                                    value: obj
-                            [@childList]
-                        creationPromise.fulfill true, obj
-                    cb_failure = (err) -> creationPromise.fulfill false, err
-                    newObj.put cb_success, cb_failure
+                    newObj.put.apply newObj, creationPromise.defaultHandlers()
+                    @insertChild creationPromise
                     creationPromise
  
             class SecondLevel extends TWObj # a Bag or Recipe
@@ -118,7 +131,7 @@ define ['http://mutable-state.tiddlyspace.com/mutable-state.js'], (with_mutable_
                     if spec.fields? then newObj.fields = $.extend newObj.fields, spec.fields
                     creationPromise = new corelib.Promise()
                     newObj.put.apply newObj, creationPromise.defaultHandlers()
-                    # TODO: add newObj to child set.
+                    @insertChild creationPromise
                     creationPromise
                    
             class TiddlerWrapper extends TWObj
