@@ -62,7 +62,7 @@ define ['corelib'], (corelib) ->
                         fsState.co
                 chain = 
                     if keyList.length > 0
-                        new corelib.ContinuationChain [fun.getChildSet, currentObject]
+                        corelib.continuationChain [fun.getChildSet, currentObject]
                     else
                         new corelib.Promise value: currentObject
             Node: class extends corelib.NAV
@@ -121,7 +121,11 @@ define ['corelib'], (corelib) ->
             eval: (expr) ->
                 if typeof(expr) == "string" then lib.pathExpr expr else expr
             runMethod: (nodeName, methodName, args = []) ->
-                corelib.promiseApply ((node) -> node[methodName].apply node, args), [lib.eval nodeName]
+                corelib.promiseApply ((node) -> 
+                    if typeof node[methodName] == "function"
+                        result = node[methodName].apply node, args
+                    else throw new Error "Object at "+nodeName+" has now method named '"+methodName+"'"
+                    ), [lib.eval nodeName]
         # Make separator read-only.
         lib.__defineGetter__ 'separator', -> separator
         rootNode = fsState.co = new (
@@ -193,8 +197,7 @@ define ['corelib'], (corelib) ->
                     value: (name, spec) ->
                         nameParts = lib.splitFullName name
                         parent = lib.pathExpr nameParts.ns
-                        parent.apply (p) -> 
-                            if p?.createChild? then p.createChild.apply p, [nameParts.key, spec] else throw new Error "cannot create child here."
+                        lib.runMethod parent, 'createChild', [nameParts.key, spec]
                 rm:
                     attr:
                         description: "Delete an object"

@@ -19,9 +19,7 @@
 */
 
 (function() {
-  var __slice = Array.prototype.slice,
-    __hasProp = Object.prototype.hasOwnProperty,
-    __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor; child.__super__ = parent.prototype; return child; };
+  var __slice = Array.prototype.slice;
 
   define('corelib',[], function() {
     var corelib;
@@ -182,39 +180,28 @@
         output = (funs.shift()).apply(null, [input]);
         return [funs.length > 0 ? seqContFn : true, output];
       };
-      return seqChain = new corelib.ContinuationChain([seqContFn, seed], spec);
+      return seqChain = corelib.continuationChain([seqContFn, seed], spec);
     };
-    corelib.ContinuationChain = (function(_super) {
-
-      __extends(_Class, _super);
-
-      function _Class(initialCont, spec) {
-        var processContinuation,
-          _this = this;
-        _Class.__super__.constructor.call(this, spec);
-        this.chain = [];
-        processContinuation = function(cont) {
-          _this.chain.push(cont);
-          return corelib.promiseApply((function(tag, val) {
-            var nextCont;
-            if (typeof tag === "boolean") {
-              return _this.fulfill(tag, val);
-            } else if (typeof tag === "function") {
-              nextCont = null;
-              return processContinuation(tag.apply(null, [val]));
-            } else {
-              throw new Error("continuationChain: invalid continuation format!");
-            }
-          }), cont, null, {
-            afterFailure: _this.defaultHandlers()[1]
-          });
-        };
-        processContinuation(initialCont);
-      }
-
-      return _Class;
-
-    })(corelib.Promise);
+    corelib.continuationChain = function(initialCont, spec) {
+      var chain, processContinuation, result,
+        _this = this;
+      chain = [];
+      processContinuation = function(cont) {
+        chain.push(cont);
+        return corelib.promiseApply((function(tag, val) {
+          if (typeof tag === "boolean") {
+            return val;
+          } else if (typeof tag === "function") {
+            return processContinuation(tag.apply(null, [val]));
+          } else {
+            throw new Error("continuationChain: invalid continuation format!");
+          }
+        }), cont, null);
+      };
+      result = processContinuation(initialCont);
+      result.chain = chain;
+      return result;
+    };
     corelib.promiseArray = function(pArray, spec) {
       var assign, handleValue, i, maybeFinish, num, numPending, pending, promise, resultArray, _ref;
       promise = new corelib.Promise(spec);
@@ -241,7 +228,8 @@
       handleValue = function(ix, val) {
         if (val instanceof corelib.Promise) {
           if (!val.hasOwnProperty('fulfilled')) {
-            val.afterFulfilled(function(value) {
+            val.afterFailure(promise.defaultHandlers()[1]);
+            val.afterSuccess(function(value) {
               return handleValue(ix, value);
             });
           } else {
@@ -261,10 +249,10 @@
       }
       return promise;
     };
-    corelib.promiseApply = function(fun, args, that, spec) {
-      var argPromise, evaluatedPromise;
+    corelib.promiseApply = function(fun, fnargs, that, spec) {
+      var argPromise, args, evaluatedPromise;
       evaluatedPromise = new corelib.Promise(spec);
-      if (args == null) args = [];
+      args = fnargs instanceof Array ? fnargs.slice(0) : [];
       args.push(fun);
       args.push(that);
       argPromise = corelib.promiseArray(args);
@@ -283,6 +271,7 @@
             return evaluatedPromise.fulfill(true, res[0]);
           });
         } catch (e) {
+          evaluatedPromise.debug.exceptionCaught = e;
           return evaluatedPromise.fulfill(false, e);
         }
       });
@@ -1320,7 +1309,7 @@
             }
           };
           currentObject = keyList.length > 0 && keyList[0].length === 0 ? (keyList.shift(), rootNode) : fsState.co;
-          return chain = keyList.length > 0 ? new corelib.ContinuationChain([fun.getChildSet, currentObject]) : new corelib.Promise({
+          return chain = keyList.length > 0 ? corelib.continuationChain([fun.getChildSet, currentObject]) : new corelib.Promise({
             value: currentObject
           });
         },
@@ -1442,7 +1431,12 @@
         runMethod: function(nodeName, methodName, args) {
           if (args == null) args = [];
           return corelib.promiseApply((function(node) {
-            return node[methodName].apply(node, args);
+            var result;
+            if (typeof node[methodName] === "function") {
+              return result = node[methodName].apply(node, args);
+            } else {
+              throw new Error("Object at " + nodeName + " has now method named '" + methodName + "'");
+            }
           }), [lib.eval(nodeName)]);
         }
       };
@@ -1566,13 +1560,7 @@
               var nameParts, parent;
               nameParts = lib.splitFullName(name);
               parent = lib.pathExpr(nameParts.ns);
-              return parent.apply(function(p) {
-                if ((p != null ? p.createChild : void 0) != null) {
-                  return p.createChild.apply(p, [nameParts.key, spec]);
-                } else {
-                  throw new Error("cannot create child here.");
-                }
-              });
+              return lib.runMethod(parent, 'createChild', [nameParts.key, spec]);
             }
           },
           rm: {
@@ -1907,8 +1895,7 @@
         });
         this.afterFailure(function(val) {
           div.children().remove();
-          dt.pkgGet('ui', 'display').value(val, false, div);
-          return div.append($('<b>There was an error. Details below:</b>'));
+          return dt.pkgGet('ui', 'display').value(val, false, div);
         });
         return div;
       };
@@ -2009,6 +1996,13 @@
             description: "Reference to internals object"
           },
           value: dtobj.internals
+        },
+        corelib: {
+          attr: {
+            description: "Reference to core library (corelib)",
+            makePublic: true
+          },
+          value: dtobj.internals.corelib
         },
         exec: {
           attr: {

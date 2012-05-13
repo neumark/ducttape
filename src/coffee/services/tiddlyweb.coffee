@@ -57,14 +57,14 @@ define ['http://mutable-state.tiddlyspace.com/mutable-state.js'], (with_mutable_
                             # we know the deletion succeeded.
                             [oldChildList, destroyPromise]
 
-                insertChild: (creationPromise) ->
+                insertChild: (newChild) ->
                     if @childList? 
                         oldChildList = @childList
                         @childList = corelib.promiseApply ((obj, list) =>
                             list.addNode
                                 key: obj.name
                                 value: obj
-                            ), [creationPromise, oldChildList]
+                            ), [newChild, oldChildList]
 
                 request: (that, ajaxFun, attribute, transform = (x)->x) =>
                     if !(@[attribute]?)
@@ -98,10 +98,19 @@ define ['http://mutable-state.tiddlyspace.com/mutable-state.js'], (with_mutable_
                     if spec.desc? then newObj.desc = spec.desc
                     if spec.policy? then newObj.policy = $.extend newObj.policy, spec.policy
                     if spec.recipe? then newObj.recipe = spec.recipe
-                    creationPromise = new corelib.Promise()
-                    newObj.put.apply newObj, creationPromise.defaultHandlers()
-                    @insertChild creationPromise
-                    creationPromise
+                    creationPromise = corelib.sequence [
+                        # Make PUT request to TiddlyWeb server
+                        ((obj) -> 
+                            p = new corelib.Promise()
+                            obj.put.apply obj, p.defaultHandlers()
+                            p)
+                        # Wrap the response in a SecondLevel object before adding to fs tree.
+                        ((twObj) => 
+                            wrapped = new SecondLevel twObj.name, @getType(), @
+                            wrapped.obj = twObj
+                            @insertChild wrapped
+                            wrapped)
+                    ], newObj
  
             class SecondLevel extends TWObj # a Bag or Recipe
                 constructor: (name, type, parent) -> 
@@ -129,21 +138,36 @@ define ['http://mutable-state.tiddlyspace.com/mutable-state.js'], (with_mutable_
                     newObj.text = spec.text
                     if spec.tags? then newObj.tags = spec.tags
                     if spec.fields? then newObj.fields = $.extend newObj.fields, spec.fields
-                    creationPromise = new corelib.Promise()
-                    newObj.put.apply newObj, creationPromise.defaultHandlers()
-                    @insertChild creationPromise
-                    creationPromise
+                    creationPromise = corelib.sequence [
+                        # Make PUT request to TiddlyWeb server
+                        ((obj) -> 
+                            p = new corelib.Promise()
+                            obj.put.apply obj, p.defaultHandlers()
+                            p)
+                        # Wrap the response in a TiddlerWrapper object before adding to fs tree.
+                        ((twObj) => 
+                            wrapped = new TiddlerWrapper twObj, @
+                            @insertChild wrapped
+                            wrapped)
+                    ], newObj
+
                    
             class TiddlerWrapper extends TWObj
-                constructor: (@tiddler, @parent) ->
+                constructor: (@tiddler, parent=null) ->
                     @name = @tiddler.title
-                    @attr = type: 'Tiddler'
+                    @attr = 
+                        type: 'Tiddler'
+                        parent: parent
                     @value = @obj = @tiddler
                     # TODO: revisions, fields, tags could be further children
                 save: ->
-                    promise = new corelib.Promise()
-                    @tiddler.put.apply @tiddler, promise.defaultHandlers()
-                    promise
+                    corelib.sequence [
+                        ( =>
+                            promise = new corelib.Promise()
+                            @tiddler.put.apply @tiddler, promise.defaultHandlers()
+                            promise)
+                        (=> @)
+                    ]
 
             class Root extends TWObj
                 constructor: (tw) ->

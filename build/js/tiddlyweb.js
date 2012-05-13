@@ -83,7 +83,7 @@
             }
           };
 
-          TWObj.prototype.insertChild = function(creationPromise) {
+          TWObj.prototype.insertChild = function(newChild) {
             var oldChildList,
               _this = this;
             if (this.childList != null) {
@@ -93,7 +93,7 @@
                   key: obj.name,
                   value: obj
                 });
-              }), [creationPromise, oldChildList]);
+              }), [newChild, oldChildList]);
             }
           };
 
@@ -160,7 +160,8 @@
           };
 
           TopLevel.prototype.createChild = function(name, spec) {
-            var creationPromise, newObj;
+            var creationPromise, newObj,
+              _this = this;
             if (spec == null) spec = {};
             newObj = this.mkTwebObj(this.getType(), name);
             if (spec.desc != null) newObj.desc = spec.desc;
@@ -168,10 +169,20 @@
               newObj.policy = $.extend(newObj.policy, spec.policy);
             }
             if (spec.recipe != null) newObj.recipe = spec.recipe;
-            creationPromise = new corelib.Promise();
-            newObj.put.apply(newObj, creationPromise.defaultHandlers());
-            this.insertChild(creationPromise);
-            return creationPromise;
+            return creationPromise = corelib.sequence([
+              (function(obj) {
+                var p;
+                p = new corelib.Promise();
+                obj.put.apply(obj, p.defaultHandlers());
+                return p;
+              }), (function(twObj) {
+                var wrapped;
+                wrapped = new SecondLevel(twObj.name, _this.getType(), _this);
+                wrapped.obj = twObj;
+                _this.insertChild(wrapped);
+                return wrapped;
+              })
+            ], newObj);
           };
 
           return TopLevel;
@@ -215,7 +226,8 @@
           }
 
           SecondLevel.prototype.createChild = function(name, spec) {
-            var creationPromise, newObj;
+            var creationPromise, newObj,
+              _this = this;
             if (spec == null) spec = {};
             if (this.attr.type !== 'Bag') {
               throw new Error('Cannot create child here.');
@@ -227,10 +239,19 @@
             if (spec.fields != null) {
               newObj.fields = $.extend(newObj.fields, spec.fields);
             }
-            creationPromise = new corelib.Promise();
-            newObj.put.apply(newObj, creationPromise.defaultHandlers());
-            this.insertChild(creationPromise);
-            return creationPromise;
+            return creationPromise = corelib.sequence([
+              (function(obj) {
+                var p;
+                p = new corelib.Promise();
+                obj.put.apply(obj, p.defaultHandlers());
+                return p;
+              }), (function(twObj) {
+                var wrapped;
+                wrapped = new TiddlerWrapper(twObj, _this);
+                _this.insertChild(wrapped);
+                return wrapped;
+              })
+            ], newObj);
           };
 
           return SecondLevel;
@@ -242,19 +263,27 @@
 
           function TiddlerWrapper(tiddler, parent) {
             this.tiddler = tiddler;
-            this.parent = parent;
+            if (parent == null) parent = null;
             this.name = this.tiddler.title;
             this.attr = {
-              type: 'Tiddler'
+              type: 'Tiddler',
+              parent: parent
             };
             this.value = this.obj = this.tiddler;
           }
 
           TiddlerWrapper.prototype.save = function() {
-            var promise;
-            promise = new corelib.Promise();
-            this.tiddler.put.apply(this.tiddler, promise.defaultHandlers());
-            return promise;
+            var _this = this;
+            return corelib.sequence([
+              (function() {
+                var promise;
+                promise = new corelib.Promise();
+                _this.tiddler.put.apply(_this.tiddler, promise.defaultHandlers());
+                return promise;
+              }), (function() {
+                return _this;
+              })
+            ]);
           };
 
           return TiddlerWrapper;

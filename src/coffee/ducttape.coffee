@@ -71,6 +71,11 @@ define [
                     attr:
                         description: "Reference to internals object"
                     value: dtobj.internals
+                corelib:
+                    attr:
+                        description: "Reference to core library (corelib)"
+                        makePublic: true
+                    value: dtobj.internals.corelib
                 exec:
                     attr:
                         description: "Parse and execute a command"

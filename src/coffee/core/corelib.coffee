@@ -95,32 +95,28 @@ define [], ->
                 if funs.length > 0 then seqContFn else true
                 output
             ]
-        seqChain = new corelib.ContinuationChain [seqContFn, seed], spec
+        seqChain = corelib.continuationChain [seqContFn, seed], spec
         
-    corelib.ContinuationChain =
-            class extends corelib.Promise
-                constructor: (initialCont, spec) -> 
-                    super spec
-                    # chain is for debugging only, the actual "chaining"
-                    # of promises is done through the event handlers.
-                    @chain = []
-                    processContinuation = (cont) =>
-                        @chain.push cont
-                        # For valid continuations, cont is type [function, *]
-                        # If the first parameter is a boolean, fulfill the continuationChain.
-                        corelib.promiseApply \
-                            ((tag, val) => 
-                                if typeof tag == "boolean" then @fulfill tag, val
-                                else if typeof tag == "function"
-                                    nextCont = null
-                                    # Exceptions will be caught by Promise::apply
-                                    processContinuation tag.apply null, [val]
-                                else throw new Error "continuationChain: invalid continuation format!"
-                                ),
-                            cont,
-                            null,
-                            afterFailure: @defaultHandlers()[1]
-                    processContinuation initialCont
+    corelib.continuationChain = (initialCont, spec) -> 
+        # chain is for debugging only, the actual "chaining"
+        # of promises is done through the event handlers.
+        chain = []
+        processContinuation = (cont) =>
+            chain.push cont
+            # For valid continuations, cont is type [function, *]
+            # If the first parameter is a boolean, fulfill the continuationChain.
+            corelib.promiseApply \
+                ((tag, val) -> 
+                    if typeof tag == "boolean" then val
+                    else if typeof tag == "function"
+                        processContinuation tag.apply null, [val]
+                    else throw new Error "continuationChain: invalid continuation format!"
+                ),
+                cont,
+                null
+        result = processContinuation initialCont
+        result.chain = chain
+        result
 
     corelib.promiseArray = (pArray, spec) ->
         promise = new corelib.Promise(spec)
@@ -137,7 +133,8 @@ define [], ->
         handleValue = (ix, val) ->
             if val instanceof corelib.Promise 
                 if !val.hasOwnProperty('fulfilled')
-                    val.afterFulfilled (value) -> handleValue ix, value
+                    val.afterFailure promise.defaultHandlers()[1]
+                    val.afterSuccess (value) -> handleValue ix, value
                 else # the fulfilled promise case
                     if val.isSuccess == false 
                         promise.fulfill false, val.value
@@ -150,9 +147,9 @@ define [], ->
         promise
 
    # Always returns a promise to the result of the function
-    corelib.promiseApply = (fun, args, that, spec) ->
+    corelib.promiseApply = (fun, fnargs, that, spec) ->
         evaluatedPromise = new corelib.Promise spec
-        args ?= []
+        args = if fnargs instanceof Array then fnargs.slice(0) else []
         args.push fun
         args.push that
         # Is fulfilled when the arguments are ready
@@ -168,6 +165,7 @@ define [], ->
                 evaluatedResultP.afterFailure (err) -> evaluatedPromise.fulfill false, err
                 evaluatedResultP.afterSuccess (res) -> evaluatedPromise.fulfill true, res[0]
             catch e
+                evaluatedPromise.debug.exceptionCaught = e
                 evaluatedPromise.fulfill false, e
         evaluatedPromise.waitingOn = argPromise
         evaluatedPromise.willApply = fun

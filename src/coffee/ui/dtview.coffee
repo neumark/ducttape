@@ -29,7 +29,7 @@ define ['corelib'], (corelib) ->
             @afterFailure (val) =>  
                 div.children().remove()
                 dt.pkgGet('ui','display').value val, false, div
-                div.append $ '<b>There was an error. Details below:</b>'
+                # TODO: display 'show details' link to objectviewer output of error
             div
 
         dt.pkgGet('fs','lib').value.Node::toHTML = -> 
