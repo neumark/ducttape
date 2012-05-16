@@ -16,23 +16,34 @@
 
    TiddlyWeb FS adaptor.
    This code allows one to mount a tiddlyweb host, accessible via the fs package.
-   Note: It is assumed that chrjs is included and that the AJAX calls will be
-   successful (because ducttape is hosted from the same domain, CORS or an
-   iframe hack).
 
 ###
 # The mutable-state dependancy is a hack to make CRUD operations work on tiddlyspace!
-define ['http://mutable-state.tiddlyspace.com/mutable-state.js'], (with_mutable_state) ->
+define [], ->
     (dt) ->
         corelib = dt.pkgGet('core','internals').value.corelib
         fslib = dt.pkgGet('fs','lib').value
+
+        getUsername = (host, spec) ->
+            usernamePromise = new corelib.Promise spec
+            $.get
+                url: host + '/status'
+                success: ((status) -> usernamePromise.fulfill status.username)
+                error: usernamePromise.defaultHandlers()[1]
+                dataType: 'json'
+            usernamePromise
+
+        getTiddlyWebApi = (apiUrl) ->
+            twebPromise = new corelib.Promise()
+            require [apiUrl], ((apiObj) ->
+                if typeof(apiObj) == 'function'
+                    apiObj (t) -> twebPromise.fulfill true, t
+                else
+                    twebPromise.fulfill true, apiObj)
+            twebPromise
+            
         makeMountPoint = (mountName, mountParent, options) ->
             host = options.url
-            tiddylweb = null
-            twebPromise = new corelib.Promise()
-            with_mutable_state (t) -> 
-                tiddlyweb = t
-                twebPromise.fulfill true, t
             class TWObj extends fslib.Node
                 constructor: (name, parent=null, filters=null) ->
                     super name, parent
@@ -130,6 +141,12 @@ define ['http://mutable-state.tiddlyspace.com/mutable-state.js'], (with_mutable_
                                         value: new TiddlerWrapper(tiddler, @)
                                     } for tiddler in tiddlerList))
                     super(name, parent)
+                save: ->
+                    corelib.promiseApply ((collection) =>
+                            promise = new corelib.Promise()
+                            collection.put.apply collection, promise.defaultHandlers()
+                            promise), [@value]
+
                 createChild: (name, spec = {}) ->
                     # TODO: if @ is a recipe, we should add tiddler to last bag in recipe
                     if @attr.type != 'Bag' then throw new Error 'Cannot create child here.'
@@ -182,7 +199,8 @@ define ['http://mutable-state.tiddlyspace.com/mutable-state.js'], (with_mutable_
                         parent: mountParent
                         children: => @childSet 
                     @value = true
-            twebRoot = twebPromise.apply (tiddlyweb) -> new Root(tiddlyweb)
+            getTiddlyWebApi(options.api).apply ((tiddlyweb) -> 
+                new Root(tiddlyweb))
         pkg =
             name: "tiddlyweb"
             attr:

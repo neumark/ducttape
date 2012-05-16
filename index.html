@@ -93,9 +93,13 @@
         ], (dt, tiddlyweb) -> 
             dt.pkgDef(tiddlyweb(dt));
             $ ->
-                dt.init();
+                dt.init()
                 dt.pkgGet('ui','lib').value.run dt.symbol()+'.help "intro"'
-                dt.pkgGet('fs','mk').value '/tiddlyspace', {type: 'tiddlyweb', url: 'http://tiddlyspace.com'}
+                dt.pkgGet('fs','mk').value '/tiddlyspace', {
+                    type: 'tiddlyweb',
+                    url: 'http://tiddlyspace.com',
+                    api: 'http://mutable-state.tiddlyspace.com/mutable-state.js'
+                }
     )
 </script>
 <!-- Google Analytics for tracking usage -->

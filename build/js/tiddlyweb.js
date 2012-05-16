@@ -17,9 +17,6 @@
 
    TiddlyWeb FS adaptor.
    This code allows one to mount a tiddlyweb host, accessible via the fs package.
-   Note: It is assumed that chrjs is included and that the AJAX calls will be
-   successful (because ducttape is hosted from the same domain, CORS or an
-   iframe hack).
 */
 
 (function() {
@@ -27,21 +24,41 @@
     __hasProp = Object.prototype.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor; child.__super__ = parent.prototype; return child; };
 
-  define(['http://mutable-state.tiddlyspace.com/mutable-state.js'], function(with_mutable_state) {
+  define([], function() {
     return function(dt) {
-      var corelib, fslib, makeMountPoint, pkg;
+      var corelib, fslib, getTiddlyWebApi, getUsername, makeMountPoint, pkg;
       corelib = dt.pkgGet('core', 'internals').value.corelib;
       fslib = dt.pkgGet('fs', 'lib').value;
-      makeMountPoint = function(mountName, mountParent, options) {
-        var Root, SecondLevel, TWObj, TiddlerWrapper, TopLevel, host, tiddylweb, twebPromise, twebRoot;
-        host = options.url;
-        tiddylweb = null;
-        twebPromise = new corelib.Promise();
-        with_mutable_state(function(t) {
-          var tiddlyweb;
-          tiddlyweb = t;
-          return twebPromise.fulfill(true, t);
+      getUsername = function(host, spec) {
+        var usernamePromise;
+        usernamePromise = new corelib.Promise(spec);
+        $.get({
+          url: host + '/status',
+          success: (function(status) {
+            return usernamePromise.fulfill(status.username);
+          }),
+          error: usernamePromise.defaultHandlers()[1],
+          dataType: 'json'
         });
+        return usernamePromise;
+      };
+      getTiddlyWebApi = function(apiUrl) {
+        var twebPromise;
+        twebPromise = new corelib.Promise();
+        require([apiUrl], (function(apiObj) {
+          if (typeof apiObj === 'function') {
+            return apiObj(function(t) {
+              return twebPromise.fulfill(true, t);
+            });
+          } else {
+            return twebPromise.fulfill(true, apiObj);
+          }
+        }));
+        return twebPromise;
+      };
+      makeMountPoint = function(mountName, mountParent, options) {
+        var Root, SecondLevel, TWObj, TiddlerWrapper, TopLevel, host;
+        host = options.url;
         TWObj = (function(_super) {
 
           __extends(TWObj, _super);
@@ -225,6 +242,16 @@
             SecondLevel.__super__.constructor.call(this, name, parent);
           }
 
+          SecondLevel.prototype.save = function() {
+            var _this = this;
+            return corelib.promiseApply((function(collection) {
+              var promise;
+              promise = new corelib.Promise();
+              collection.put.apply(collection, promise.defaultHandlers());
+              return promise;
+            }), [this.value]);
+          };
+
           SecondLevel.prototype.createChild = function(name, spec) {
             var creationPromise, newObj,
               _this = this;
@@ -324,9 +351,9 @@
           return Root;
 
         })(TWObj);
-        return twebRoot = twebPromise.apply(function(tiddlyweb) {
+        return getTiddlyWebApi(options.api).apply((function(tiddlyweb) {
           return new Root(tiddlyweb);
-        });
+        }));
       };
       return pkg = {
         name: "tiddlyweb",
