@@ -24,15 +24,22 @@ define [], ->
         corelib = dt.pkgGet('core','internals').value.corelib
         fslib = dt.pkgGet('fs','lib').value
 
-        getUsername = (host, spec) ->
-            usernamePromise = new corelib.Promise spec
-            $.get
-                url: host + '/status'
-                success: ((status) -> usernamePromise.fulfill status.username)
-                error: usernamePromise.defaultHandlers()[1]
-                dataType: 'json'
-            usernamePromise
+        getPolicy = (collection) ->
+            corelib.sequence [
+                ((coll) -> coll.value)
+                ((twObj) -> twObj.policy)
+            ], (dt collection)
 
+        getUsername = (root, spec) ->
+            usernamePromise = new corelib.Promise spec
+            root.tw.ajaxCall
+                url: root.attr.host + '/status',
+                type: "GET",
+                success: (status) -> 
+                    if status.username != 'GUEST' then usernamePromise.fulfill true, status.username
+                    else usernamePromise.fulfill false, "not logged in"
+                error: usernamePromise.defaultHandlers()[1]
+            usernamePromise
         getTiddlyWebApi = (apiUrl) ->
             twebPromise = new corelib.Promise()
             require [apiUrl], ((apiObj) ->
@@ -195,12 +202,13 @@ define [], ->
                             key: i
                         } for i in ['bags', 'recipes'])
                     @attr = 
+                        host: host
                         type: 'root'
                         parent: mountParent
                         children: => @childSet 
                     @value = true
-            getTiddlyWebApi(options.api).apply ((tiddlyweb) -> 
-                new Root(tiddlyweb))
+
+            getTiddlyWebApi(options.api).apply (tiddlyweb) -> new Root(tiddlyweb)
         pkg =
             name: "tiddlyweb"
             attr:
@@ -213,3 +221,50 @@ define [], ->
                     attr:
                         description: "Root node of tiddlyweb filesystem."                     
                     value: makeMountPoint
+                bootstrap:
+                    attr: 
+                        description: "Returns the user's custom bootstrap script (if any)."
+                    value: (root, pathTemplate) ->
+                        corelib.sequence [
+                            ((username) -> 
+                                path = pathTemplate.replace('{ user }', username)
+                                dt path)
+                            ((node) -> node.value)
+                            ((tiddler) -> 
+                                    corelib.execJS corelib.compile tiddler.text)
+                        ], getUsername(root.host)
+                tw:
+                    attr:
+                        description: "Utility functions for interacting with tiddlyweb servers."
+                        makePublic: true
+                    value:
+                        policy: getPolicy
+                        grant: (priv, user, collection) ->
+                            corelib.sequence [
+                                ((policy) ->
+                                    if not policy[priv]? then throw new Error "No such privilege " + priv
+                                    if not policy[priv] instanceof Array then throw new Error "Grant cannot be used on privilege " + priv
+                                    # check if it already exists
+                                    if policy[priv].indexOf(user) >= 0
+                                        throw new Error "User #{ user } already has privilege #{ priv } on object"
+                                    policy[priv].push user)
+                                (-> dt.save collection)
+                            ], getPolicy collection
+                        revoke: (priv, user, collection) ->
+                            corelib.sequence [
+                                ((policy) ->
+                                    if not policy[priv]? then throw new Error "No such privilege " + priv
+                                    if not policy[priv] instanceof Array then throw new Error "Revoke cannot be used on privilege " + priv
+                                    # check if it already exists
+                                    if policy[priv].indexOf(user) < 0
+                                        throw new Error "User #{ user } already lacks privilege #{ priv } on object"
+                                    policy[priv].push user)
+                                (-> dt.save collection)
+                            ], getPolicy collection
+                        text: (tiddlerPath) ->
+                            corelib.sequence [
+                                ((wrapper) -> wrapper.value)
+                                ((twObj) -> twObj.text)
+                            ], dt tiddlerPath
+                        user: (root) -> getUsername root
+

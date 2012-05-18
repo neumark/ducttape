@@ -86,6 +86,7 @@
 <script src="deps/stacktrace/stacktrace.js"></script>
 <script type="text/coffeescript">
     require.config baseUrl: 'build/js/'
+    bootstrapPath = '/tiddlyspace/bags/{ user }_public/dtBootstrap'
     require(
         [
             "ducttape"
@@ -95,11 +96,18 @@
             $ ->
                 dt.init()
                 dt.pkgGet('ui','lib').value.run dt.symbol()+'.help "intro"'
-                dt.pkgGet('fs','mk').value '/tiddlyspace', {
+                rootP = dt.pkgGet('fs','mk').value '/tiddlyspace', {
                     type: 'tiddlyweb',
                     url: 'http://tiddlyspace.com',
                     api: 'http://mutable-state.tiddlyspace.com/mutable-state.js'
                 }
+                dt.corelib.sequence [
+                    ((root) -> 
+                        dt.tw.user root)
+                    ((user) -> bootstrapPath.replace "{ user }", user)
+                    ((path) -> dt.tw.text path)
+                    ((script) -> dt.pkgGet('ui', 'display').value dt.corelib.execJS dt.corelib.compile script)
+                ], rootP
     )
 </script>
 <!-- Google Analytics for tracking usage -->

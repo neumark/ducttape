@@ -26,19 +26,32 @@
 
   define([], function() {
     return function(dt) {
-      var corelib, fslib, getTiddlyWebApi, getUsername, makeMountPoint, pkg;
+      var corelib, fslib, getPolicy, getTiddlyWebApi, getUsername, makeMountPoint, pkg;
       corelib = dt.pkgGet('core', 'internals').value.corelib;
       fslib = dt.pkgGet('fs', 'lib').value;
-      getUsername = function(host, spec) {
+      getPolicy = function(collection) {
+        return corelib.sequence([
+          (function(coll) {
+            return coll.value;
+          }), (function(twObj) {
+            return twObj.policy;
+          })
+        ], dt(collection));
+      };
+      getUsername = function(root, spec) {
         var usernamePromise;
         usernamePromise = new corelib.Promise(spec);
-        $.get({
-          url: host + '/status',
-          success: (function(status) {
-            return usernamePromise.fulfill(status.username);
-          }),
-          error: usernamePromise.defaultHandlers()[1],
-          dataType: 'json'
+        root.tw.ajaxCall({
+          url: root.attr.host + '/status',
+          type: "GET",
+          success: function(status) {
+            if (status.username !== 'GUEST') {
+              return usernamePromise.fulfill(true, status.username);
+            } else {
+              return usernamePromise.fulfill(false, "not logged in");
+            }
+          },
+          error: usernamePromise.defaultHandlers()[1]
         });
         return usernamePromise;
       };
@@ -339,6 +352,7 @@
               return _results;
             }).call(this));
             this.attr = {
+              host: host,
               type: 'root',
               parent: mountParent,
               children: function() {
@@ -351,9 +365,9 @@
           return Root;
 
         })(TWObj);
-        return getTiddlyWebApi(options.api).apply((function(tiddlyweb) {
+        return getTiddlyWebApi(options.api).apply(function(tiddlyweb) {
           return new Root(tiddlyweb);
-        }));
+        });
       };
       return pkg = {
         name: "tiddlyweb",
@@ -369,6 +383,81 @@
               description: "Root node of tiddlyweb filesystem."
             },
             value: makeMountPoint
+          },
+          bootstrap: {
+            attr: {
+              description: "Returns the user's custom bootstrap script (if any)."
+            },
+            value: function(root, pathTemplate) {
+              return corelib.sequence([
+                (function(username) {
+                  var path;
+                  path = pathTemplate.replace('{ user }', username);
+                  return dt(path);
+                }), (function(node) {
+                  return node.value;
+                }), (function(tiddler) {
+                  return corelib.execJS(corelib.compile(tiddler.text));
+                })
+              ], getUsername(root.host));
+            }
+          },
+          tw: {
+            attr: {
+              description: "Utility functions for interacting with tiddlyweb servers.",
+              makePublic: true
+            },
+            value: {
+              policy: getPolicy,
+              grant: function(priv, user, collection) {
+                return corelib.sequence([
+                  (function(policy) {
+                    if (!(policy[priv] != null)) {
+                      throw new Error("No such privilege " + priv);
+                    }
+                    if (!policy[priv] instanceof Array) {
+                      throw new Error("Grant cannot be used on privilege " + priv);
+                    }
+                    if (policy[priv].indexOf(user) >= 0) {
+                      throw new Error("User " + user + " already has privilege " + priv + " on object");
+                    }
+                    return policy[priv].push(user);
+                  }), (function() {
+                    return dt.save(collection);
+                  })
+                ], getPolicy(collection));
+              },
+              revoke: function(priv, user, collection) {
+                return corelib.sequence([
+                  (function(policy) {
+                    if (!(policy[priv] != null)) {
+                      throw new Error("No such privilege " + priv);
+                    }
+                    if (!policy[priv] instanceof Array) {
+                      throw new Error("Revoke cannot be used on privilege " + priv);
+                    }
+                    if (policy[priv].indexOf(user) < 0) {
+                      throw new Error("User " + user + " already lacks privilege " + priv + " on object");
+                    }
+                    return policy[priv].push(user);
+                  }), (function() {
+                    return dt.save(collection);
+                  })
+                ], getPolicy(collection));
+              },
+              text: function(tiddlerPath) {
+                return corelib.sequence([
+                  (function(wrapper) {
+                    return wrapper.value;
+                  }), (function(twObj) {
+                    return twObj.text;
+                  })
+                ], dt(tiddlerPath));
+              },
+              user: function(root) {
+                return getUsername(root);
+              }
+            }
           }
         }
       };
