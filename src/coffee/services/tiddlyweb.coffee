@@ -258,7 +258,7 @@ define [], ->
                                     # check if it already exists
                                     if policy[priv].indexOf(user) < 0
                                         throw new Error "User #{ user } already lacks privilege #{ priv } on object"
-                                    policy[priv].push user)
+                                    policy[priv] = (i for i in policy[priv] when i != user))
                                 (-> dt.save collection)
                             ], getPolicy collection
                         text: (tiddlerPath) ->

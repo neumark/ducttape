@@ -430,6 +430,7 @@
               revoke: function(priv, user, collection) {
                 return corelib.sequence([
                   (function(policy) {
+                    var i;
                     if (!(policy[priv] != null)) {
                       throw new Error("No such privilege " + priv);
                     }
@@ -439,7 +440,16 @@
                     if (policy[priv].indexOf(user) < 0) {
                       throw new Error("User " + user + " already lacks privilege " + priv + " on object");
                     }
-                    return policy[priv].push(user);
+                    return policy[priv] = (function() {
+                      var _i, _len, _ref, _results;
+                      _ref = policy[priv];
+                      _results = [];
+                      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+                        i = _ref[_i];
+                        if (i !== user) _results.push(i);
+                      }
+                      return _results;
+                    })();
                   }), (function() {
                     return dt.save(collection);
                   })
