@@ -58,7 +58,7 @@ define [], ->
                     @contentObj = null
                     @childList = null
                 mkTwebObj: (type, name, filters) -> new (@tw[type])(name, host, filters)
-                destroy: -> 
+                rm: -> 
                     p = new corelib.Promise()
                     corelib.promiseApply ((obj) -> 
                         obj.delete.apply obj, p.defaultHandlers()), [@obj]
@@ -111,7 +111,7 @@ define [], ->
                         when 'recipes' then 'Recipe'
                         else
                             throw new Error 'Unknown top level child: ' + @name
-                createChild: (name, spec = {}) ->
+                mk: (name, spec = {}) ->
                     newObj = @mkTwebObj @getType(), name
                     if spec.desc? then newObj.desc = spec.desc
                     if spec.policy? then newObj.policy = $.extend newObj.policy, spec.policy
@@ -154,7 +154,7 @@ define [], ->
                             collection.put.apply collection, promise.defaultHandlers()
                             promise), [@value]
 
-                createChild: (name, spec = {}) ->
+                mk: (name, spec = {}) ->
                     # TODO: if @ is a recipe, we should add tiddler to last bag in recipe
                     if @attr.type != 'Bag' then throw new Error 'Cannot create child here.'
                     newObj = @mkTwebObj 'Tiddler', name

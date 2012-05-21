@@ -92,7 +92,7 @@
             return new this.tw[type](name, host, filters);
           };
 
-          TWObj.prototype.destroy = function() {
+          TWObj.prototype.rm = function() {
             var p;
             p = new corelib.Promise();
             corelib.promiseApply((function(obj) {
@@ -189,7 +189,7 @@
             }
           };
 
-          TopLevel.prototype.createChild = function(name, spec) {
+          TopLevel.prototype.mk = function(name, spec) {
             var creationPromise, newObj,
               _this = this;
             if (spec == null) spec = {};
@@ -265,7 +265,7 @@
             }), [this.value]);
           };
 
-          SecondLevel.prototype.createChild = function(name, spec) {
+          SecondLevel.prototype.mk = function(name, spec) {
             var creationPromise, newObj,
               _this = this;
             if (spec == null) spec = {};

@@ -71,7 +71,7 @@ define ['corelib'], (corelib) ->
                         if parent? then @attr.parent = parent
                         @attr.fullname ?= =>
                             lib.makeFullName (if @attr.parent?.attr?.fullname? then @attr.parent.attr.fullname() else ""), @name
-                    createChild: ->
+                    mk: ->
                         throw new Error "Cannot create new child"
             NodeSet: class
                 constructor: (childList) ->
@@ -138,7 +138,7 @@ define ['corelib'], (corelib) ->
                             parent: null
                             description: "Root node of ducttape filesystem."
                             children: -> childrenOfRoot 
-                    createChild: (name, spec) ->
+                    mk: (name, spec) ->
                         newMountPromise = dt.pkgGet(spec.type, 'makeMountPoint').value name, @, spec
                         @attr.children().addNode({
                             key: name
@@ -197,12 +197,19 @@ define ['corelib'], (corelib) ->
                     value: (name, spec) ->
                         nameParts = lib.splitFullName name
                         parent = lib.pathExpr nameParts.ns
-                        lib.runMethod parent, 'createChild', [nameParts.key, spec]
+                        lib.runMethod parent, 'mk', [nameParts.key, spec]
                 rm:
                     attr:
                         description: "Delete an object"
                         makePublic: true
-                    value: (nodeName) -> lib.runMethod nodeName, 'destroy'
+                    value: (nodeName) -> lib.runMethod nodeName, 'rm'
+                cp:
+                    attr:
+                        description: "Copies an object"
+                        makePublic: true
+                    value: (source, target) -> 
+                        (lib.pathExpr source).apply (src) ->
+                            pkg.value.mk.value target, original: src
                 save:
                     attr:
                         description: "Writes an object's state to backing storage."

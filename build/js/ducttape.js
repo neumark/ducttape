@@ -1332,7 +1332,7 @@
             }
           }
 
-          _Class.prototype.createChild = function() {
+          _Class.prototype.mk = function() {
             throw new Error("Cannot create new child");
           };
 
@@ -1461,7 +1461,7 @@
           };
         }
 
-        _Class.prototype.createChild = function(name, spec) {
+        _Class.prototype.mk = function(name, spec) {
           var newMountPromise;
           newMountPromise = dt.pkgGet(spec.type, 'makeMountPoint').value(name, this, spec);
           this.attr.children().addNode({
@@ -1560,7 +1560,7 @@
               var nameParts, parent;
               nameParts = lib.splitFullName(name);
               parent = lib.pathExpr(nameParts.ns);
-              return lib.runMethod(parent, 'createChild', [nameParts.key, spec]);
+              return lib.runMethod(parent, 'mk', [nameParts.key, spec]);
             }
           },
           rm: {
@@ -1569,7 +1569,20 @@
               makePublic: true
             },
             value: function(nodeName) {
-              return lib.runMethod(nodeName, 'destroy');
+              return lib.runMethod(nodeName, 'rm');
+            }
+          },
+          cp: {
+            attr: {
+              description: "Copies an object",
+              makePublic: true
+            },
+            value: function(source, target) {
+              return (lib.pathExpr(source)).apply(function(src) {
+                return pkg.value.mk.value(target, {
+                  original: src
+                });
+              });
             }
           },
           save: {
