@@ -25,6 +25,10 @@
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor; child.__super__ = parent.prototype; return child; };
 
   define([], function() {
+    var twSpec;
+    twSpec = {
+      timeout: 2 * 60
+    };
     return function(dt) {
       var corelib, fslib, getPolicy, getTiddlyWebApi, getUsername, makeMountPoint, pkg;
       corelib = dt.pkgGet('core', 'internals').value.corelib;
@@ -135,10 +139,7 @@
               };
             }
             if (!(this[attribute] != null)) {
-              ajaxPromise = new corelib.Promise({
-                ajaxFun: ajaxFun,
-                that: that
-              });
+              ajaxPromise = new corelib.Promise(twSpec);
               ajaxFun.apply(that, ajaxPromise.defaultHandlers());
               this[attribute] = ajaxPromise.apply(transform);
             }
@@ -228,7 +229,12 @@
               throw new Error('NotImplemented');
             });
             this.__defineGetter__('value', function() {
-              return _this.request(_this.obj, _this.obj.get, 'contentObj');
+              var valueP;
+              valueP = _this.request(_this.obj, _this.obj.get, 'contentObj');
+              valueP.apply(function(v) {
+                return $.extend(_this.obj, v);
+              });
+              return valueP;
             });
             this.attr = {
               type: type,
@@ -266,7 +272,7 @@
           };
 
           SecondLevel.prototype.mk = function(name, spec) {
-            var creationPromise, newObj,
+            var creationPromise, fields, newObj,
               _this = this;
             if (spec == null) spec = {};
             if (this.attr.type !== 'Bag') {
@@ -274,10 +280,15 @@
             }
             newObj = this.mkTwebObj('Tiddler', name);
             newObj.bag = this.obj;
-            newObj.text = spec.text;
+            if (spec.text != null) newObj.text = spec.text;
             if (spec.tags != null) newObj.tags = spec.tags;
             if (spec.fields != null) {
               newObj.fields = $.extend(newObj.fields, spec.fields);
+            }
+            if (spec.original != null) {
+              fields = newObj.fields;
+              $.extend(newObj, JSON.parse(JSON.stringify(spec.original)));
+              $.extend(newObj.fields, fields);
             }
             return creationPromise = corelib.sequence([
               (function(obj) {
@@ -466,6 +477,46 @@
               },
               user: function(root) {
                 return getUsername(root);
+              },
+              editFields: function(tiddler) {
+                var s, wrappedTiddler;
+                wrappedTiddler = null;
+                s = corelib.sequence([
+                  (function(t) {
+                    wrappedTiddler = t;
+                    return t.value;
+                  }), (function(twObj) {
+                    return [twObj.fields];
+                  }), (function(f) {
+                    return dt.pkgGet('jsonedit', 'jsonedit').value(f);
+                  }), (function() {
+                    return wrappedTiddler.save();
+                  })
+                ], fslib.eval(tiddler));
+                s.toHTML = function() {
+                  return null;
+                };
+                return s;
+              },
+              editRecipe: function(recipe) {
+                var rec, s;
+                rec = null;
+                s = corelib.sequence([
+                  (function(r) {
+                    rec = r;
+                    return r.value;
+                  }), (function(twObj) {
+                    return [twObj.recipe];
+                  }), (function(r) {
+                    return dt.pkgGet('jsonedit', 'jsonedit').value(r);
+                  }), (function() {
+                    return rec.save();
+                  })
+                ], fslib.eval(recipe));
+                s.toHTML = function() {
+                  return null;
+                };
+                return s;
               }
             }
           }

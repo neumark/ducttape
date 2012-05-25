@@ -189,7 +189,7 @@ define ['corelib'], (corelib) ->
                 # that is already attached to the DOM.
                 # We need to locate the previous parent, and insert a "this content has moved, but you can
                 # move it back" link.
-                if content.parents().last()?[0] instanceof HTMLHtmlElement
+                if content?.parents().last()?[0] instanceof HTMLHtmlElement
                     oldParent = content.parents().first()
                     msg = $("<div class='eval_result'><h2>This content has been moved!</h2>Sorry, it seems the content that used to be here is now somewhere else. No worries, though, <a href='#'>you can always get it back</a>.</div>")
                     msg.find('a').click (ev) =>
@@ -249,6 +249,9 @@ define ['corelib'], (corelib) ->
                     $("#interactions").append div
                 ui.execute(expr, null, true)
                 ui.scrollToBottom()
+            silence: (obj) ->
+                obj.toHTML = -> null
+                obj
         pkg =
             name: 'ui'
             attr:

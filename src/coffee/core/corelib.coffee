@@ -42,35 +42,39 @@ define [], ->
             hasAttributes: (attrList) ->
                 missing = (f for f in attrList when (not @attr[f]?))
                 missing.length == 0
+
     corelib.Promise =
         class
-            constructor: (@spec = {}) ->
+            defaultSpec:
+                timeout: 0
+            constructor: (@spec = corelib.Promise::defaultSpec) ->
                 @debug =
-                    createdStacktrace: printStackTrace()
+                    createdStacktrace: printStackTrace?()
                 @value = null
                 @made = new Date()
                 _.extend @, Backbone.Events
-                @spec.timeout ?= 2 * 60000
                 if 'value' of @spec then @fulfill (@spec.isSuccess ? true), @spec.value
                 if @spec.afterSuccess? then @afterSuccess @spec.afterSuccess
                 if @spec.afterFailure? then @afterFailure @spec.afterFailure
                 if @spec.afterFulfilled? then @afterFulfilled @spec.afterFulfilled
                 if @spec.timeout > 0
-                    @timeoutHandle = setTimeout  \
+                    @timeoutHandle = setTimeout \
                         ( => if !@hasOwnProperty 'fulfilled' 
                             @timeoutOccurred = true
                             # post-timeout fulfills should not
                             # throw an exception like they do now.
                             # TODO: log to the the error stream instead of console:
                             @fulfill false, new Error "timeout"
-                            @fulfill = (s, v) -> console.log "attempted post-timeout fulfill of promise " + s + " " +v
+                            @fulfill = @handlePostTimeoutFulfill
                         ),
-                        @spec.timeout
+                        @spec.timeout * 1000
+            handlePostTimeoutFulfill: (isSuccess, value) ->
+                console?.log "attempted post-timeout fulfill of promise " + isSuccess + " " + value
             fulfill: (@isSuccess, @value) ->
                 if @fulfilled? 
                     throw new Error 'Attempt to fulfill the same promise twice.'
                 else
-                    @debug.fulfilledStacktrace = printStackTrace()
+                    @debug.fulfilledStacktrace = printStackTrace?()
                     @fulfilled = new Date()
                     @trigger (if @isSuccess then "success" else "failure"), @value
             afterSuccess: (cb) ->
@@ -86,8 +90,7 @@ define [], ->
                     ((val) => @fulfill true, val)
                     ((err) => @fulfill false, err)
                 ]
-            notify: (otherPromise) ->
-                @afterFulfilled => otherPromise.fulfill @isSuccess, @value
+
     corelib.sequence = (funs, seed, spec) ->
         seqContFn = (input) ->
             output =  (funs.shift()).apply null, [input]
@@ -113,13 +116,14 @@ define [], ->
                     else throw new Error "continuationChain: invalid continuation format!"
                 ),
                 cont,
-                null
+                null,
+                spec
         result = processContinuation initialCont
         result.chain = chain
         result
 
     corelib.promiseArray = (pArray, spec) ->
-        promise = new corelib.Promise(spec)
+        promise = new corelib.Promise spec
         promise.pArray = pArray
         pending = {}
         numPending = pArray.length
@@ -186,5 +190,9 @@ define [], ->
     corelib.compile = (src) ->
         if src.length == 0 then src else CoffeeScript.compile(src, {'bare': on})
     corelib.execJS = (jsSrc) -> window.eval jsSrc.replace(/\n/g, "") + "\n"
+    corelib.require = (modules, spec) ->
+        modulePromise = new corelib.Promise spec
+        require modules, -> modulePromise.fulfill true, arguments
+        modulePromise
     corelib
 

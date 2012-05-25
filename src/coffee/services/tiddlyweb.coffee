@@ -20,6 +20,8 @@
 ###
 # The mutable-state dependancy is a hack to make CRUD operations work on tiddlyspace!
 define [], ->
+    twSpec = 
+        timeout: 2 * 60 # Two minute timeout for network traffic
     (dt) ->
         corelib = dt.pkgGet('core','internals').value.corelib
         fslib = dt.pkgGet('fs','lib').value
@@ -86,9 +88,7 @@ define [], ->
 
                 request: (that, ajaxFun, attribute, transform = (x)->x) =>
                     if !(@[attribute]?)
-                        ajaxPromise = new corelib.Promise
-                            ajaxFun: ajaxFun
-                            that: that
+                        ajaxPromise = new corelib.Promise twSpec
                         ajaxFun.apply that, ajaxPromise.defaultHandlers()
                         @[attribute] = ajaxPromise.apply transform
                     @[attribute]
@@ -135,7 +135,9 @@ define [], ->
                     # Define a setter for the value property
                     @__defineSetter__ 'value', -> throw new Error 'NotImplemented'
                     @__defineGetter__ 'value', =>
-                        @request @obj, @obj.get, 'contentObj'
+                        valueP = @request @obj, @obj.get, 'contentObj'
+                        valueP.apply (v) => $.extend @obj, v
+                        valueP
                     @attr = 
                         type: type
                         children: => 
@@ -159,9 +161,14 @@ define [], ->
                     if @attr.type != 'Bag' then throw new Error 'Cannot create child here.'
                     newObj = @mkTwebObj 'Tiddler', name
                     newObj.bag = @obj
-                    newObj.text = spec.text
+                    if spec.text? then newObj.text = spec.text
                     if spec.tags? then newObj.tags = spec.tags
                     if spec.fields? then newObj.fields = $.extend newObj.fields, spec.fields
+                    if spec.original?
+                        fields = newObj.fields
+                        # the stringify hack is a simple deep clone
+                        $.extend newObj, JSON.parse JSON.stringify spec.original
+                        $.extend newObj.fields, fields
                     creationPromise = corelib.sequence [
                         # Make PUT request to TiddlyWeb server
                         ((obj) -> 
@@ -267,4 +274,29 @@ define [], ->
                                 ((twObj) -> twObj.text)
                             ], dt tiddlerPath
                         user: (root) -> getUsername root
+                        editFields: (tiddler) ->
+                            wrappedTiddler = null
+                            s = corelib.sequence [
+                                ((t) -> 
+                                    wrappedTiddler = t
+                                    t.value)
+                                ((twObj) -> [twObj.fields])
+                                ((f) -> dt.pkgGet('jsonedit','jsonedit').value f)
+                                (-> wrappedTiddler.save())
+                            ], fslib.eval tiddler
+                            s.toHTML = -> null
+                            s
+                        editRecipe: (recipe) ->
+                            rec = null
+                            s = corelib.sequence [
+                                ((r) -> 
+                                    rec = r
+                                    r.value)
+                                ((twObj) -> [twObj.recipe])
+                                ((r) -> dt.pkgGet('jsonedit','jsonedit').value r)
+                                (-> rec.save())
+                            ], fslib.eval recipe
+                            s.toHTML = -> null
+                            s
+
 

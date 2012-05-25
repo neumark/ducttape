@@ -76,17 +76,20 @@
     })();
     corelib.Promise = (function() {
 
+      _Class.prototype.defaultSpec = {
+        timeout: 0
+      };
+
       function _Class(spec) {
-        var _base, _ref,
+        var _ref,
           _this = this;
-        this.spec = spec != null ? spec : {};
+        this.spec = spec != null ? spec : corelib.Promise.prototype.defaultSpec;
         this.debug = {
-          createdStacktrace: printStackTrace()
+          createdStacktrace: typeof printStackTrace === "function" ? printStackTrace() : void 0
         };
         this.value = null;
         this.made = new Date();
         _.extend(this, Backbone.Events);
-        if ((_base = this.spec).timeout == null) _base.timeout = 2 * 60000;
         if ('value' in this.spec) {
           this.fulfill((_ref = this.spec.isSuccess) != null ? _ref : true, this.spec.value);
         }
@@ -104,13 +107,15 @@
             if (!_this.hasOwnProperty('fulfilled')) {
               _this.timeoutOccurred = true;
               _this.fulfill(false, new Error("timeout"));
-              return _this.fulfill = function(s, v) {
-                return console.log("attempted post-timeout fulfill of promise " + s + " " + v);
-              };
+              return _this.fulfill = _this.handlePostTimeoutFulfill;
             }
-          }), this.spec.timeout);
+          }), this.spec.timeout * 1000);
         }
       }
+
+      _Class.prototype.handlePostTimeoutFulfill = function(isSuccess, value) {
+        return typeof console !== "undefined" && console !== null ? console.log("attempted post-timeout fulfill of promise " + isSuccess + " " + value) : void 0;
+      };
 
       _Class.prototype.fulfill = function(isSuccess, value) {
         this.isSuccess = isSuccess;
@@ -118,7 +123,7 @@
         if (this.fulfilled != null) {
           throw new Error('Attempt to fulfill the same promise twice.');
         } else {
-          this.debug.fulfilledStacktrace = printStackTrace();
+          this.debug.fulfilledStacktrace = typeof printStackTrace === "function" ? printStackTrace() : void 0;
           this.fulfilled = new Date();
           return this.trigger((this.isSuccess ? "success" : "failure"), this.value);
         }
@@ -163,13 +168,6 @@
         ];
       };
 
-      _Class.prototype.notify = function(otherPromise) {
-        var _this = this;
-        return this.afterFulfilled(function() {
-          return otherPromise.fulfill(_this.isSuccess, _this.value);
-        });
-      };
-
       return _Class;
 
     })();
@@ -196,7 +194,7 @@
           } else {
             throw new Error("continuationChain: invalid continuation format!");
           }
-        }), cont, null);
+        }), cont, null, spec);
       };
       result = processContinuation(initialCont);
       result.chain = chain;
@@ -318,6 +316,14 @@
     };
     corelib.execJS = function(jsSrc) {
       return window.eval(jsSrc.replace(/\n/g, "") + "\n");
+    };
+    corelib.require = function(modules, spec) {
+      var modulePromise;
+      modulePromise = new corelib.Promise(spec);
+      require(modules, function() {
+        return modulePromise.fulfill(true, arguments);
+      });
+      return modulePromise;
     };
     return corelib;
   });
@@ -649,7 +655,7 @@
         UI.prototype.detach = function(content) {
           var msg, oldParent, _ref,
             _this = this;
-          if (((_ref = content.parents().last()) != null ? _ref[0] : void 0) instanceof HTMLHtmlElement) {
+          if ((content != null ? (_ref = content.parents().last()) != null ? _ref[0] : void 0 : void 0) instanceof HTMLHtmlElement) {
             oldParent = content.parents().first();
             msg = $("<div class='eval_result'><h2>This content has been moved!</h2>Sorry, it seems the content that used to be here is now somewhere else. No worries, though, <a href='#'>you can always get it back</a>.</div>");
             msg.find('a').click(function(ev) {
@@ -1636,7 +1642,7 @@
       return pkg = {
         name: 'shellUtils',
         attr: {
-          description: 'Utilities functions to make DuctTape more shell-like.',
+          description: 'Utility functions to make DuctTape more shell-like.',
           author: 'Peter Neumark',
           url: 'https://github.com/neumark/ducttape',
           version: '1.0'
@@ -1943,12 +1949,119 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 
+   jsonedit.coffee - Edit javascript objects as JSON text.
+*/
+
+(function() {
+  var __hasProp = Object.prototype.hasOwnProperty;
+
+  define('jsonedit',[], function() {
+    return function(dt) {
+      var corelib, display, fslib, jsonedit, pkg, renderEditor;
+      corelib = dt.pkgGet('core', 'internals').value.corelib;
+      fslib = dt.pkgGet('fs', 'lib').value;
+      display = dt.pkgGet('ui', 'display').value;
+      renderEditor = function(text) {
+        var closeEditor, container, editor, finishPromise;
+        container = $('<div>' + '<input type="button" class="jsoneditsave" value="save">' + '<input type="button" class="jsoneditcancel" value="cancel">' + '<div style="width:400px;height:400px;">' + '<div style="width: 400px; height: 400px" class="jsoneditace"></div>' + '</div></div>');
+        closeEditor = function() {
+          return container.remove();
+        };
+        finishPromise = new corelib.Promise;
+        editor = ace.edit((container.find('div.jsoneditace'))[0]);
+        (container.find('input.jsoneditsave')).click(function() {
+          closeEditor();
+          return finishPromise.fulfill(true, editor.getSession().getValue());
+        });
+        (container.find('input.jsoneditcancel')).click(function() {
+          closeEditor();
+          return finishPromise.fulfill(false, "no change");
+        });
+        editor.getSession().setValue(text);
+        editor.getSession().setTabSize(4);
+        editor.getSession().setUseSoftTabs(true);
+        editor.getSession().setUseWrapMode(false);
+        editor.setHighlightActiveLine(true);
+        return [container, finishPromise];
+      };
+      jsonedit = function(obj, cb) {
+        var s;
+        if (cb == null) {
+          cb = function(x) {
+            return x;
+          };
+        }
+        s = corelib.sequence([
+          (function() {
+            return obj;
+          }), (function(o) {
+            return JSON.stringify(obj);
+          }), (function(text) {
+            var div, editFinished, _ref;
+            _ref = renderEditor(js_beautify(text)), div = _ref[0], editFinished = _ref[1];
+            display(div);
+            return editFinished;
+          }), (function(changedText) {
+            var key, value;
+            for (key in obj) {
+              if (!__hasProp.call(obj, key)) continue;
+              value = obj[key];
+              delete obj[key];
+            }
+            $.extend(obj, JSON.parse(changedText));
+            return obj;
+          })
+        ], corelib.require(['deps/js-beautify/beautify.js']));
+        s.toHTML = function() {
+          return null;
+        };
+        return s;
+      };
+      return pkg = {
+        name: 'jsonedit',
+        attr: {
+          description: 'Edit javascript objects as JSON text.',
+          author: 'Peter Neumark',
+          url: 'https://github.com/neumark/ducttape',
+          version: '1.0'
+        },
+        value: {
+          jsonedit: {
+            attr: {
+              description: 'Open edit an object\'s properties as JSON text.',
+              makePublic: true
+            },
+            value: jsonedit
+          }
+        }
+      };
+    };
+  });
+
+}).call(this);
+
+
+/*
+   Copyright 2012 Peter Neumark
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
    ducttape.coffee - main source file, defines the ducttape function.
 */
 
 (function() {
 
-  define('ducttape',['corelib', 'keybindings', 'ui', 'pkgmgr', 'objectviewer', 'fs', 'shellutils', 'help', 'dtview'], function(corelib, KeyBindings, ui, PkgMgr, objectviewer, fs, shellUtils, help, dtview) {
+  define('ducttape',['corelib', 'keybindings', 'ui', 'pkgmgr', 'objectviewer', 'fs', 'shellutils', 'help', 'dtview', 'jsonedit'], function(corelib, KeyBindings, ui, PkgMgr, objectviewer, fs, shellUtils, help, dtview, jsonedit) {
     var DuctTape, dt, dtobj, _ref;
     DuctTape = (function() {
 
@@ -2039,6 +2152,7 @@
     dtobj.internals.pkgmgr.pkgDef(fs(dt));
     dtobj.internals.pkgmgr.pkgDef(shellUtils(dt));
     dtobj.internals.pkgmgr.pkgDef(help(dt));
+    dtobj.internals.pkgmgr.pkgDef(jsonedit(dt));
     dt.toHTML = function() {
       return dt.pkgGet('help', 'help').value('intro');
     };

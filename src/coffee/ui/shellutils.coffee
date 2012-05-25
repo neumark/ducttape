@@ -23,7 +23,7 @@ define [], ->
         pkg =
             name: 'shellUtils'
             attr:
-                description: 'Utilities functions to make DuctTape more shell-like.'
+                description: 'Utility functions to make DuctTape more shell-like.'
                 author: 'Peter Neumark'
                 url: 'https://github.com/neumark/ducttape'
                 version: '1.0'
