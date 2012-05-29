@@ -28,7 +28,8 @@ define [
     'help'
     'dtview'
     'jsonedit'
-    ], (corelib, KeyBindings, ui, PkgMgr, objectviewer, fs, shellUtils, help, dtview, jsonedit) ->
+    'ga'
+    ], (corelib, KeyBindings, ui, PkgMgr, objectviewer, fs, shellUtils, help, dtview, jsonedit, ga) ->
         class DuctTape
             constructor: (@config) ->
                 # sanitize configuration:
@@ -93,6 +94,7 @@ define [
         dtobj.internals.pkgmgr.pkgDef shellUtils dt
         dtobj.internals.pkgmgr.pkgDef help dt
         dtobj.internals.pkgmgr.pkgDef jsonedit dt
+        dtobj.internals.pkgmgr.pkgDef ga dt
 
         dt.toHTML = -> dt.pkgGet('help', 'help').value 'intro'
         dtobj.internals.mainFun = (expr) -> dt.pkgGet('fs','lib').value.eval expr

@@ -121,6 +121,7 @@ define ['corelib'], (corelib) ->
             eval: (expr) ->
                 if typeof(expr) == "string" then lib.pathExpr expr else expr
             runMethod: (nodeName, methodName, args = []) ->
+                dt.pkgGet('ga','').value ['fs', methodName]
                 corelib.promiseApply ((node) -> 
                     if typeof node[methodName] == "function"
                         result = node[methodName].apply node, args

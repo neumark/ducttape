@@ -84,6 +84,20 @@
 <!-- requirejs -->
 <script src="deps/requirejs/require.js"></script>
 <script src="deps/stacktrace/stacktrace.js"></script>
+<!-- Google Analytics for tracking usage -->
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-29307183-1']);
+_gaq.push(['_setDomainName', 'github.com']);
+_gaq.push(['_setAllowLinker', true]);
+_gaq.push(['_trackPageview']);
+
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
 <script type="text/coffeescript">
     require.config baseUrl: 'build/js/'
     bootstrapPath = '/tiddlyspace/bags/{ user }_public/dtBootstrap'
@@ -95,6 +109,7 @@
             dt.pkgDef(tiddlyweb(dt));
             $ ->
                 dt.init()
+                dt.pkgGet('ga','setGAQ').value _gaq
                 dt.pkgGet('ui','lib').value.run dt.symbol()+'.help "intro"'
                 rootP = dt.pkgGet('fs','mk').value '/tiddlyspace', {
                     type: 'tiddlyweb',
@@ -109,20 +124,6 @@
                     ((script) -> dt.pkgGet('ui', 'display').value dt.corelib.execJS dt.corelib.compile script)
                 ], rootP
     )
-</script>
-<!-- Google Analytics for tracking usage -->
-<script type="text/javascript">
-var _gaq = _gaq || [];
-_gaq.push(['_setAccount', 'UA-29307183-1']);
-_gaq.push(['_setDomainName', 'github.com']);
-_gaq.push(['_setAllowLinker', true]);
-_gaq.push(['_trackPageview']);
-
-(function() {
-var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
-ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
-var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
-})();
 </script>
 </body>
 </html>

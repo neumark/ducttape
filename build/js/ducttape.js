@@ -743,6 +743,12 @@
           }
           ui.execute(expr, null, true);
           return ui.scrollToBottom();
+        },
+        silence: function(obj) {
+          obj.toHTML = function() {
+            return null;
+          };
+          return obj;
         }
       };
       return pkg = {
@@ -1436,6 +1442,7 @@
         },
         runMethod: function(nodeName, methodName, args) {
           if (args == null) args = [];
+          dt.pkgGet('ga', '').value(['fs', methodName]);
           return corelib.promiseApply((function(node) {
             var result;
             if (typeof node[methodName] === "function") {
@@ -1984,13 +1991,8 @@
         editor.setHighlightActiveLine(true);
         return [container, finishPromise];
       };
-      jsonedit = function(obj, cb) {
+      jsonedit = function(obj) {
         var s;
-        if (cb == null) {
-          cb = function(x) {
-            return x;
-          };
-        }
         s = corelib.sequence([
           (function() {
             return obj;
@@ -2056,12 +2058,70 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 
+   ga.coffee - Log interaction data in Google Analytics.
+*/
+
+(function() {
+
+  define('ga',[], function() {
+    return function(dt) {
+      var gaQ, pkg;
+      gaQ = null;
+      return pkg = {
+        name: "ga",
+        attr: {
+          description: "Google Analytics interaction logging.",
+          author: "Peter Neumark",
+          version: "1.0",
+          url: "https://github.com/neumark/ducttape"
+        },
+        value: {
+          setGAQ: {
+            attr: {
+              description: "Set GA's API event queue."
+            },
+            value: function(gaq) {
+              return gaQ = gaq;
+            }
+          },
+          gaLog: {
+            attr: {
+              description: "Logs the arguments to GA",
+              makePublic: true
+            },
+            value: function(name, value) {
+              return gaQ != null ? gaQ.push(['_trackEvent', name, value]) : void 0;
+            }
+          }
+        }
+      };
+    };
+  });
+
+}).call(this);
+
+
+/*
+   Copyright 2012 Peter Neumark
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
    ducttape.coffee - main source file, defines the ducttape function.
 */
 
 (function() {
 
-  define('ducttape',['corelib', 'keybindings', 'ui', 'pkgmgr', 'objectviewer', 'fs', 'shellutils', 'help', 'dtview', 'jsonedit'], function(corelib, KeyBindings, ui, PkgMgr, objectviewer, fs, shellUtils, help, dtview, jsonedit) {
+  define('ducttape',['corelib', 'keybindings', 'ui', 'pkgmgr', 'objectviewer', 'fs', 'shellutils', 'help', 'dtview', 'jsonedit', 'ga'], function(corelib, KeyBindings, ui, PkgMgr, objectviewer, fs, shellUtils, help, dtview, jsonedit, ga) {
     var DuctTape, dt, dtobj, _ref;
     DuctTape = (function() {
 
@@ -2153,6 +2213,7 @@
     dtobj.internals.pkgmgr.pkgDef(shellUtils(dt));
     dtobj.internals.pkgmgr.pkgDef(help(dt));
     dtobj.internals.pkgmgr.pkgDef(jsonedit(dt));
+    dtobj.internals.pkgmgr.pkgDef(ga(dt));
     dt.toHTML = function() {
       return dt.pkgGet('help', 'help').value('intro');
     };
