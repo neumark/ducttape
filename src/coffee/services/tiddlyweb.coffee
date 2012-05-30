@@ -250,7 +250,7 @@ define [], ->
                             dt.pkgGet('ga','gaLog').value 'command', 'tw.policy', arguments[0]
                             getPolicy.apply null, arguments
                         grant: (priv, user, collection) ->
-                            dt.pkgGet('ga','gaLog').value 'command', 'tw.grant', collection +", "+user+", "+priv
+                            dt.pkgGet('ga','gaLog').value 'command', 'tw.grant', "#{ collection } #{ user } #{ priv }"
                             corelib.sequence [
                                 ((policy) ->
                                     if not policy[priv]? then throw new Error "No such privilege " + priv
@@ -262,7 +262,7 @@ define [], ->
                                 (-> dt.save collection)
                             ], getPolicy collection
                         revoke: (priv, user, collection) ->
-                            dt.pkgGet('ga','gaLog').value 'command', 'tw.revoke', collection +", "+user+", "+priv
+                            dt.pkgGet('ga','gaLog').value 'command', 'tw.revoke', "#{ collection } #{ user } #{ priv }"
                             corelib.sequence [
                                 ((policy) ->
                                     if not policy[priv]? then throw new Error "No such privilege " + priv
@@ -295,16 +295,21 @@ define [], ->
                             s
                         editRecipe: (recipe) ->
                             rec = null
+                            dt.pkgGet('ga','gaLog').value 'command', 'tw.text', tiddlerPath
+                            div = $ '<div><img src="img/ajax-loader.gif" /><span>loading...<span></div>'
                             s = corelib.sequence [
                                 ((r) -> r.value)
                                 ((twObj) -> 
                                     rec = twObj
                                     twObj.recipe)
-                                ((recipe) -> dt.pkgGet('jsonedit','jsonedit').value recipe)
+                                ((recipe) -> 
+                                    div.remove()
+                                    div = null
+                                    dt.pkgGet('jsonedit','jsonedit').value recipe)
                                 ((newRecipe) -> 
                                     rec.recipe = newRecipe
                                     dt.save recipe)
                             ], fslib.eval recipe
-                            s.toHTML = -> null
+                            s.toHTML = -> div
                             s
 

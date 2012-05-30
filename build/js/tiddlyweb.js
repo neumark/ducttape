@@ -425,7 +425,7 @@
                 return getPolicy.apply(null, arguments);
               },
               grant: function(priv, user, collection) {
-                dt.pkgGet('ga', 'gaLog').value('command', 'tw.grant', collection(+", " + user + ", " + priv));
+                dt.pkgGet('ga', 'gaLog').value('command', 'tw.grant', "" + collection + " " + user + " " + priv);
                 return corelib.sequence([
                   (function(policy) {
                     if (!(policy[priv] != null)) {
@@ -444,7 +444,7 @@
                 ], getPolicy(collection));
               },
               revoke: function(priv, user, collection) {
-                dt.pkgGet('ga', 'gaLog').value('command', 'tw.revoke', collection(+", " + user + ", " + priv));
+                dt.pkgGet('ga', 'gaLog').value('command', 'tw.revoke', "" + collection + " " + user + " " + priv);
                 return corelib.sequence([
                   (function(policy) {
                     var i;
@@ -506,8 +506,10 @@
                 return s;
               },
               editRecipe: function(recipe) {
-                var rec, s;
+                var div, rec, s;
                 rec = null;
+                dt.pkgGet('ga', 'gaLog').value('command', 'tw.text', tiddlerPath);
+                div = $('<div><img src="img/ajax-loader.gif" /><span>loading...<span></div>');
                 s = corelib.sequence([
                   (function(r) {
                     return r.value;
@@ -515,6 +517,8 @@
                     rec = twObj;
                     return twObj.recipe;
                   }), (function(recipe) {
+                    div.remove();
+                    div = null;
                     return dt.pkgGet('jsonedit', 'jsonedit').value(recipe);
                   }), (function(newRecipe) {
                     rec.recipe = newRecipe;
@@ -522,7 +526,7 @@
                   })
                 ], fslib.eval(recipe));
                 s.toHTML = function() {
-                  return null;
+                  return div;
                 };
                 return s;
               }
