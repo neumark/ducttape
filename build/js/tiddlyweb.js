@@ -49,6 +49,7 @@
           url: root.attr.host + '/status',
           type: "GET",
           success: function(status) {
+            dt.pkgGet('ga', 'gaLog').value('command', 'tw.user', status.username);
             if (status.username !== 'GUEST') {
               return usernamePromise.fulfill(true, status.username);
             } else {
@@ -419,8 +420,12 @@
               makePublic: true
             },
             value: {
-              policy: getPolicy,
+              policy: function() {
+                dt.pkgGet('ga', 'gaLog').value('command', 'tw.policy', arguments[0]);
+                return getPolicy.apply(null, arguments);
+              },
               grant: function(priv, user, collection) {
+                dt.pkgGet('ga', 'gaLog').value('command', 'tw.grant', collection(+", " + user + ", " + priv));
                 return corelib.sequence([
                   (function(policy) {
                     if (!(policy[priv] != null)) {
@@ -439,6 +444,7 @@
                 ], getPolicy(collection));
               },
               revoke: function(priv, user, collection) {
+                dt.pkgGet('ga', 'gaLog').value('command', 'tw.revoke', collection(+", " + user + ", " + priv));
                 return corelib.sequence([
                   (function(policy) {
                     var i;
@@ -467,6 +473,7 @@
                 ], getPolicy(collection));
               },
               text: function(tiddlerPath) {
+                dt.pkgGet('ga', 'gaLog').value('command', 'tw.text', tiddlerPath);
                 return corelib.sequence([
                   (function(wrapper) {
                     return wrapper.value;
@@ -503,14 +510,15 @@
                 rec = null;
                 s = corelib.sequence([
                   (function(r) {
-                    rec = r;
                     return r.value;
                   }), (function(twObj) {
-                    return [twObj.recipe];
-                  }), (function(r) {
-                    return dt.pkgGet('jsonedit', 'jsonedit').value(r);
-                  }), (function() {
-                    return rec.save();
+                    rec = twObj;
+                    return twObj.recipe;
+                  }), (function(recipe) {
+                    return dt.pkgGet('jsonedit', 'jsonedit').value(recipe);
+                  }), (function(newRecipe) {
+                    rec.recipe = newRecipe;
+                    return dt.save(recipe);
                   })
                 ], fslib.eval(recipe));
                 s.toHTML = function() {

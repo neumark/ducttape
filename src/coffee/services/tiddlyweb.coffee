@@ -38,6 +38,7 @@ define [], ->
                 url: root.attr.host + '/status',
                 type: "GET",
                 success: (status) -> 
+                    dt.pkgGet('ga','gaLog').value 'command', 'tw.user', status.username
                     if status.username != 'GUEST' then usernamePromise.fulfill true, status.username
                     else usernamePromise.fulfill false, "not logged in"
                 error: usernamePromise.defaultHandlers()[1]
@@ -245,8 +246,11 @@ define [], ->
                         description: "Utility functions for interacting with tiddlyweb servers."
                         makePublic: true
                     value:
-                        policy: getPolicy
+                        policy: ->
+                            dt.pkgGet('ga','gaLog').value 'command', 'tw.policy', arguments[0]
+                            getPolicy.apply null, arguments
                         grant: (priv, user, collection) ->
+                            dt.pkgGet('ga','gaLog').value 'command', 'tw.grant', collection +", "+user+", "+priv
                             corelib.sequence [
                                 ((policy) ->
                                     if not policy[priv]? then throw new Error "No such privilege " + priv
@@ -258,6 +262,7 @@ define [], ->
                                 (-> dt.save collection)
                             ], getPolicy collection
                         revoke: (priv, user, collection) ->
+                            dt.pkgGet('ga','gaLog').value 'command', 'tw.revoke', collection +", "+user+", "+priv
                             corelib.sequence [
                                 ((policy) ->
                                     if not policy[priv]? then throw new Error "No such privilege " + priv
@@ -269,11 +274,13 @@ define [], ->
                                 (-> dt.save collection)
                             ], getPolicy collection
                         text: (tiddlerPath) ->
+                            dt.pkgGet('ga','gaLog').value 'command', 'tw.text', tiddlerPath
                             corelib.sequence [
                                 ((wrapper) -> wrapper.value)
                                 ((twObj) -> twObj.text)
                             ], dt tiddlerPath
-                        user: (root) -> getUsername root
+                        user: (root) -> 
+                            getUsername root
                         editFields: (tiddler) ->
                             wrappedTiddler = null
                             s = corelib.sequence [
@@ -289,14 +296,15 @@ define [], ->
                         editRecipe: (recipe) ->
                             rec = null
                             s = corelib.sequence [
-                                ((r) -> 
-                                    rec = r
-                                    r.value)
-                                ((twObj) -> [twObj.recipe])
-                                ((r) -> dt.pkgGet('jsonedit','jsonedit').value r)
-                                (-> rec.save())
+                                ((r) -> r.value)
+                                ((twObj) -> 
+                                    rec = twObj
+                                    twObj.recipe)
+                                ((recipe) -> dt.pkgGet('jsonedit','jsonedit').value recipe)
+                                ((newRecipe) -> 
+                                    rec.recipe = newRecipe
+                                    dt.save recipe)
                             ], fslib.eval recipe
                             s.toHTML = -> null
                             s
-
 

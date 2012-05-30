@@ -35,4 +35,4 @@ define [], ->
                     attr:
                         description: "Logs the arguments to GA"
                         makePublic: true
-                    value: (name, value) -> gaQ?.push ['_trackEvent', name, value]
+                    value: (cat, action, label) -> gaQ?.push ['_trackEvent', cat, action, label]

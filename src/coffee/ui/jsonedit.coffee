@@ -27,7 +27,7 @@ define [], ->
                 '<input type="button" class="jsoneditsave" value="save">' +
                 '<input type="button" class="jsoneditcancel" value="cancel">' +
                 '<div style="width:400px;height:400px;">'+
-                '<div style="width: 400px; height: 400px" class="jsoneditace"></div>' +
+                '<div style="width:400px; height:400px" class="jsoneditace"></div>' +
                 '</div></div>'
             closeEditor = -> container.remove()
             finishPromise = new corelib.Promise
@@ -54,10 +54,7 @@ define [], ->
                     [div, editFinished] = renderEditor js_beautify text
                     display div
                     editFinished)
-                ((changedText) ->
-                    delete obj[key] for own key, value of obj
-                    $.extend obj, JSON.parse changedText
-                    obj)
+                ((changedText) -> JSON.parse changedText)
             ], corelib.require ['deps/js-beautify/beautify.js']
             # Previous line makes sure jsbeatuify has loaded.
             # Contents of the file loads from cache on subsequent calls.

@@ -1442,7 +1442,7 @@
         },
         runMethod: function(nodeName, methodName, args) {
           if (args == null) args = [];
-          dt.pkgGet('ga', '').value(['fs', methodName]);
+          dt.pkgGet('ga', 'gaLog').value('command', methodName, nodeName);
           return corelib.promiseApply((function(node) {
             var result;
             if (typeof node[methodName] === "function") {
@@ -1550,6 +1550,7 @@
             },
             value: function(expr) {
               var nodePromise;
+              dt.pkgGet('ga', 'gaLog').value('command', 'ls', expr);
               nodePromise = lib.eval(expr != null ? expr : "");
               return nodePromise.apply(function(parent) {
                 var _ref2;
@@ -1960,7 +1961,6 @@
 */
 
 (function() {
-  var __hasProp = Object.prototype.hasOwnProperty;
 
   define('jsonedit',[], function() {
     return function(dt) {
@@ -1970,7 +1970,7 @@
       display = dt.pkgGet('ui', 'display').value;
       renderEditor = function(text) {
         var closeEditor, container, editor, finishPromise;
-        container = $('<div>' + '<input type="button" class="jsoneditsave" value="save">' + '<input type="button" class="jsoneditcancel" value="cancel">' + '<div style="width:400px;height:400px;">' + '<div style="width: 400px; height: 400px" class="jsoneditace"></div>' + '</div></div>');
+        container = $('<div>' + '<input type="button" class="jsoneditsave" value="save">' + '<input type="button" class="jsoneditcancel" value="cancel">' + '<div style="width:400px;height:400px;">' + '<div style="width:400px; height:400px" class="jsoneditace"></div>' + '</div></div>');
         closeEditor = function() {
           return container.remove();
         };
@@ -2004,14 +2004,7 @@
             display(div);
             return editFinished;
           }), (function(changedText) {
-            var key, value;
-            for (key in obj) {
-              if (!__hasProp.call(obj, key)) continue;
-              value = obj[key];
-              delete obj[key];
-            }
-            $.extend(obj, JSON.parse(changedText));
-            return obj;
+            return JSON.parse(changedText);
           })
         ], corelib.require(['deps/js-beautify/beautify.js']));
         s.toHTML = function() {
@@ -2089,8 +2082,8 @@
               description: "Logs the arguments to GA",
               makePublic: true
             },
-            value: function(name, value) {
-              return gaQ != null ? gaQ.push(['_trackEvent', name, value]) : void 0;
+            value: function(cat, action, label) {
+              return gaQ != null ? gaQ.push(['_trackEvent', cat, action, label]) : void 0;
             }
           }
         }

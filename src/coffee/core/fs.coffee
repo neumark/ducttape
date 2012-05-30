@@ -121,7 +121,7 @@ define ['corelib'], (corelib) ->
             eval: (expr) ->
                 if typeof(expr) == "string" then lib.pathExpr expr else expr
             runMethod: (nodeName, methodName, args = []) ->
-                dt.pkgGet('ga','').value ['fs', methodName]
+                dt.pkgGet('ga','gaLog').value 'command', methodName, nodeName
                 corelib.promiseApply ((node) -> 
                     if typeof node[methodName] == "function"
                         result = node[methodName].apply node, args
@@ -189,6 +189,7 @@ define ['corelib'], (corelib) ->
                         description: "Lists children of current object."
                         makePublic: true
                     value: (expr) ->
+                        dt.pkgGet('ga','gaLog').value 'command', 'ls', expr 
                         nodePromise = lib.eval (expr ? "")
                         nodePromise.apply (parent) -> parent?.attr?.children() ? throw new Error "parent has no children"
                 mk:
