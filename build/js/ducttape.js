@@ -1442,9 +1442,9 @@
         },
         runMethod: function(nodeName, methodName, args) {
           if (args == null) args = [];
-          dt.pkgGet('ga', 'gaLog').value('command', methodName, nodeName);
           return corelib.promiseApply((function(node) {
-            var result;
+            var result, _base;
+            dt.pkgGet('ga', 'gaLog').value('command', methodName, (typeof (_base = node.attr).fullname === "function" ? _base.fullname() : void 0) || node.name);
             if (typeof node[methodName] === "function") {
               return result = node[methodName].apply(node, args);
             } else {

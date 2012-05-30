@@ -121,8 +121,8 @@ define ['corelib'], (corelib) ->
             eval: (expr) ->
                 if typeof(expr) == "string" then lib.pathExpr expr else expr
             runMethod: (nodeName, methodName, args = []) ->
-                dt.pkgGet('ga','gaLog').value 'command', methodName, nodeName
                 corelib.promiseApply ((node) -> 
+                    dt.pkgGet('ga','gaLog').value 'command', methodName, node.attr.fullname?() || node.name
                     if typeof node[methodName] == "function"
                         result = node[methodName].apply node, args
                     else throw new Error "Object at "+nodeName+" has now method named '"+methodName+"'"
