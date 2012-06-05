@@ -295,7 +295,7 @@ define [], ->
                             s
                         editRecipe: (recipe) ->
                             rec = null
-                            dt.pkgGet('ga','gaLog').value 'command', 'tw.text', tiddlerPath
+                            dt.pkgGet('ga','gaLog').value 'command', 'tw.editRecipe', recipe 
                             div = $ '<div><img src="img/ajax-loader.gif" /><span>loading...<span></div>'
                             s = corelib.sequence [
                                 ((r) -> r.value)
