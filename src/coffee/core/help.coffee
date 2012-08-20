@@ -132,7 +132,7 @@ define ['corelib'], (corelib) ->
 
                             [#{ dt.symbol() }.ov window](/pseudoURL/run): Browse any javascript object (in this case, _window_).
 
-                            To view the list of all currently loaded packages and their contents, run [#{ dt.symbol() }.listPackages()](/pseudoURL/run).
+                            To view the list of all currently loaded packages and their contents, run [#{ dt.symbol() }.pkgList()](/pseudoURL/run).
 
                             ## DuctTape is extensible ##
                             Thanks to it's modular architecture, anyone can add commands to DuctTape.
